@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cxxtrace/string.h>
+#include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
@@ -37,6 +38,9 @@ public:
   auto at(size_type index) noexcept(false) -> event_ref;
   auto size() const noexcept -> size_type;
 
+  template<class Predicate>
+  auto get_if(Predicate&&) noexcept(false) -> event_ref;
+
 private:
   explicit events_snapshot(std::vector<detail::event> events) noexcept;
 
@@ -54,14 +58,15 @@ enum class event_kind
 class event_ref
 {
 public:
-  auto category() noexcept -> czstring;
-  auto kind() noexcept -> event_kind;
-  auto name() noexcept -> czstring;
+  auto category() const noexcept -> czstring;
+  auto kind() const noexcept -> event_kind;
+  auto name() const noexcept -> czstring;
+  auto thread_id() const noexcept -> thread_id;
 
 private:
-  explicit event_ref(detail::event* event) noexcept;
+  explicit event_ref(const detail::event* event) noexcept;
 
-  detail::event* event{ nullptr };
+  const detail::event* event{ nullptr };
 
   friend class events_snapshot;
 };
@@ -105,5 +110,7 @@ private:
   friend class incomplete_spans_snapshot;
 };
 }
+
+#include <cxxtrace/snapshot_impl.h>
 
 #endif

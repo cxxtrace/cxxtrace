@@ -2,6 +2,7 @@
 #include <cxxtrace/detail/storage.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/string.h>
+#include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
@@ -15,7 +16,10 @@ auto
 span_guard::enter(czstring category, czstring name) noexcept(false)
   -> span_guard
 {
-  storage::add_sample(sample{ category, name, sample_kind::enter_span });
+  storage::add_sample(sample{ category,
+                              name,
+                              sample_kind::enter_span,
+                              cxxtrace::get_current_thread_id() });
   return span_guard{ category, name };
 }
 
@@ -27,7 +31,10 @@ span_guard::span_guard(czstring category, czstring name) noexcept
 auto
 span_guard::exit() noexcept(false) -> void
 {
-  storage::add_sample(sample{ category, name, sample_kind::exit_span });
+  storage::add_sample(sample{ category,
+                              name,
+                              sample_kind::exit_span,
+                              cxxtrace::get_current_thread_id() });
 }
 }
 }

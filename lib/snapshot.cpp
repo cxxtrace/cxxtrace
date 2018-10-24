@@ -85,24 +85,30 @@ events_snapshot::events_snapshot(std::vector<detail::event> events) noexcept
 {}
 
 auto
-event_ref::category() noexcept -> czstring
+event_ref::category() const noexcept -> czstring
 {
   return this->event->sample.category;
 }
 
 auto
-event_ref::kind() noexcept -> event_kind
+event_ref::kind() const noexcept -> event_kind
 {
   return this->event->kind;
 }
 
 auto
-event_ref::name() noexcept -> czstring
+event_ref::name() const noexcept -> czstring
 {
   return this->event->sample.name;
 }
 
-event_ref::event_ref(detail::event* event) noexcept
+auto
+event_ref::thread_id() const noexcept -> cxxtrace::thread_id
+{
+  return this->event->sample.thread_id;
+}
+
+event_ref::event_ref(const detail::event* event) noexcept
   : event{ event }
 {}
 
