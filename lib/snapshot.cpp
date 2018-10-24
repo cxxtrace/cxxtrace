@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/storage.h>
 #include <cxxtrace/snapshot.h>
 #include <iterator>
 #include <vector>
@@ -20,7 +21,7 @@ copy_all_events() noexcept(false) -> events_snapshot
   using detail::sample_kind;
 
   auto events = std::vector<event>{};
-  for (const auto& sample : detail::g_samples) {
+  for (const auto& sample : detail::storage::copy_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         events.emplace_back(event{ event_kind::incomplete_span, sample });
@@ -45,7 +46,7 @@ copy_incomplete_spans() noexcept(false) -> incomplete_spans_snapshot
   using namespace detail;
 
   auto incomplete_spans = std::vector<detail::sample>{};
-  for (const auto& sample : detail::g_samples) {
+  for (const auto& sample : detail::storage::copy_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         incomplete_spans.emplace_back(sample);

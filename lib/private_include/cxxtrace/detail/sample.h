@@ -2,7 +2,6 @@
 #define CXXTRACE_DETAIL_SAMPLE_H
 
 #include <cxxtrace/string.h>
-#include <vector>
 
 namespace cxxtrace {
 namespace detail {
@@ -18,8 +17,6 @@ struct sample
   czstring name;
   sample_kind kind;
 };
-
-extern std::vector<sample> g_samples;
 }
 }
 
