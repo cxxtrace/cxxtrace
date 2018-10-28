@@ -3,10 +3,11 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstddef>
+#include <cxxtrace/config.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
+#include <cxxtrace/storage.h>
 #include <cxxtrace/string.h>
-#include <cxxtrace/testing.h>
 #include <cxxtrace/thread.h>
 #include <gtest/gtest.h>
 #include <mutex>
@@ -29,20 +30,42 @@ do_not_optimize_away(const T&) noexcept -> void;
 
 class test_span : public testing::Test
 {
+public:
+  explicit test_span()
+    : cxxtrace_config{ cxxtrace_storage }
+  {}
+
 protected:
-  void TearDown() noexcept override { cxxtrace::clear_all_samples(); }
+  auto get_cxxtrace_config() noexcept -> cxxtrace::default_config&
+  {
+    return this->cxxtrace_config;
+  }
+
+  auto copy_all_events() -> cxxtrace::events_snapshot
+  {
+    return cxxtrace::copy_all_events(this->cxxtrace_storage);
+  }
+
+  auto copy_incomplete_spans() -> cxxtrace::incomplete_spans_snapshot
+  {
+    return cxxtrace::copy_incomplete_spans(this->cxxtrace_storage);
+  }
+
+private:
+  cxxtrace::unbounded_storage cxxtrace_storage{};
+  cxxtrace::default_config cxxtrace_config;
 };
 
 TEST_F(test_span, no_events_exist_by_default)
 {
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 0);
 }
 
 TEST_F(test_span, span_adds_event_at_scope_enter)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 1);
   auto event = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event.category(), "span category");
@@ -54,7 +77,7 @@ TEST_F(test_span, incomplete_spans_includes_span_in_scope)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
   auto spans =
-    cxxtrace::incomplete_spans_snapshot{ cxxtrace::copy_incomplete_spans() };
+    cxxtrace::incomplete_spans_snapshot{ this->copy_incomplete_spans() };
   EXPECT_EQ(spans.size(), 1);
   EXPECT_STREQ(spans.at(0).category(), "span category");
   EXPECT_STREQ(spans.at(0).name(), "span name");
@@ -66,7 +89,7 @@ TEST_F(test_span, incomplete_spans_excludes_span_for_exited_scope)
     auto span = CXXTRACE_SPAN("span category", "span name");
   }
   auto spans =
-    cxxtrace::incomplete_spans_snapshot{ cxxtrace::copy_incomplete_spans() };
+    cxxtrace::incomplete_spans_snapshot{ this->copy_incomplete_spans() };
   EXPECT_EQ(spans.size(), 0);
 }
 
@@ -75,7 +98,7 @@ TEST_F(test_span, span_adds_event_at_scope_exit)
   {
     auto span = CXXTRACE_SPAN("span category", "span name");
   }
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 1);
   auto event = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event.category(), "span category");
@@ -88,7 +111,7 @@ TEST_F(test_span, events_for_later_incomplete_spans_spans_appear_later)
   auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
   auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
   auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 3);
   auto event_1 = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event_1.name(), "span name 1");
@@ -105,7 +128,7 @@ TEST_F(test_span, events_for_later_spans_appear_later)
     auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
     auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
   }
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 3);
   EXPECT_STREQ(events.at(0).name(), "span name 3");
   EXPECT_STREQ(events.at(1).name(), "span name 2");
@@ -118,7 +141,7 @@ TEST_F(test_span, event_for_incomplete_span_appears_after_sibling_complete_span)
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
   auto incomplete_span = CXXTRACE_SPAN("span category", "incomplete span");
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_STREQ(events.at(0).name(), "complete span");
   EXPECT_STREQ(events.at(1).name(), "incomplete span");
@@ -130,7 +153,7 @@ TEST_F(test_span, event_for_complete_span_appears_after_parent_incomplete_span)
   {
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_STREQ(events.at(0).name(), "incomplete span");
   EXPECT_STREQ(events.at(1).name(), "complete span");
@@ -164,7 +187,7 @@ TEST_F(test_span, span_events_include_thread_id)
   ASSERT_NE(thread_2_id, main_thread_id);
   ASSERT_NE(thread_1_id, thread_2_id);
 
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   auto get_event = [&events](std::string_view name) -> cxxtrace::event_ref {
     for (auto i = cxxtrace::events_snapshot::size_type{ 0 }; i < events.size();
          ++i) {
@@ -203,7 +226,7 @@ TEST_F(test_span, span_events_can_interleave_using_multiple_threads)
     thread.join();
   }
 
-  auto events = cxxtrace::events_snapshot{ cxxtrace::copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_NO_THROW(events.get_if([](const cxxtrace::event_ref& event) {
     return event.name() == "main span"sv;
@@ -240,6 +263,13 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
       do_not_optimize_away(data);
     }
 
+    auto get_cxxtrace_config() noexcept -> cxxtrace::default_config&
+    {
+      return this->cxxtrace_config;
+    }
+
+    cxxtrace::default_config& cxxtrace_config;
+
     std::mt19937 rng{};
     std::uniform_int_distribution<std::size_t> size_distribution{
       0,
@@ -248,10 +278,10 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
     std::uniform_int_distribution<item_type> item_distribution{ 0, 10 };
   };
 
-  auto thread_routine = []() noexcept->void
+  auto thread_routine = [this]() noexcept->void
   {
     auto thread_span = CXXTRACE_SPAN("workload", "thread");
-    auto work = workload{};
+    auto work = workload{ this->get_cxxtrace_config() };
     for (auto i = 0; i < work_iteration_count; ++i) {
       work.do_work();
     }

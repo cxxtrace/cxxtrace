@@ -2,8 +2,9 @@
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cstddef>
+#include <cxxtrace/config.h>
 #include <cxxtrace/span.h>
-#include <cxxtrace/testing.h>
+#include <cxxtrace/storage.h>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -36,6 +37,10 @@ private:
 class span_benchmark : public benchmark::Fixture
 {
 public:
+  explicit span_benchmark()
+    : cxxtrace_config{ cxxtrace_storage }
+  {}
+
   void SetUp(benchmark::State& bench) override
   {
     this->spans_per_iteration = bench.range(0);
@@ -50,13 +55,25 @@ public:
                                           benchmark::Counter::kIsRate };
   }
 
+protected:
+  auto get_cxxtrace_config() noexcept { return this->cxxtrace_config; }
+
+  auto clear_all_samples() noexcept -> void
+  {
+    get_cxxtrace_config().storage().clear_all_samples();
+  }
+
   int spans_per_iteration{ 0 };
+
+private:
+  cxxtrace::unbounded_storage cxxtrace_storage{};
+  cxxtrace::default_config cxxtrace_config;
 };
 
 BENCHMARK_DEFINE_F(span_benchmark, enter_exit)(benchmark::State& bench)
 {
   for (auto _ : bench) {
-    cxxtrace::clear_all_samples();
+    this->clear_all_samples();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       auto span = CXXTRACE_SPAN("category", "span");
     }
@@ -70,7 +87,7 @@ BENCHMARK_DEFINE_F(span_benchmark, enter_enter_exit_exit)
   assert(this->spans_per_iteration % 2 == 0);
   auto inner_iteration_count = this->spans_per_iteration / 2;
   for (auto _ : bench) {
-    cxxtrace::clear_all_samples();
+    this->clear_all_samples();
     for (auto i = 0; i < inner_iteration_count; ++i) {
       auto outer_span = CXXTRACE_SPAN("category", "outer span");
       auto inner_span = CXXTRACE_SPAN("category", "inner span");
@@ -84,7 +101,7 @@ BENCHMARK_DEFINE_F(span_benchmark, enter_thrash_memory_exit)
 {
   auto thrasher = cpu_data_cache_thrasher{};
   for (auto _ : bench) {
-    cxxtrace::clear_all_samples();
+    this->clear_all_samples();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       auto span = CXXTRACE_SPAN("category", "thrash memory");
       thrasher.thrash_memory();
@@ -97,7 +114,7 @@ BENCHMARK_DEFINE_F(span_benchmark, thrash_memory)(benchmark::State& bench)
 {
   auto thrasher = cpu_data_cache_thrasher{};
   for (auto _ : bench) {
-    cxxtrace::clear_all_samples();
+    this->clear_all_samples();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       thrasher.thrash_memory();
     }

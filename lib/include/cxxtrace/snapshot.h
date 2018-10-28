@@ -14,15 +14,26 @@ class incomplete_spans_snapshot;
 enum class event_kind;
 
 namespace detail {
+class storage;
 struct event;
 struct sample;
 }
 
+template<class Storage>
 auto
-copy_all_events() noexcept(false) -> events_snapshot;
+copy_all_events(Storage&) noexcept(false) -> events_snapshot;
 
+extern template auto
+copy_all_events<detail::storage>(detail::storage&) noexcept(false)
+  -> events_snapshot;
+
+template<class Storage>
 auto
-copy_incomplete_spans() noexcept(false) -> incomplete_spans_snapshot;
+copy_incomplete_spans(Storage&) noexcept(false) -> incomplete_spans_snapshot;
+
+extern template auto
+copy_incomplete_spans<detail::storage>(detail::storage&) noexcept(false)
+  -> incomplete_spans_snapshot;
 
 class events_snapshot
 {
@@ -46,7 +57,8 @@ private:
 
   std::vector<detail::event> events;
 
-  friend auto copy_all_events() noexcept(false) -> events_snapshot;
+  template<class Storage>
+  friend auto copy_all_events(Storage&) noexcept(false) -> events_snapshot;
 };
 
 enum class event_kind
@@ -92,7 +104,8 @@ private:
 
   std::vector<detail::sample> samples;
 
-  friend auto copy_incomplete_spans() noexcept(false)
+  template<class Storage>
+  friend auto copy_incomplete_spans(Storage&) noexcept(false)
     -> incomplete_spans_snapshot;
 };
 

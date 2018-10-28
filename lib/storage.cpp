@@ -1,33 +1,30 @@
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/detail/storage.h>
+#include <cxxtrace/storage.h>
 #include <mutex>
 
 namespace cxxtrace {
-namespace detail {
-namespace {
-std::mutex g_mutex{};
-std::vector<sample> g_samples{};
+unbounded_storage::unbounded_storage() noexcept = default;
+unbounded_storage::~unbounded_storage() noexcept = default;
+
+auto
+unbounded_storage::clear_all_samples() noexcept -> void
+{
+  auto lock = std::unique_lock{ this->mutex };
+  this->samples.clear();
 }
 
 auto
-storage::add_sample(sample s) noexcept(false) -> void
+unbounded_storage::add_sample(detail::sample s) noexcept(false) -> void
 {
-  auto lock = std::unique_lock{ g_mutex };
-  g_samples.emplace_back(std::move(s));
+  auto lock = std::unique_lock{ this->mutex };
+  this->samples.emplace_back(std::move(s));
 }
 
 auto
-storage::clear_all_samples() noexcept -> void
+unbounded_storage::copy_all_samples() noexcept(false)
+  -> std::vector<detail::sample>
 {
-  auto lock = std::unique_lock{ g_mutex };
-  g_samples.clear();
-}
-
-auto
-storage::copy_all_samples() noexcept(false) -> std::vector<sample>
-{
-  auto lock = std::unique_lock{ g_mutex };
-  return g_samples;
-}
+  auto lock = std::unique_lock{ this->mutex };
+  return this->samples;
 }
 }

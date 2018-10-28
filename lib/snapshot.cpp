@@ -1,7 +1,8 @@
 #include <cassert>
+#include <cxxtrace/config.h>
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/detail/storage.h>
 #include <cxxtrace/snapshot.h>
+#include <cxxtrace/storage.h>
 #include <iterator>
 #include <vector>
 
@@ -14,14 +15,15 @@ struct event
 };
 }
 
+template<class Storage>
 auto
-copy_all_events() noexcept(false) -> events_snapshot
+copy_all_events(Storage& storage) noexcept(false) -> events_snapshot
 {
   using detail::event;
   using detail::sample_kind;
 
   auto events = std::vector<event>{};
-  for (const auto& sample : detail::storage::copy_all_samples()) {
+  for (const auto& sample : storage.copy_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         events.emplace_back(event{ event_kind::incomplete_span, sample });
@@ -40,13 +42,19 @@ copy_all_events() noexcept(false) -> events_snapshot
   return events_snapshot{ events };
 }
 
+template auto
+copy_all_events<unbounded_storage>(unbounded_storage&) noexcept(false)
+  -> events_snapshot;
+
+template<class Storage>
 auto
-copy_incomplete_spans() noexcept(false) -> incomplete_spans_snapshot
+copy_incomplete_spans(Storage& storage) noexcept(false)
+  -> incomplete_spans_snapshot
 {
   using namespace detail;
 
   auto incomplete_spans = std::vector<detail::sample>{};
-  for (const auto& sample : detail::storage::copy_all_samples()) {
+  for (const auto& sample : storage.copy_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         incomplete_spans.emplace_back(sample);
@@ -58,6 +66,10 @@ copy_incomplete_spans() noexcept(false) -> incomplete_spans_snapshot
   }
   return incomplete_spans_snapshot{ incomplete_spans };
 }
+
+template auto
+copy_incomplete_spans<unbounded_storage>(unbounded_storage&) noexcept(false)
+  -> incomplete_spans_snapshot;
 
 events_snapshot::events_snapshot(const events_snapshot&) noexcept(false) =
   default;

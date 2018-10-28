@@ -1,40 +1,50 @@
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/detail/storage.h>
 #include <cxxtrace/span.h>
+#include <cxxtrace/storage.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
 namespace detail {
-span_guard::~span_guard() noexcept
+template<class Storage>
+span_guard<Storage>::~span_guard() noexcept
 {
   this->exit();
 }
 
+template<class Storage>
 auto
-span_guard::enter(czstring category, czstring name) noexcept(false)
-  -> span_guard
+span_guard<Storage>::enter(Storage& storage,
+                           czstring category,
+                           czstring name) noexcept(false) -> span_guard
 {
-  storage::add_sample(sample{ category,
-                              name,
-                              sample_kind::enter_span,
-                              cxxtrace::get_current_thread_id() });
-  return span_guard{ category, name };
+  storage.add_sample(sample{ category,
+                             name,
+                             sample_kind::enter_span,
+                             cxxtrace::get_current_thread_id() });
+  return span_guard{ storage, category, name };
 }
 
-span_guard::span_guard(czstring category, czstring name) noexcept
-  : category{ category }
+template<class Storage>
+span_guard<Storage>::span_guard(Storage& storage,
+                                czstring category,
+                                czstring name) noexcept
+  : storage{ storage }
+  , category{ category }
   , name{ name }
 {}
 
+template<class Storage>
 auto
-span_guard::exit() noexcept(false) -> void
+span_guard<Storage>::exit() noexcept(false) -> void
 {
-  storage::add_sample(sample{ category,
-                              name,
-                              sample_kind::exit_span,
-                              cxxtrace::get_current_thread_id() });
+  this->storage.add_sample(sample{ this->category,
+                                   this->name,
+                                   sample_kind::exit_span,
+                                   cxxtrace::get_current_thread_id() });
 }
+
+template class span_guard<unbounded_storage>;
 }
 }
