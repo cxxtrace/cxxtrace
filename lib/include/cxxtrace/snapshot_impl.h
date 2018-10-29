@@ -3,7 +3,7 @@
 
 #if !defined(CXXTRACE_SNAPSHOT_H)
 #error                                                                         \
-  "Include <cxxtrace/snapshot.h> instead of including <cxxtrace/snapshot_impl.h> header directly."
+  "Include <cxxtrace/snapshot.h> instead of including <cxxtrace/snapshot_impl.h> directly."
 #endif
 
 #include <stdexcept>
