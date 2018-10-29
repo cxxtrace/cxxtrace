@@ -1,4 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 
-add_library(cxxtrace config.cpp span.cpp snapshot.cpp storage.cpp thread.cpp)
+add_library(
+  cxxtrace
+  add.cpp
+  config.cpp
+  snapshot.cpp
+  span.cpp
+  storage.cpp
+  thread.cpp
+)
 target_include_directories(cxxtrace PUBLIC include PRIVATE private_include)

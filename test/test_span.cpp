@@ -1,3 +1,4 @@
+#include "stringify.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -12,18 +13,13 @@
 #include <gtest/gtest.h>
 #include <mutex>
 #include <random>
-#include <sstream>
 #include <string_view>
 #include <thread>
-#include <utility>
 
 using namespace std::literals::string_view_literals;
+using cxxtrace::stringify;
 
 namespace {
-template<class... Args>
-auto
-stringify(Args&&...) -> std::string;
-
 template<class T>
 auto
 do_not_optimize_away(const T&) noexcept -> void;
@@ -294,15 +290,6 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
   for (auto& thread : threads) {
     thread.join();
   }
-}
-
-template<class... Args>
-auto
-stringify(Args&&... args) -> std::string
-{
-  std::ostringstream stream;
-  (stream << ... << std::forward<Args>(args));
-  return stream.str();
 }
 
 template<class T>
