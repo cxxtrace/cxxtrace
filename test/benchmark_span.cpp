@@ -4,6 +4,7 @@
 #include <benchmark/benchmark.h>
 #include <cstddef>
 #include <cxxtrace/config.h>
+#include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <iostream>
@@ -76,6 +77,7 @@ private:
 };
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(span_benchmark,
+                                        cxxtrace::ring_queue_storage<1024>,
                                         cxxtrace::unbounded_storage);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)

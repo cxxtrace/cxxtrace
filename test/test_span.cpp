@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cxxtrace/config.h>
+#include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/string.h>
@@ -64,7 +65,8 @@ private:
   cxxtrace::basic_config<storage_type> cxxtrace_config;
 };
 
-using test_span_types = ::testing::Types<cxxtrace::unbounded_storage>;
+using test_span_types = ::testing::Types<cxxtrace::ring_queue_storage<1024>,
+                                         cxxtrace::unbounded_storage>;
 TYPED_TEST_CASE(test_span, test_span_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
