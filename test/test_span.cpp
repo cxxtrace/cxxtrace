@@ -16,6 +16,9 @@
 #include <string_view>
 #include <thread>
 
+#define CXXTRACE_SPAN(category, name)                                          \
+  CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
+
 using namespace std::literals::string_view_literals;
 using cxxtrace::stringify;
 

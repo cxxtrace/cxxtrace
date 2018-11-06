@@ -5,9 +5,6 @@
 #include <type_traits>
 
 namespace cxxtrace {
-#define CXXTRACE_SPAN(category, name)                                          \
-  CXXTRACE_SPAN_WITH_CONFIG(get_cxxtrace_config(), category, name)
-
 #define CXXTRACE_SPAN_WITH_CONFIG(config, category, name)                      \
   (::cxxtrace::detail::span_guard<::std::remove_reference_t<decltype(          \
      (config).storage())>>::enter((config).storage(), (category), (name)))

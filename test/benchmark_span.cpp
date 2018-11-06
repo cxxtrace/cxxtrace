@@ -9,6 +9,9 @@
 #include <random>
 #include <vector>
 
+#define CXXTRACE_SPAN(category, name)                                          \
+  CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
+
 namespace {
 class cpu_data_cache_thrasher
 {
