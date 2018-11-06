@@ -119,6 +119,23 @@ TEST(test_ring_queue, popping_again_returns_no_items)
   EXPECT_THAT(contents, IsEmpty());
 }
 
+TEST(test_ring_queue, clear_then_pop_returns_no_items)
+{
+  auto queue = ring_queue<int, 64>{};
+  queue.push(5, [](auto data) noexcept->void {
+    data[0] = 10;
+    data[1] = 20;
+    data[2] = 30;
+    data[3] = 40;
+    data[4] = 50;
+  });
+
+  queue.clear();
+  auto contents = std::vector<int>{};
+  queue.pop_all_into(contents);
+  EXPECT_THAT(contents, IsEmpty());
+}
+
 TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
 {
   auto queue = ring_queue<int, 4>{};
@@ -154,10 +171,10 @@ protected:
     }
   }
 
-  auto pop_all() -> void
+  auto clear() -> void
   {
-    ::pop_all(this->queue);
-    reference_queue.clear();
+    this->queue.clear();
+    this->reference_queue.clear();
   }
 
   auto pop_all_and_check(int max_size) -> void
@@ -186,7 +203,7 @@ TEST_F(test_ring_queue_against_reference_basic,
     SCOPED_TRACE(stringify("writer_lead = ", writer_lead));
 
     this->push_n(reader_offset);
-    this->pop_all();
+    this->clear();
 
     this->push_n(writer_lead);
     this->pop_all_and_check(this->capacity);

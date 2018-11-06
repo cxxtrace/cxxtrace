@@ -53,6 +53,8 @@ public:
     write(push_handle{ this->storage, vindex });
   }
 
+  auto clear() noexcept -> void { this->read_vindex = this->write_vindex; }
+
   auto pop_all_into(std::vector<T>& output) -> void
   {
     assert(this->read_vindex <= this->write_vindex);
