@@ -7,9 +7,9 @@
 #include <cxxtrace/config.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
-#include <cxxtrace/storage.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
+#include <cxxtrace/unbounded_storage.h>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <random>

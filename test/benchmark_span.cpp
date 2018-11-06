@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <cxxtrace/config.h>
 #include <cxxtrace/span.h>
-#include <cxxtrace/storage.h>
+#include <cxxtrace/unbounded_storage.h>
 #include <iostream>
 #include <random>
 #include <vector>

@@ -1,8 +1,8 @@
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/span.h>
-#include <cxxtrace/storage.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
+#include <cxxtrace/unbounded_storage.h>
 #include <vector>
 
 namespace cxxtrace {

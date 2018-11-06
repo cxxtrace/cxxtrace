@@ -2,7 +2,7 @@
 #include <cxxtrace/config.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/snapshot.h>
-#include <cxxtrace/storage.h>
+#include <cxxtrace/unbounded_storage.h>
 #include <iterator>
 #include <vector>
 

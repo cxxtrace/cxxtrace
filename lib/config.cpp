@@ -1,5 +1,5 @@
 #include <cxxtrace/config.h>
-#include <cxxtrace/storage.h>
+#include <cxxtrace/unbounded_storage.h>
 
 namespace cxxtrace {
 default_config::default_config(unbounded_storage& storage) noexcept

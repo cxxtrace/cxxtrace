@@ -1,5 +1,5 @@
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/storage.h>
+#include <cxxtrace/unbounded_storage.h>
 #include <mutex>
 
 namespace cxxtrace {

@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_STORAGE_H
-#define CXXTRACE_STORAGE_H
+#ifndef CXXTRACE_UNBOUNDED_STORAGE_H
+#define CXXTRACE_UNBOUNDED_STORAGE_H
 
 #include <mutex>
 #include <vector>
