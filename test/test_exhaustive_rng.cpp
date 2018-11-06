@@ -89,7 +89,7 @@ TEST(test_exhaustive_rng, exhaust_with_two_next_256_calls_per_lap)
                           << " laps";
 }
 
-TEST(test_exhaustive_rng, first_few_laps_With_one_or_two_next256_calls_per_lap)
+TEST(test_exhaustive_rng, first_few_laps_with_one_or_two_next256_calls_per_lap)
 {
   auto rng = cxxtrace::exhaustive_rng{};
 
