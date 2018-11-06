@@ -35,9 +35,9 @@ private:
   czstring category{ nullptr };
   czstring name{ nullptr };
 };
+}
+}
 
-extern template class span_guard<unbounded_storage>;
-}
-}
+#include <cxxtrace/span_impl.h>
 
 #endif

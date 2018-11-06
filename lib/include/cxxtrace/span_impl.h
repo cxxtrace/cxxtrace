@@ -1,3 +1,11 @@
+#ifndef CXXTRACE_SPAN_IMPL_H
+#define CXXTRACE_SPAN_IMPL_H
+
+#if !defined(CXXTRACE_SPAN_H)
+#error                                                                         \
+  "Include <cxxtrace/span.h> instead of including <cxxtrace/span_impl.h> directly."
+#endif
+
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/string.h>
@@ -44,7 +52,7 @@ span_guard<Storage>::exit() noexcept(false) -> void
                                    sample_kind::exit_span,
                                    cxxtrace::get_current_thread_id() });
 }
+}
+}
 
-template class span_guard<unbounded_storage>;
-}
-}
+#endif

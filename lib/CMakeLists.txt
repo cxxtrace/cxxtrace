@@ -4,7 +4,6 @@ add_library(
   cxxtrace
   add.cpp
   snapshot.cpp
-  span.cpp
   thread.cpp
   unbounded_storage.cpp
 )

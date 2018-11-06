@@ -23,17 +23,9 @@ template<class Storage>
 auto
 copy_all_events(Storage&) noexcept(false) -> events_snapshot;
 
-extern template auto
-copy_all_events<unbounded_storage>(unbounded_storage&) noexcept(false)
-  -> events_snapshot;
-
 template<class Storage>
 auto
 copy_incomplete_spans(Storage&) noexcept(false) -> incomplete_spans_snapshot;
-
-extern template auto
-copy_incomplete_spans<unbounded_storage>(unbounded_storage&) noexcept(false)
-  -> incomplete_spans_snapshot;
 
 class events_snapshot
 {

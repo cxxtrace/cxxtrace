@@ -1,76 +1,9 @@
 #include <cassert>
-#include <cxxtrace/config.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/snapshot.h>
-#include <cxxtrace/unbounded_storage.h>
-#include <iterator>
 #include <vector>
 
 namespace cxxtrace {
-namespace detail {
-struct event
-{
-  event_kind kind;
-  detail::sample sample;
-};
-}
-
-template<class Storage>
-auto
-copy_all_events(Storage& storage) noexcept(false) -> events_snapshot
-{
-  using detail::event;
-  using detail::sample_kind;
-
-  auto events = std::vector<event>{};
-  for (const auto& sample : storage.copy_all_samples()) {
-    switch (sample.kind) {
-      case sample_kind::enter_span:
-        events.emplace_back(event{ event_kind::incomplete_span, sample });
-        break;
-      case sample_kind::exit_span:
-        auto incomplete_span_event_it =
-          std::find_if(events.crbegin(), events.crend(), [](const event& e) {
-            return e.kind == event_kind::incomplete_span;
-          });
-        assert(incomplete_span_event_it != events.crend());
-        events.erase(std::prev(incomplete_span_event_it.base()));
-        events.emplace_back(event{ event_kind::span, sample });
-        break;
-    }
-  }
-  return events_snapshot{ events };
-}
-
-template auto
-copy_all_events<unbounded_storage>(unbounded_storage&) noexcept(false)
-  -> events_snapshot;
-
-template<class Storage>
-auto
-copy_incomplete_spans(Storage& storage) noexcept(false)
-  -> incomplete_spans_snapshot
-{
-  using namespace detail;
-
-  auto incomplete_spans = std::vector<detail::sample>{};
-  for (const auto& sample : storage.copy_all_samples()) {
-    switch (sample.kind) {
-      case sample_kind::enter_span:
-        incomplete_spans.emplace_back(sample);
-        break;
-      case sample_kind::exit_span:
-        incomplete_spans.pop_back();
-        break;
-    }
-  }
-  return incomplete_spans_snapshot{ incomplete_spans };
-}
-
-template auto
-copy_incomplete_spans<unbounded_storage>(unbounded_storage&) noexcept(false)
-  -> incomplete_spans_snapshot;
-
 events_snapshot::events_snapshot(const events_snapshot&) noexcept(false) =
   default;
 events_snapshot::events_snapshot(events_snapshot&&) noexcept = default;
