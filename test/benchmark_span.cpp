@@ -1,3 +1,4 @@
+#include "cxxtrace_benchmark.h"
 #include <algorithm>
 #include <array>
 #include <benchmark/benchmark.h>
@@ -37,20 +38,21 @@ private:
   std::vector<index_type> visit_counts;
 };
 
-class span_benchmark : public benchmark::Fixture
+template<class Storage>
+class span_benchmark : public cxxtrace::benchmark_fixture
 {
 public:
   explicit span_benchmark()
     : cxxtrace_config{ cxxtrace_storage }
   {}
 
-  void SetUp(benchmark::State& bench) override
+  auto set_up(benchmark::State& bench) -> void override
   {
     this->spans_per_iteration = bench.range(0);
     bench.counters["spans per iteration"] = this->spans_per_iteration;
   }
 
-  void TearDown(benchmark::State& bench) override
+  auto tear_down(benchmark::State& bench) -> void override
   {
     auto total_spans = bench.iterations() * this->spans_per_iteration;
     bench.counters["total spans"] = total_spans;
@@ -69,11 +71,15 @@ protected:
   int spans_per_iteration{ 0 };
 
 private:
-  cxxtrace::unbounded_storage cxxtrace_storage{};
-  cxxtrace::basic_config<cxxtrace::unbounded_storage> cxxtrace_config;
+  Storage cxxtrace_storage{};
+  cxxtrace::basic_config<Storage> cxxtrace_config;
 };
 
-BENCHMARK_DEFINE_F(span_benchmark, enter_exit)(benchmark::State& bench)
+CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(span_benchmark,
+                                        cxxtrace::unbounded_storage);
+
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
+(benchmark::State& bench)
 {
   for (auto _ : bench) {
     this->clear_all_samples();
@@ -82,9 +88,9 @@ BENCHMARK_DEFINE_F(span_benchmark, enter_exit)(benchmark::State& bench)
     }
   }
 }
-BENCHMARK_REGISTER_F(span_benchmark, enter_exit)->Arg(400);
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, enter_exit)->Arg(400);
 
-BENCHMARK_DEFINE_F(span_benchmark, enter_enter_exit_exit)
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_enter_exit_exit)
 (benchmark::State& bench)
 {
   assert(this->spans_per_iteration % 2 == 0);
@@ -97,9 +103,10 @@ BENCHMARK_DEFINE_F(span_benchmark, enter_enter_exit_exit)
     }
   }
 }
-BENCHMARK_REGISTER_F(span_benchmark, enter_enter_exit_exit)->Arg(400);
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, enter_enter_exit_exit)
+  ->Arg(400);
 
-BENCHMARK_DEFINE_F(span_benchmark, enter_thrash_memory_exit)
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_thrash_memory_exit)
 (benchmark::State& bench)
 {
   auto thrasher = cpu_data_cache_thrasher{};
@@ -111,9 +118,11 @@ BENCHMARK_DEFINE_F(span_benchmark, enter_thrash_memory_exit)
     }
   }
 }
-BENCHMARK_REGISTER_F(span_benchmark, enter_thrash_memory_exit)->Arg(400);
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, enter_thrash_memory_exit)
+  ->Arg(400);
 
-BENCHMARK_DEFINE_F(span_benchmark, thrash_memory)(benchmark::State& bench)
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, thrash_memory)
+(benchmark::State& bench)
 {
   auto thrasher = cpu_data_cache_thrasher{};
   for (auto _ : bench) {
@@ -123,7 +132,7 @@ BENCHMARK_DEFINE_F(span_benchmark, thrash_memory)(benchmark::State& bench)
     }
   }
 }
-BENCHMARK_REGISTER_F(span_benchmark, thrash_memory)->Arg(400);
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, thrash_memory)->Arg(400);
 
 cpu_data_cache_thrasher::cpu_data_cache_thrasher()
 {

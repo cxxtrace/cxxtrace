@@ -16,6 +16,12 @@
 #include <string_view>
 #include <thread>
 
+#if defined(__clang__)
+// Work around false positives in Clang's -Wunused-local-typedef diagnostics.
+// Bug report: https://bugs.llvm.org/show_bug.cgi?id=24883
+#define CXXTRACE_WORK_AROUND_CLANG_24883 1
+#endif
+
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
@@ -27,6 +33,7 @@ template<class T>
 auto
 do_not_optimize_away(const T&) noexcept -> void;
 
+template<class Storage>
 class test_span : public testing::Test
 {
 public:
@@ -35,8 +42,9 @@ public:
   {}
 
 protected:
-  auto get_cxxtrace_config() noexcept
-    -> cxxtrace::basic_config<cxxtrace::unbounded_storage>&
+  using storage_type = Storage;
+
+  auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<storage_type>&
   {
     return this->cxxtrace_config;
   }
@@ -52,17 +60,20 @@ protected:
   }
 
 private:
-  cxxtrace::unbounded_storage cxxtrace_storage{};
-  cxxtrace::basic_config<cxxtrace::unbounded_storage> cxxtrace_config;
+  storage_type cxxtrace_storage{};
+  cxxtrace::basic_config<storage_type> cxxtrace_config;
 };
 
-TEST_F(test_span, no_events_exist_by_default)
+using test_span_types = ::testing::Types<cxxtrace::unbounded_storage>;
+TYPED_TEST_CASE(test_span, test_span_types, );
+
+TYPED_TEST(test_span, no_events_exist_by_default)
 {
   auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
   EXPECT_EQ(events.size(), 0);
 }
 
-TEST_F(test_span, span_adds_event_at_scope_enter)
+TYPED_TEST(test_span, span_adds_event_at_scope_enter)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
   auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
@@ -73,7 +84,7 @@ TEST_F(test_span, span_adds_event_at_scope_enter)
   EXPECT_EQ(event.kind(), cxxtrace::event_kind::incomplete_span);
 }
 
-TEST_F(test_span, incomplete_spans_includes_span_in_scope)
+TYPED_TEST(test_span, incomplete_spans_includes_span_in_scope)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
   auto spans =
@@ -83,7 +94,7 @@ TEST_F(test_span, incomplete_spans_includes_span_in_scope)
   EXPECT_STREQ(spans.at(0).name(), "span name");
 }
 
-TEST_F(test_span, incomplete_spans_excludes_span_for_exited_scope)
+TYPED_TEST(test_span, incomplete_spans_excludes_span_for_exited_scope)
 {
   {
     auto span = CXXTRACE_SPAN("span category", "span name");
@@ -93,7 +104,7 @@ TEST_F(test_span, incomplete_spans_excludes_span_for_exited_scope)
   EXPECT_EQ(spans.size(), 0);
 }
 
-TEST_F(test_span, span_adds_event_at_scope_exit)
+TYPED_TEST(test_span, span_adds_event_at_scope_exit)
 {
   {
     auto span = CXXTRACE_SPAN("span category", "span name");
@@ -106,7 +117,7 @@ TEST_F(test_span, span_adds_event_at_scope_exit)
   EXPECT_EQ(event.kind(), cxxtrace::event_kind::span);
 }
 
-TEST_F(test_span, events_for_later_incomplete_spans_spans_appear_later)
+TYPED_TEST(test_span, events_for_later_incomplete_spans_spans_appear_later)
 {
   auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
   auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
@@ -121,7 +132,7 @@ TEST_F(test_span, events_for_later_incomplete_spans_spans_appear_later)
   EXPECT_STREQ(event_3.name(), "span name 3");
 }
 
-TEST_F(test_span, events_for_later_spans_appear_later)
+TYPED_TEST(test_span, events_for_later_spans_appear_later)
 {
   {
     auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
@@ -135,7 +146,8 @@ TEST_F(test_span, events_for_later_spans_appear_later)
   EXPECT_STREQ(events.at(2).name(), "span name 1");
 }
 
-TEST_F(test_span, event_for_incomplete_span_appears_after_sibling_complete_span)
+TYPED_TEST(test_span,
+           event_for_incomplete_span_appears_after_sibling_complete_span)
 {
   {
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
@@ -147,7 +159,8 @@ TEST_F(test_span, event_for_incomplete_span_appears_after_sibling_complete_span)
   EXPECT_STREQ(events.at(1).name(), "incomplete span");
 }
 
-TEST_F(test_span, event_for_complete_span_appears_after_parent_incomplete_span)
+TYPED_TEST(test_span,
+           event_for_complete_span_appears_after_parent_incomplete_span)
 {
   auto incomplete_span = CXXTRACE_SPAN("span category", "incomplete span");
   {
@@ -159,7 +172,7 @@ TEST_F(test_span, event_for_complete_span_appears_after_parent_incomplete_span)
   EXPECT_STREQ(events.at(1).name(), "complete span");
 }
 
-TEST_F(test_span, span_events_include_thread_id)
+TYPED_TEST(test_span, span_events_include_thread_id)
 {
   {
     auto main_span = CXXTRACE_SPAN("category", "main span");
@@ -203,7 +216,7 @@ TEST_F(test_span, span_events_include_thread_id)
   EXPECT_EQ(get_event("thread 2 span").thread_id(), thread_2_id);
 }
 
-TEST_F(test_span, span_events_can_interleave_using_multiple_threads)
+TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
 {
   {
     auto mutex = std::mutex{};
@@ -236,8 +249,10 @@ TEST_F(test_span, span_events_can_interleave_using_multiple_threads)
   }));
 }
 
-TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
+TYPED_TEST(test_span, span_enter_and_exit_synchronize_across_threads)
 {
+  using storage_type = typename TestFixture::storage_type;
+
   // NOTE(strager): This test relies on dynamic analysis tools or crashes (due
   // to undefined behavior) to detect data races.
 
@@ -247,7 +262,14 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
 
   struct workload
   {
+#if CXXTRACE_WORK_AROUND_CLANG_24883
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-local-typedef"
+#endif
     using item_type = int;
+#if CXXTRACE_WORK_AROUND_CLANG_24883
+#pragma clang diagnostic pop
+#endif
 
     auto do_work() noexcept -> void
     {
@@ -263,13 +285,12 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
       do_not_optimize_away(data);
     }
 
-    auto get_cxxtrace_config() noexcept
-      -> cxxtrace::basic_config<cxxtrace::unbounded_storage>&
+    auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<storage_type>&
     {
       return this->cxxtrace_config;
     }
 
-    cxxtrace::basic_config<cxxtrace::unbounded_storage>& cxxtrace_config;
+    cxxtrace::basic_config<storage_type>& cxxtrace_config;
 
     std::mt19937 rng{};
     std::uniform_int_distribution<std::size_t> size_distribution{

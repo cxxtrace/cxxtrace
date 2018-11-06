@@ -14,5 +14,5 @@ add_executable(
 target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
 
-add_executable(benchmark_cxxtrace benchmark_span.cpp)
+add_executable(benchmark_cxxtrace benchmark_span.cpp cxxtrace_benchmark.cpp)
 target_link_libraries(benchmark_cxxtrace PRIVATE benchmark benchmark_main cxxtrace)
