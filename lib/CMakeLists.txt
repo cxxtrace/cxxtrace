@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.10)
 add_library(
   cxxtrace
   add.cpp
-  config.cpp
   snapshot.cpp
   span.cpp
   thread.cpp

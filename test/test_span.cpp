@@ -35,7 +35,8 @@ public:
   {}
 
 protected:
-  auto get_cxxtrace_config() noexcept -> cxxtrace::default_config&
+  auto get_cxxtrace_config() noexcept
+    -> cxxtrace::default_config<cxxtrace::unbounded_storage>&
   {
     return this->cxxtrace_config;
   }
@@ -52,7 +53,7 @@ protected:
 
 private:
   cxxtrace::unbounded_storage cxxtrace_storage{};
-  cxxtrace::default_config cxxtrace_config;
+  cxxtrace::default_config<cxxtrace::unbounded_storage> cxxtrace_config;
 };
 
 TEST_F(test_span, no_events_exist_by_default)
@@ -262,12 +263,13 @@ TEST_F(test_span, span_enter_and_exit_synchronize_across_threads)
       do_not_optimize_away(data);
     }
 
-    auto get_cxxtrace_config() noexcept -> cxxtrace::default_config&
+    auto get_cxxtrace_config() noexcept
+      -> cxxtrace::default_config<cxxtrace::unbounded_storage>&
     {
       return this->cxxtrace_config;
     }
 
-    cxxtrace::default_config& cxxtrace_config;
+    cxxtrace::default_config<cxxtrace::unbounded_storage>& cxxtrace_config;
 
     std::mt19937 rng{};
     std::uniform_int_distribution<std::size_t> size_distribution{

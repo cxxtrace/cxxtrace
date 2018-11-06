@@ -70,7 +70,7 @@ protected:
 
 private:
   cxxtrace::unbounded_storage cxxtrace_storage{};
-  cxxtrace::default_config cxxtrace_config;
+  cxxtrace::default_config<cxxtrace::unbounded_storage> cxxtrace_config;
 };
 
 BENCHMARK_DEFINE_F(span_benchmark, enter_exit)(benchmark::State& bench)

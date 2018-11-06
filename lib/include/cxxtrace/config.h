@@ -2,24 +2,28 @@
 #define CXXTRACE_CONFIG_H
 
 namespace cxxtrace {
-class unbounded_storage;
-
 class config_base
 {
 public:
   static auto storage() -> void = delete;
 };
 
+template<class Storage>
 class default_config : public config_base
 {
 public:
-  explicit default_config(unbounded_storage&) noexcept;
+  explicit default_config(Storage&) noexcept;
 
-  auto storage() noexcept -> unbounded_storage&;
+  auto storage() noexcept -> Storage&;
 
 private:
-  unbounded_storage& storage_reference;
+  Storage& storage_reference;
 };
+
+template<class Storage>
+default_config(Storage&)->default_config<Storage>;
 }
+
+#include <cxxtrace/config_impl.h>
 
 #endif
