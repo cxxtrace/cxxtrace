@@ -8,13 +8,13 @@
 
 namespace cxxtrace {
 template<class Storage>
-default_config<Storage>::default_config(Storage& storage) noexcept
+basic_config<Storage>::basic_config(Storage& storage) noexcept
   : storage_reference{ storage }
 {}
 
 template<class Storage>
 auto
-default_config<Storage>::storage() noexcept -> Storage&
+basic_config<Storage>::storage() noexcept -> Storage&
 {
   return this->storage_reference;
 }

@@ -9,10 +9,10 @@ public:
 };
 
 template<class Storage>
-class default_config : public config_base
+class basic_config : public config_base
 {
 public:
-  explicit default_config(Storage&) noexcept;
+  explicit basic_config(Storage&) noexcept;
 
   auto storage() noexcept -> Storage&;
 
@@ -21,7 +21,7 @@ private:
 };
 
 template<class Storage>
-default_config(Storage&)->default_config<Storage>;
+basic_config(Storage&)->basic_config<Storage>;
 }
 
 #include <cxxtrace/config_impl.h>
