@@ -27,7 +27,21 @@ get_mach_port_type(mach_port_t port) -> mach_port_type_t;
 #endif
 
 #if defined(__APPLE__) && defined(__MACH__)
-TEST(test_thread, getting_current_thread_id_does_not_leak_thread_port)
+TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
+{
+  EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
+            cxxtrace::get_current_thread_mach_thread_id());
+  std::thread{ [] {
+    EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
+              cxxtrace::get_current_thread_mach_thread_id());
+  } }
+    .join();
+}
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+TEST(test_thread_mach_thread_id,
+     getting_current_thread_id_does_not_leak_thread_port)
 {
   auto thread_port = mach_port_t{};
   std::thread{ [&thread_port] {
@@ -36,7 +50,7 @@ TEST(test_thread, getting_current_thread_id_does_not_leak_thread_port)
     EXPECT_TRUE(type & MACH_PORT_TYPE_SEND);
     EXPECT_FALSE(type & MACH_PORT_TYPE_DEAD_NAME);
 
-    cxxtrace::get_current_thread_id();
+    cxxtrace::get_current_thread_mach_thread_id();
   } }
     .join();
 

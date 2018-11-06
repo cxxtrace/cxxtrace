@@ -16,6 +16,14 @@ using thread_id =
 
 auto
 get_current_thread_id() noexcept -> thread_id;
+
+#if defined(__APPLE__) && defined(__MACH__)
+auto
+get_current_thread_mach_thread_id() noexcept -> std::uint64_t;
+
+auto
+get_current_thread_pthread_thread_id() noexcept -> std::uint64_t;
+#endif
 }
 
 #endif
