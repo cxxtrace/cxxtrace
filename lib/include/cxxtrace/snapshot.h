@@ -21,7 +21,7 @@ struct sample;
 
 template<class Storage>
 auto
-copy_all_events(Storage&) noexcept(false) -> events_snapshot;
+take_all_events(Storage&) noexcept(false) -> events_snapshot;
 
 template<class Storage>
 auto
@@ -50,7 +50,7 @@ private:
   std::vector<detail::event> events;
 
   template<class Storage>
-  friend auto copy_all_events(Storage&) noexcept(false) -> events_snapshot;
+  friend auto take_all_events(Storage&) noexcept(false) -> events_snapshot;
 };
 
 enum class event_kind

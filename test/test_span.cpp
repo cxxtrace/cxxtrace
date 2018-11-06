@@ -49,9 +49,9 @@ protected:
     return this->cxxtrace_config;
   }
 
-  auto copy_all_events() -> cxxtrace::events_snapshot
+  auto take_all_events() -> cxxtrace::events_snapshot
   {
-    return cxxtrace::copy_all_events(this->cxxtrace_storage);
+    return cxxtrace::take_all_events(this->cxxtrace_storage);
   }
 
   auto copy_incomplete_spans() -> cxxtrace::incomplete_spans_snapshot
@@ -69,14 +69,14 @@ TYPED_TEST_CASE(test_span, test_span_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
 {
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 0);
 }
 
 TYPED_TEST(test_span, span_adds_event_at_scope_enter)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 1);
   auto event = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event.category(), "span category");
@@ -109,7 +109,7 @@ TYPED_TEST(test_span, span_adds_event_at_scope_exit)
   {
     auto span = CXXTRACE_SPAN("span category", "span name");
   }
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 1);
   auto event = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event.category(), "span category");
@@ -122,7 +122,7 @@ TYPED_TEST(test_span, events_for_later_incomplete_spans_spans_appear_later)
   auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
   auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
   auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 3);
   auto event_1 = cxxtrace::event_ref{ events.at(0) };
   EXPECT_STREQ(event_1.name(), "span name 1");
@@ -139,7 +139,7 @@ TYPED_TEST(test_span, events_for_later_spans_appear_later)
     auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
     auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
   }
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 3);
   EXPECT_STREQ(events.at(0).name(), "span name 3");
   EXPECT_STREQ(events.at(1).name(), "span name 2");
@@ -153,7 +153,7 @@ TYPED_TEST(test_span,
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
   auto incomplete_span = CXXTRACE_SPAN("span category", "incomplete span");
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_STREQ(events.at(0).name(), "complete span");
   EXPECT_STREQ(events.at(1).name(), "incomplete span");
@@ -166,10 +166,27 @@ TYPED_TEST(test_span,
   {
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_STREQ(events.at(0).name(), "incomplete span");
   EXPECT_STREQ(events.at(1).name(), "complete span");
+}
+
+TYPED_TEST(test_span, later_snapshot_includes_only_new_spans)
+{
+  {
+    auto span_before = CXXTRACE_SPAN("category", "before");
+  }
+  auto events_1 = cxxtrace::events_snapshot{ this->take_all_events() };
+  {
+    auto span_after = CXXTRACE_SPAN("category", "after");
+  }
+  auto events_2 = cxxtrace::events_snapshot{ this->take_all_events() };
+
+  EXPECT_EQ(events_1.size(), 1);
+  EXPECT_STREQ(events_1.at(0).name(), "before");
+  EXPECT_EQ(events_2.size(), 1);
+  EXPECT_STREQ(events_2.at(0).name(), "after");
 }
 
 TYPED_TEST(test_span, span_events_include_thread_id)
@@ -200,7 +217,7 @@ TYPED_TEST(test_span, span_events_include_thread_id)
   ASSERT_NE(thread_2_id, main_thread_id);
   ASSERT_NE(thread_1_id, thread_2_id);
 
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   auto get_event = [&events](std::string_view name) -> cxxtrace::event_ref {
     for (auto i = cxxtrace::events_snapshot::size_type{ 0 }; i < events.size();
          ++i) {
@@ -239,7 +256,7 @@ TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
     thread.join();
   }
 
-  auto events = cxxtrace::events_snapshot{ this->copy_all_events() };
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 2);
   EXPECT_NO_THROW(events.get_if([](const cxxtrace::event_ref& event) {
     return event.name() == "main span"sv;

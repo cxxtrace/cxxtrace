@@ -23,13 +23,13 @@ struct event
 
 template<class Storage>
 auto
-copy_all_events(Storage& storage) noexcept(false) -> events_snapshot
+take_all_events(Storage& storage) noexcept(false) -> events_snapshot
 {
   using detail::event;
   using detail::sample_kind;
 
   auto events = std::vector<event>{};
-  for (const auto& sample : storage.copy_all_samples()) {
+  for (const auto& sample : storage.take_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         events.emplace_back(event{ event_kind::incomplete_span, sample });
@@ -56,7 +56,7 @@ copy_incomplete_spans(Storage& storage) noexcept(false)
   using namespace detail;
 
   auto incomplete_spans = std::vector<detail::sample>{};
-  for (const auto& sample : storage.copy_all_samples()) {
+  for (const auto& sample : storage.take_all_samples()) {
     switch (sample.kind) {
       case sample_kind::enter_span:
         incomplete_spans.emplace_back(sample);

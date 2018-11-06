@@ -23,7 +23,7 @@ public:
   auto clear_all_samples() noexcept -> void;
 
   auto add_sample(detail::sample) noexcept(false) -> void;
-  auto copy_all_samples() noexcept(false) -> std::vector<detail::sample>;
+  auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
 
 private:
   std::mutex mutex{};

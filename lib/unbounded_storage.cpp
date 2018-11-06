@@ -21,10 +21,10 @@ unbounded_storage::add_sample(detail::sample s) noexcept(false) -> void
 }
 
 auto
-unbounded_storage::copy_all_samples() noexcept(false)
+unbounded_storage::take_all_samples() noexcept(false)
   -> std::vector<detail::sample>
 {
   auto lock = std::unique_lock{ this->mutex };
-  return this->samples;
+  return std::move(this->samples);
 }
 }
