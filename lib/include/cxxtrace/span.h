@@ -5,13 +5,13 @@
 #include <type_traits>
 
 namespace cxxtrace {
+class unbounded_storage;
+
 #define CXXTRACE_SPAN_WITH_CONFIG(config, category, name)                      \
   (::cxxtrace::detail::span_guard<::std::remove_reference_t<decltype(          \
      (config).storage())>>::enter((config).storage(), (category), (name)))
 
 namespace detail {
-class storage;
-
 template<class Storage>
 class span_guard
 {
@@ -36,7 +36,7 @@ private:
   czstring name{ nullptr };
 };
 
-extern template class span_guard<detail::storage>;
+extern template class span_guard<unbounded_storage>;
 }
 }
 
