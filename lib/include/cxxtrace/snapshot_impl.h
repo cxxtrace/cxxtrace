@@ -62,6 +62,7 @@ copy_incomplete_spans(Storage& storage) noexcept(false)
         incomplete_spans.emplace_back(sample);
         break;
       case sample_kind::exit_span:
+        assert(!incomplete_spans.empty());
         incomplete_spans.pop_back();
         break;
     }
