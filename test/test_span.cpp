@@ -6,11 +6,13 @@
 #include <cstddef>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
+#include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
+#include <cxxtrace/unbounded_unsafe_storage.h>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <random>
@@ -65,9 +67,21 @@ private:
   cxxtrace::basic_config<storage_type> cxxtrace_config;
 };
 
-using test_span_types = ::testing::Types<cxxtrace::ring_queue_storage<1024>,
-                                         cxxtrace::unbounded_storage>;
+using test_span_types =
+  ::testing::Types<cxxtrace::ring_queue_storage<1024>,
+                   cxxtrace::ring_queue_unsafe_storage<1024>,
+                   cxxtrace::unbounded_storage,
+                   cxxtrace::unbounded_unsafe_storage>;
 TYPED_TEST_CASE(test_span, test_span_types, );
+
+template<class Storage>
+class test_span_thread_safe : public test_span<Storage>
+{};
+
+using test_span_thread_safe_types =
+  ::testing::Types<cxxtrace::ring_queue_storage<1024>,
+                   cxxtrace::unbounded_storage>;
+TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
 {
@@ -268,7 +282,8 @@ TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
   }));
 }
 
-TYPED_TEST(test_span, span_enter_and_exit_synchronize_across_threads)
+TYPED_TEST(test_span_thread_safe,
+           span_enter_and_exit_synchronize_across_threads)
 {
   using storage_type = typename TestFixture::storage_type;
 

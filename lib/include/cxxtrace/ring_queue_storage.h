@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <mutex>
 #include <vector>
 
@@ -27,7 +28,7 @@ public:
 
 private:
   std::mutex mutex{};
-  detail::ring_queue<detail::sample, Capacity> samples;
+  ring_queue_unsafe_storage<Capacity> storage{};
 };
 }
 

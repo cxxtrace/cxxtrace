@@ -6,5 +6,6 @@ add_library(
   snapshot.cpp
   thread.cpp
   unbounded_storage.cpp
+  unbounded_unsafe_storage.cpp
 )
 target_include_directories(cxxtrace PUBLIC include PRIVATE private_include)

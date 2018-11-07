@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_UNBOUNDED_STORAGE_H
 #define CXXTRACE_UNBOUNDED_STORAGE_H
 
+#include <cxxtrace/unbounded_unsafe_storage.h>
 #include <mutex>
 #include <vector>
 
@@ -27,7 +28,7 @@ public:
 
 private:
   std::mutex mutex{};
-  std::vector<detail::sample> samples;
+  unbounded_unsafe_storage storage{};
 };
 }
 

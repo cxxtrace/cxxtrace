@@ -5,8 +5,10 @@
 #include <cstddef>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
+#include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/unbounded_storage.h>
+#include <cxxtrace/unbounded_unsafe_storage.h>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -76,9 +78,12 @@ private:
   cxxtrace::basic_config<Storage> cxxtrace_config;
 };
 
-CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(span_benchmark,
-                                        cxxtrace::ring_queue_storage<1024>,
-                                        cxxtrace::unbounded_storage);
+CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
+  span_benchmark,
+  cxxtrace::ring_queue_storage<1024>,
+  cxxtrace::ring_queue_unsafe_storage<1024>,
+  cxxtrace::unbounded_storage,
+  cxxtrace::unbounded_unsafe_storage);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
 (benchmark::State& bench)
