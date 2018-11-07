@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
+#include <cxxtrace/ring_queue_thread_local_storage.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/span.h>
 #include <cxxtrace/unbounded_storage.h>
@@ -40,6 +41,14 @@ private:
   std::vector<index_type> indexes;
   std::vector<index_type> visit_counts;
 };
+
+struct ring_queue_thread_local_benchmark_storage_tag
+{};
+template<std::size_t CapacityPerThread>
+using ring_queue_thread_local_benchmark_storage =
+  cxxtrace::ring_queue_thread_local_storage<
+    CapacityPerThread,
+    ring_queue_thread_local_benchmark_storage_tag>;
 
 template<class Storage>
 class span_benchmark : public cxxtrace::benchmark_fixture
@@ -83,7 +92,8 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   cxxtrace::ring_queue_storage<1024>,
   cxxtrace::ring_queue_unsafe_storage<1024>,
   cxxtrace::unbounded_storage,
-  cxxtrace::unbounded_unsafe_storage);
+  cxxtrace::unbounded_unsafe_storage,
+  ring_queue_thread_local_benchmark_storage<1024>);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
 (benchmark::State& bench)

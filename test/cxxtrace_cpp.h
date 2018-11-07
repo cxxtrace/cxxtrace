@@ -33,5 +33,9 @@ static_assert(CXXTRACE_CPP_COUNT_ARGS(x, y(z, w, q)) == 2);
 #define CXXTRACE_CPP_STRING_LITERALS_2(a0, a1) #a0, #a1
 #define CXXTRACE_CPP_STRING_LITERALS_3(a0, a1, a2) #a0, #a1, #a2
 #define CXXTRACE_CPP_STRING_LITERALS_4(a0, a1, a2, a3) #a0, #a1, #a2, #a3
+#define CXXTRACE_CPP_STRING_LITERALS_5(a0, a1, a2, a3, a4)                     \
+#a0, #a1, #a2, #a3, #a4
+#define CXXTRACE_CPP_STRING_LITERALS_6(a0, a1, a2, a3, a4, a5)                 \
+#a0, #a1, #a2, #a3, #a4, #a5
 
 #endif

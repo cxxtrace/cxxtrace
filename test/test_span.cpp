@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
+#include <cxxtrace/ring_queue_thread_local_storage.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
@@ -36,6 +37,26 @@ template<class T>
 auto
 do_not_optimize_away(const T&) noexcept -> void;
 
+class event
+{
+public:
+  auto set() -> void;
+  auto wait() -> void;
+
+private:
+  std::mutex mutex{};
+  std::condition_variable cond_var{};
+  bool value{ false };
+};
+
+struct ring_queue_thread_local_test_storage_tag
+{};
+template<std::size_t CapacityPerThread>
+using ring_queue_thread_local_test_storage =
+  cxxtrace::ring_queue_thread_local_storage<
+    CapacityPerThread,
+    ring_queue_thread_local_test_storage_tag>;
+
 template<class Storage>
 class test_span : public testing::Test
 {
@@ -43,6 +64,8 @@ public:
   explicit test_span()
     : cxxtrace_config{ cxxtrace_storage }
   {}
+
+  auto TearDown() -> void override { this->clear_all_samples(); }
 
 protected:
   using storage_type = Storage;
@@ -62,6 +85,11 @@ protected:
     return cxxtrace::copy_incomplete_spans(this->cxxtrace_storage);
   }
 
+  auto clear_all_samples() -> void
+  {
+    this->cxxtrace_storage.clear_all_samples();
+  }
+
 private:
   storage_type cxxtrace_storage{};
   cxxtrace::basic_config<storage_type> cxxtrace_config;
@@ -71,7 +99,8 @@ using test_span_types =
   ::testing::Types<cxxtrace::ring_queue_storage<1024>,
                    cxxtrace::ring_queue_unsafe_storage<1024>,
                    cxxtrace::unbounded_storage,
-                   cxxtrace::unbounded_unsafe_storage>;
+                   cxxtrace::unbounded_unsafe_storage,
+                   ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
 
 template<class Storage>
@@ -80,7 +109,8 @@ class test_span_thread_safe : public test_span<Storage>
 
 using test_span_thread_safe_types =
   ::testing::Types<cxxtrace::ring_queue_storage<1024>,
-                   cxxtrace::unbounded_storage>;
+                   cxxtrace::unbounded_storage,
+                   ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
@@ -282,6 +312,62 @@ TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
   }));
 }
 
+TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
+{
+  auto thread_did_exit_span = event{};
+  auto thread_should_exit = event{};
+
+  auto thread = std::thread{ [&] {
+    {
+      auto thread_span = CXXTRACE_SPAN("category", "thread span");
+    }
+    thread_did_exit_span.set();
+    thread_should_exit.wait();
+  } };
+  thread_did_exit_span.wait();
+
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
+  EXPECT_EQ(events.size(), 1);
+  EXPECT_STREQ(events.at(0).name(), "thread span");
+
+  thread_should_exit.set();
+  thread.join();
+}
+
+TYPED_TEST(test_span, clearing_storage_removes_samples_by_other_running_threads)
+{
+  auto thread_did_exit_span = event{};
+  auto thread_should_exit = event{};
+
+  auto thread = std::thread{ [&] {
+    {
+      auto thread_span = CXXTRACE_SPAN("category", "thread span");
+    }
+    thread_did_exit_span.set();
+    thread_should_exit.wait();
+  } };
+  thread_did_exit_span.wait();
+  this->clear_all_samples();
+
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
+  EXPECT_EQ(events.size(), 0);
+
+  thread_should_exit.set();
+  thread.join();
+}
+
+TYPED_TEST(test_span, clearing_storage_removes_samples_by_exited_threads)
+{
+  auto thread = std::thread{ [&] {
+    auto thread_span = CXXTRACE_SPAN("category", "thread span");
+  } };
+  thread.join();
+  this->clear_all_samples();
+
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
+  EXPECT_EQ(events.size(), 0);
+}
+
 TYPED_TEST(test_span_thread_safe,
            span_enter_and_exit_synchronize_across_threads)
 {
@@ -357,5 +443,20 @@ auto
 do_not_optimize_away(const T&) noexcept -> void
 {
   // TODO
+}
+
+auto
+event::set() -> void
+{
+  auto lock = std::lock_guard{ this->mutex };
+  this->value = true;
+  this->cond_var.notify_all();
+}
+
+auto
+event::wait() -> void
+{
+  auto lock = std::unique_lock{ this->mutex };
+  this->cond_var.wait(lock, [&] { return this->value; });
 }
 }
