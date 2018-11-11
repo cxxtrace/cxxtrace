@@ -9,19 +9,13 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cxxtrace/detail/lazy_thread_local.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/workarounds.h>
 #include <mutex>
 #include <utility>
 #include <vector>
-
-#if defined(__clang__) && __clang_major__ == 7 && __clang_minor__ == 0 &&      \
-  defined(__APPLE__)
-// Clang 7.0 with -O2 targeting macOS 10.11 generates many redundant calls to
-// _tlv_get_addr. Attempt to avoid redundant calls to _tlv_get_addr, preferring
-// to reuse registers instead.
-#define CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER 1
-#endif
 
 namespace cxxtrace {
 // NOTE[ring_queue_thread_local_storage lock order]:
@@ -100,12 +94,18 @@ auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag>::get_thread_data()
   -> thread_data&
 {
+#if CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS
+  struct tag
+  {};
+  return *detail::lazy_thread_local<thread_data, tag>::get();
+#else
   thread_local auto data = thread_data{};
   auto* data_pointer = &data;
 #if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
   asm volatile("" : "+r"(data_pointer));
 #endif
   return *data_pointer;
+#endif
 }
 
 template<std::size_t CapacityPerThread, class Tag>
