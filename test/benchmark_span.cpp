@@ -18,6 +18,25 @@
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
 namespace {
+template<class Storage>
+class cxxtrace_benchmark_base
+{
+public:
+  explicit cxxtrace_benchmark_base()
+    : cxxtrace_config{ cxxtrace_storage }
+  {}
+
+protected:
+  auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<Storage>&
+  {
+    return this->cxxtrace_config;
+  }
+
+private:
+  Storage cxxtrace_storage{};
+  cxxtrace::basic_config<Storage> cxxtrace_config;
+};
+
 class cpu_data_cache_thrasher
 {
 public:
@@ -51,13 +70,11 @@ using ring_queue_thread_local_benchmark_storage =
     ring_queue_thread_local_benchmark_storage_tag>;
 
 template<class Storage>
-class span_benchmark : public cxxtrace::benchmark_fixture
+class span_benchmark
+  : public cxxtrace_benchmark_base<Storage>
+  , public cxxtrace::benchmark_fixture
 {
 public:
-  explicit span_benchmark()
-    : cxxtrace_config{ cxxtrace_storage }
-  {}
-
   auto set_up(benchmark::State& bench) -> void override
   {
     this->spans_per_iteration = bench.range(0);
@@ -73,18 +90,12 @@ public:
   }
 
 protected:
-  auto get_cxxtrace_config() noexcept { return this->cxxtrace_config; }
-
   auto clear_all_samples() noexcept -> void
   {
-    get_cxxtrace_config().storage().clear_all_samples();
+    this->get_cxxtrace_config().storage().clear_all_samples();
   }
 
   int spans_per_iteration{ 0 };
-
-private:
-  Storage cxxtrace_storage{};
-  cxxtrace::basic_config<Storage> cxxtrace_config;
 };
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
@@ -150,6 +161,39 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, thrash_memory)
   }
 }
 CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, thrash_memory)->Arg(400);
+
+template<class Storage>
+class concurrent_span_benchmark
+  : public cxxtrace_benchmark_base<Storage>
+  , public cxxtrace::thread_shared_benchmark_fixture
+{
+public:
+  auto tear_down_thread(benchmark::State& bench) -> void override
+  {
+    if (bench.thread_index == 0) {
+      auto total_spans = bench.iterations() * bench.threads;
+      bench.counters["total spans"] = total_spans;
+      bench.counters["span throughput"] = { static_cast<double>(total_spans),
+                                            benchmark::Counter::kIsRate };
+    }
+  }
+};
+
+CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
+  concurrent_span_benchmark,
+  cxxtrace::ring_queue_storage<1024>,
+  ring_queue_thread_local_benchmark_storage<1024>);
+
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(concurrent_span_benchmark, enter_exit)
+(benchmark::State& bench)
+{
+  for (auto _ : bench) {
+    auto span = CXXTRACE_SPAN("category", "span");
+  }
+}
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(concurrent_span_benchmark, enter_exit)
+  ->UseRealTime()
+  ->ThreadRange(1, 4);
 
 cpu_data_cache_thrasher::cpu_data_cache_thrasher()
 {

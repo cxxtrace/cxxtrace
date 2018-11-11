@@ -59,6 +59,16 @@ public:
   virtual auto tear_down(benchmark::State&) -> void;
 };
 
+class thread_shared_benchmark_fixture
+{
+public:
+  /* nonvirtual */ ~thread_shared_benchmark_fixture();
+
+  virtual auto set_up_thread(benchmark::State&) -> void;
+  virtual auto run(benchmark::State&) -> void = 0;
+  virtual auto tear_down_thread(benchmark::State&) -> void;
+};
+
 namespace detail {
 class benchmark_group
 {
@@ -67,6 +77,8 @@ public:
     std::vector<benchmark::internal::Benchmark*> benchmarks);
 
   auto Arg(std::int64_t) -> benchmark_group*;
+  auto ThreadRange(int min, int max) -> benchmark_group*;
+  auto UseRealTime() -> benchmark_group*;
 
 private:
   std::vector<benchmark::internal::Benchmark*> benchmarks;

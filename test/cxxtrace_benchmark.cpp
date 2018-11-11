@@ -15,6 +15,24 @@ benchmark_group::Arg(std::int64_t arg) -> benchmark_group*
   }
   return this;
 }
+
+auto
+benchmark_group::ThreadRange(int min, int max) -> benchmark_group*
+{
+  for (auto* benchmark : this->benchmarks) {
+    benchmark->ThreadRange(min, max);
+  }
+  return this;
+}
+
+auto
+benchmark_group::UseRealTime() -> benchmark_group*
+{
+  for (auto* benchmark : this->benchmarks) {
+    benchmark->UseRealTime();
+  }
+  return this;
+}
 }
 
 benchmark_fixture::~benchmark_fixture() = default;
@@ -27,6 +45,20 @@ benchmark_fixture::set_up(benchmark::State&) -> void
 
 auto
 benchmark_fixture::tear_down(benchmark::State&) -> void
+{
+  // Do nothing.
+}
+
+thread_shared_benchmark_fixture::~thread_shared_benchmark_fixture() = default;
+
+auto
+thread_shared_benchmark_fixture::set_up_thread(benchmark::State&) -> void
+{
+  // Do nothing.
+}
+
+auto
+thread_shared_benchmark_fixture::tear_down_thread(benchmark::State&) -> void
 {
   // Do nothing.
 }
