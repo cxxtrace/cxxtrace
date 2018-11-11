@@ -15,6 +15,14 @@
 #include <utility>
 #include <vector>
 
+#if defined(__clang__) && __clang_major__ == 7 && __clang_minor__ == 0 &&      \
+  defined(__APPLE__)
+// Clang 7.0 with -O2 targeting macOS 10.11 generates many redundant calls to
+// _tlv_get_addr. Attempt to avoid redundant calls to _tlv_get_addr, preferring
+// to reuse registers instead.
+#define CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER 1
+#endif
+
 namespace cxxtrace {
 // NOTE[ring_queue_thread_local_storage lock order]:
 //
@@ -93,7 +101,11 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::get_thread_data()
   -> thread_data&
 {
   thread_local auto data = thread_data{};
-  return data;
+  auto* data_pointer = &data;
+#if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
+  asm volatile("" : "+r"(data_pointer));
+#endif
+  return *data_pointer;
 }
 
 template<std::size_t CapacityPerThread, class Tag>
