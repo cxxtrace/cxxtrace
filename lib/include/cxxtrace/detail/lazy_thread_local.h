@@ -21,13 +21,10 @@ public:
   static auto get() -> T*
   {
     auto* storage = get_thread_data_storage();
-    auto* data = storage->data_pointer_unsafe();
     if (!storage->is_initialized) {
-      new (data) T{};
-      storage->is_initialized = true;
-      destroy_object_on_thread_exit(data);
+      initialize(storage);
     }
-    return data;
+    return storage->data_pointer_unsafe();
   }
 
 private:
@@ -45,6 +42,15 @@ private:
   static_assert(std::is_trivial_v<data_storage>,
                 "data_storage must be trivial in order for lazy_thread_local "
                 "to have low overhead");
+
+  __attribute__((noinline)) static auto initialize(data_storage* storage)
+    -> void
+  {
+    auto* data = storage->data_pointer_unsafe();
+    new (data) T{};
+    storage->is_initialized = true;
+    destroy_object_on_thread_exit(data);
+  }
 
   static auto on_thread_exit(void* object) noexcept -> void
   {
