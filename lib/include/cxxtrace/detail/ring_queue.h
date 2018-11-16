@@ -106,12 +106,17 @@ private:
 
     auto maybe_new_write_vindex = add(this->write_vindex, count);
     if (!maybe_new_write_vindex.has_value()) {
-      std::fprintf(stderr, "fatal: Writer overflowed size_type\n");
-      std::abort();
+      this->abort_due_to_overflow();
     }
     this->write_vindex = *maybe_new_write_vindex;
 
     return old_write_vindex;
+  }
+
+  [[noreturn]] auto abort_due_to_overflow() const noexcept -> void
+  {
+    std::fprintf(stderr, "fatal: Writer overflowed size_type\n");
+    std::abort();
   }
 
   // 'vindex' is an abbreviation for 'virtual index'.
