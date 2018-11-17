@@ -8,6 +8,7 @@
 
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
+#include <cxxtrace/thread.h>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -36,6 +37,16 @@ ring_queue_storage<Capacity>::add_sample(czstring category,
 {
   auto lock = std::unique_lock{ this->mutex };
   this->storage.add_sample(category, name, kind, thread_id);
+}
+
+template<std::size_t Capacity>
+auto
+ring_queue_storage<Capacity>::add_sample(czstring category,
+                                         czstring name,
+                                         detail::sample_kind kind) noexcept
+  -> void
+{
+  this->add_sample(category, name, kind, get_current_thread_id());
 }
 
 template<std::size_t Capacity>

@@ -8,6 +8,7 @@
 
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/thread.h>
 #include <utility>
 #include <vector>
 
@@ -38,6 +39,16 @@ ring_queue_unsafe_storage<Capacity>::add_sample(czstring category,
   this->samples.push(1, [&](auto data) noexcept {
     data.set(0, detail::sample{ category, name, kind, thread_id });
   });
+}
+
+template<std::size_t Capacity>
+auto
+ring_queue_unsafe_storage<Capacity>::add_sample(
+  czstring category,
+  czstring name,
+  detail::sample_kind kind) noexcept -> void
+{
+  this->add_sample(category, name, kind, get_current_thread_id());
 }
 
 template<std::size_t Capacity>

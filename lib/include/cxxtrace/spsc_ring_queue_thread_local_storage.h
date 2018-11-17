@@ -16,8 +16,7 @@ public:
 
   static auto add_sample(czstring category,
                          czstring name,
-                         detail::sample_kind,
-                         thread_id) noexcept -> void;
+                         detail::sample_kind) noexcept -> void;
   static auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
 
 private:

@@ -1,4 +1,5 @@
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <mutex>
@@ -23,6 +24,14 @@ unbounded_storage::add_sample(czstring category,
 {
   auto lock = std::unique_lock{ this->mutex };
   this->storage.add_sample(category, name, kind, thread_id);
+}
+
+auto
+unbounded_storage::add_sample(czstring category,
+                              czstring name,
+                              detail::sample_kind kind) noexcept(false) -> void
+{
+  this->add_sample(category, name, kind, get_current_thread_id());
 }
 
 auto

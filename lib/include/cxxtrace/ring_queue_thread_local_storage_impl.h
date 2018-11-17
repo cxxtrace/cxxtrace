@@ -14,6 +14,7 @@
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/thread.h>
 #include <mutex>
 #include <utility>
 #include <vector>
@@ -69,10 +70,10 @@ auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_sample(
   czstring category,
   czstring name,
-  detail::sample_kind kind,
-  thread_id thread_id) noexcept -> void
+  detail::sample_kind kind) noexcept -> void
 {
   auto& thread_data = get_thread_data();
+  auto thread_id = get_current_thread_id();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
   thread_data.samples.push(1, [&](auto data) noexcept {
     data.set(0, detail::sample{ category, name, kind, thread_id });
