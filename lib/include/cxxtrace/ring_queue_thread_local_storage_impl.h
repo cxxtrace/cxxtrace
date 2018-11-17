@@ -10,10 +10,12 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/lazy_thread_local.h>
+#include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <utility>
@@ -28,6 +30,15 @@ namespace cxxtrace {
 // 2. Lock thread_data::mutex
 // 3. Unlock thread_data::mutex
 // 4. Unlock global_mutex
+
+template<std::size_t CapacityPerThread, class Tag>
+struct ring_queue_thread_local_storage<CapacityPerThread,
+                                       Tag>::thread_local_sample
+{
+  czstring category;
+  czstring name;
+  detail::sample_kind kind;
+};
 
 template<std::size_t CapacityPerThread, class Tag>
 struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
@@ -47,9 +58,24 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
   thread_data(thread_data&&) = delete;
   thread_data& operator=(thread_data&&) = delete;
 
+  auto pop_all_into(std::vector<detail::sample>& output) noexcept(false) -> void
+  {
+    auto thread_id = this->id;
+    auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
+                         ->detail::sample
+    {
+      return detail::sample{
+        sample.category, sample.name, sample.kind, thread_id
+      };
+    };
+    this->samples.pop_all_into(
+      detail::transform_vector_queue_sink{ output, make_sample });
+  }
+
   // See NOTE[ring_queue_thread_local_storage lock order].
   std::mutex mutex{};
-  detail::ring_queue<detail::sample, CapacityPerThread> samples{};
+  cxxtrace::thread_id id{ cxxtrace::get_current_thread_id() };
+  detail::ring_queue<thread_local_sample, CapacityPerThread> samples{};
 };
 
 template<std::size_t CapacityPerThread, class Tag>
@@ -73,10 +99,9 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_sample(
   detail::sample_kind kind) noexcept -> void
 {
   auto& thread_data = get_thread_data();
-  auto thread_id = get_current_thread_id();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, detail::sample{ category, name, kind, thread_id });
+    data.set(0, thread_local_sample{ category, name, kind });
   });
 }
 
@@ -90,7 +115,7 @@ ring_queue_thread_local_storage<CapacityPerThread,
   auto samples = std::move(disowned_samples);
   for (auto* data : thread_list) {
     auto thread_lock = std::lock_guard{ data->mutex };
-    data->samples.pop_all_into(samples);
+    data->pop_all_into(samples);
   }
   return samples;
 }
@@ -134,7 +159,7 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::
   assert(it != thread_list.end());
   thread_list.erase(it, thread_list.end());
 
-  data->samples.pop_all_into(disowned_samples);
+  data->pop_all_into(disowned_samples);
 }
 }
 

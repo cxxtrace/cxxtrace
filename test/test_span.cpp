@@ -325,9 +325,11 @@ TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
   auto thread_did_exit_span = event{};
   auto thread_should_exit = event{};
 
+  auto thread_id = std::atomic<cxxtrace::thread_id>{};
   auto thread = std::thread{ [&] {
     {
       auto thread_span = CXXTRACE_SPAN("category", "thread span");
+      thread_id = cxxtrace::get_current_thread_id();
     }
     thread_did_exit_span.set();
     thread_should_exit.wait();
@@ -337,6 +339,7 @@ TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
   auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 1);
   EXPECT_STREQ(events.at(0).name(), "thread span");
+  EXPECT_EQ(events.at(0).thread_id(), thread_id);
 
   thread_should_exit.set();
   thread.join();

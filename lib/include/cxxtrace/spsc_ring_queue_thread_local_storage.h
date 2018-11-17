@@ -21,6 +21,7 @@ public:
 
 private:
   struct thread_data;
+  struct thread_local_sample;
 
   static auto get_thread_data() -> thread_data&;
 
