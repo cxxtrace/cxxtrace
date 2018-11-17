@@ -1,12 +1,15 @@
 #ifndef CXXTRACE_UNBOUNDED_STORAGE_H
 #define CXXTRACE_UNBOUNDED_STORAGE_H
 
+#include <cxxtrace/string.h>
+#include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <mutex>
 #include <vector>
 
 namespace cxxtrace {
 namespace detail {
+enum class sample_kind;
 struct sample;
 }
 
@@ -23,7 +26,10 @@ public:
 
   auto reset() noexcept -> void;
 
-  auto add_sample(detail::sample) noexcept(false) -> void;
+  auto add_sample(czstring category,
+                  czstring name,
+                  detail::sample_kind,
+                  thread_id) noexcept(false) -> void;
   auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
 
 private:

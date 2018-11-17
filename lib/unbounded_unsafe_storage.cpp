@@ -15,9 +15,13 @@ unbounded_unsafe_storage::reset() noexcept -> void
 }
 
 auto
-unbounded_unsafe_storage::add_sample(detail::sample s) noexcept(false) -> void
+unbounded_unsafe_storage::add_sample(czstring category,
+                                     czstring name,
+                                     detail::sample_kind kind,
+                                     thread_id thread_id) noexcept(false)
+  -> void
 {
-  this->samples.emplace_back(std::move(s));
+  this->samples.emplace_back(detail::sample{ category, name, kind, thread_id });
 }
 
 auto

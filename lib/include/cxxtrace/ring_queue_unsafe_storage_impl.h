@@ -29,11 +29,15 @@ ring_queue_unsafe_storage<Capacity>::reset() noexcept -> void
 
 template<std::size_t Capacity>
 auto
-ring_queue_unsafe_storage<Capacity>::add_sample(detail::sample s) noexcept
+ring_queue_unsafe_storage<Capacity>::add_sample(czstring category,
+                                                czstring name,
+                                                detail::sample_kind kind,
+                                                thread_id thread_id) noexcept
   -> void
 {
-  this->samples.push(
-    1, [&s](auto data) noexcept { data.set(0, std::move(s)); });
+  this->samples.push(1, [&](auto data) noexcept {
+    data.set(0, detail::sample{ category, name, kind, thread_id });
+  });
 }
 
 template<std::size_t Capacity>

@@ -14,7 +14,10 @@ class spsc_ring_queue_thread_local_storage
 public:
   static auto reset() noexcept -> void;
 
-  static auto add_sample(detail::sample) noexcept -> void;
+  static auto add_sample(czstring category,
+                         czstring name,
+                         detail::sample_kind,
+                         thread_id) noexcept -> void;
   static auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
 
 private:

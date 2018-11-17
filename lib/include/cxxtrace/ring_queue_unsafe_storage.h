@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/string.h>
+#include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
@@ -22,7 +24,10 @@ public:
 
   auto reset() noexcept -> void;
 
-  auto add_sample(detail::sample) noexcept -> void;
+  auto add_sample(czstring category,
+                  czstring name,
+                  detail::sample_kind,
+                  thread_id) noexcept -> void;
   auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
 
 private:

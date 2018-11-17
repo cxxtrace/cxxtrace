@@ -67,12 +67,16 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::reset() noexcept
 template<std::size_t CapacityPerThread, class Tag>
 auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_sample(
-  detail::sample s) noexcept -> void
+  czstring category,
+  czstring name,
+  detail::sample_kind kind,
+  thread_id thread_id) noexcept -> void
 {
   auto& thread_data = get_thread_data();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
-  thread_data.samples.push(
-    1, [&s](auto data) noexcept { data.set(0, std::move(s)); });
+  thread_data.samples.push(1, [&](auto data) noexcept {
+    data.set(0, detail::sample{ category, name, kind, thread_id });
+  });
 }
 
 template<std::size_t CapacityPerThread, class Tag>

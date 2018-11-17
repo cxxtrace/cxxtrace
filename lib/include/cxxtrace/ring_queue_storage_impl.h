@@ -29,10 +29,13 @@ ring_queue_storage<Capacity>::reset() noexcept -> void
 
 template<std::size_t Capacity>
 auto
-ring_queue_storage<Capacity>::add_sample(detail::sample s) noexcept -> void
+ring_queue_storage<Capacity>::add_sample(czstring category,
+                                         czstring name,
+                                         detail::sample_kind kind,
+                                         thread_id thread_id) noexcept -> void
 {
   auto lock = std::unique_lock{ this->mutex };
-  this->storage.add_sample(std::move(s));
+  this->storage.add_sample(category, name, kind, thread_id);
 }
 
 template<std::size_t Capacity>
