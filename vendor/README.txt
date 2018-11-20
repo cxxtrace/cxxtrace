@@ -35,3 +35,20 @@ Project URL: https://github.com/google/googletest
 Release URL: https://github.com/google/googletest/releases/tag/release-1.8.1
 Release date: August 31, 2018
 Version: v1.8.1
+
+## relacy
+
+The relacy directory contains Relacy Race Detector, a tool for testing C++
+synchronization algorithms.
+
+Copyright: Copyright (c) 2008-2013, Dmitry S. Vyukov
+Download URL: https://github.com/dvyukov/relacy/archive/dc6be4854d82491483b1781254753706df68a8b3.tar.gz
+Download date: November 30, 2018
+Git commit: dc6be4854d82491483b1781254753706df68a8b3
+License file: relacy/LICENSE
+License type: Custom
+Location: relacy
+Project URL: https://github.com/dvyukov/relacy
+Release URL: https://github.com/dvyukov/relacy/tree/dc6be4854d82491483b1781254753706df68a8b3
+Release date: November 22, 2018
+Version: N/A
