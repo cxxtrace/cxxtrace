@@ -27,9 +27,9 @@ namespace detail {
 //
 // ring_queue is not thread-safe.
 //
-// TODO(strager): Make ring_queue thread-safe.
-//
 // TODO(strager): Add an API for the reader to detect when items are discarded.
+//
+// @see spsc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
 class ring_queue
 {

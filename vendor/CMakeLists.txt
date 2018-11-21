@@ -13,3 +13,10 @@ set(BUILD_GMOCK TRUE CACHE INTERNAL "")
 set(INSTALL_GTEST FALSE)
 set(gmock_build_tests FALSE CACHE INTERNAL "")
 add_subdirectory(googletest)
+
+add_library(relacy INTERFACE)
+target_include_directories(relacy INTERFACE relacy)
+if (APPLE)
+  # Allow including <ucontext.h>, and fix the definition of ucontext_t.
+  target_compile_definitions(relacy INTERFACE _XOPEN_SOURCE=700)
+endif ()
