@@ -73,7 +73,7 @@ TYPED_TEST(test_ring_queue, new_queue_is_empty)
 TYPED_TEST(test_ring_queue, pop_returns_single_pushed_int)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  queue.push(1, [](auto data) noexcept->void { data[0] = 42; });
+  queue.push(1, [](auto data) noexcept->void { data.set(0, 42); });
 
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
@@ -85,7 +85,7 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
   auto queue = RING_QUEUE<int, 64>{};
   auto values_to_write = std::vector<int>{ 42, 9001, -1 };
   for (auto value : values_to_write) {
-    queue.push(1, [value](auto data) noexcept->void { data[0] = value; });
+    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto written_values = pop_all(queue);
@@ -96,9 +96,9 @@ TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(3, [](auto data) noexcept->void {
-    data[0] = 42;
-    data[1] = 9001;
-    data[2] = -1;
+    data.set(0, 42);
+    data.set(1, 9001);
+    data.set(2, -1);
   });
 
   auto written_values = pop_all(queue);
@@ -112,10 +112,10 @@ TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
   pop_all(queue);
 
   queue.push(4, [](auto data) noexcept->void {
-    data[0] = 10;
-    data[1] = 20;
-    data[2] = 30;
-    data[3] = 40;
+    data.set(0, 10);
+    data.set(1, 20);
+    data.set(2, 30);
+    data.set(3, 40);
   });
 
   auto written_values = pop_all(queue);
@@ -126,11 +126,11 @@ TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(5, [](auto data) noexcept->void {
-    data[0] = 10;
-    data[1] = 20;
-    data[2] = 30;
-    data[3] = 40;
-    data[4] = 50;
+    data.set(0, 10);
+    data.set(1, 20);
+    data.set(2, 30);
+    data.set(3, 40);
+    data.set(4, 50);
   });
 
   auto contents = std::vector<int>{};
@@ -144,11 +144,11 @@ TYPED_TEST(test_ring_queue, clear_then_pop_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(5, [](auto data) noexcept->void {
-    data[0] = 10;
-    data[1] = 20;
-    data[2] = 30;
-    data[3] = 40;
-    data[4] = 50;
+    data.set(0, 10);
+    data.set(1, 20);
+    data.set(2, 30);
+    data.set(3, 40);
+    data.set(4, 50);
   });
 
   queue.clear();
@@ -161,7 +161,7 @@ TYPED_TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
 {
   auto queue = RING_QUEUE<int, 4>{};
   for (auto value : { 10, 20, 30, 40, 50 }) {
-    queue.push(1, [value](auto data) noexcept->void { data[0] = value; });
+    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto items = pop_all(queue);
@@ -189,7 +189,7 @@ protected:
   {
     for (auto i = 0; i < count; ++i) {
       this->queue.push(
-        1, [this](auto data) noexcept->void { data[0] = this->cur_value; });
+        1, [this](auto data) noexcept->void { data.set(0, this->cur_value); });
       this->reference_queue.push(this->cur_value);
       this->cur_value += 1;
     }
@@ -247,9 +247,9 @@ TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
   auto max_index =
     std::numeric_limits<typename decltype(queue)::size_type>::max();
   for (auto i = 0; i < max_index; ++i) {
-    queue.push(1, [](auto data) noexcept { data[0] = 0; });
+    queue.push(1, [](auto data) noexcept { data.set(0, 0); });
   }
-  EXPECT_EXIT({ queue.push(1, [](auto data) noexcept { data[0] = 0; }); },
+  EXPECT_EXIT({ queue.push(1, [](auto data) noexcept { data.set(0, 0); }); },
               testing::KilledBySignal(SIGABRT),
               "Writer overflowed size_type");
 }

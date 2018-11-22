@@ -79,9 +79,9 @@ private:
   class push_handle
   {
   public:
-    auto operator[](size_type index) noexcept -> T&
+    auto set(size_type index, T value) noexcept -> void
     {
-      return this->storage[(this->write_vindex + index) % capacity];
+      this->storage[(this->write_vindex + index) % capacity] = std::move(value);
     }
 
   private:

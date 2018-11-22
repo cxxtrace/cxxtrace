@@ -71,7 +71,7 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_sample(
   auto& thread_data = get_thread_data();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
   thread_data.samples.push(
-    1, [&s](auto data) noexcept { data[0] = std::move(s); });
+    1, [&s](auto data) noexcept { data.set(0, std::move(s)); });
 }
 
 template<std::size_t CapacityPerThread, class Tag>

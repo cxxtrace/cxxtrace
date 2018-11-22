@@ -32,7 +32,8 @@ auto
 ring_queue_unsafe_storage<Capacity>::add_sample(detail::sample s) noexcept
   -> void
 {
-  this->samples.push(1, [&s](auto data) noexcept { data[0] = std::move(s); });
+  this->samples.push(
+    1, [&s](auto data) noexcept { data.set(0, std::move(s)); });
 }
 
 template<std::size_t Capacity>
