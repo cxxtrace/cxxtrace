@@ -15,8 +15,9 @@
 #include <type_traits>
 #include <vector>
 
+#define RING_QUEUE typename TestFixture::template ring_queue
+
 using cxxtrace::stringify;
-using cxxtrace::detail::ring_queue;
 using testing::ContainerEq;
 using testing::ElementsAre;
 using testing::IsEmpty;
@@ -37,21 +38,41 @@ template class ring_queue<point, 1024, std::size_t>;
 }
 
 namespace {
-template<class T, std::size_t Capacity, class Index>
-auto
-pop_all(ring_queue<T, Capacity, Index>&) -> std::vector<T>;
-
-TEST(test_ring_queue, new_queue_is_empty)
+template<class RingQueueFactory>
+class test_ring_queue : public testing::Test
 {
-  auto queue = ring_queue<int, 64>{};
+public:
+  template<class T, std::size_t Capacity, class Index = int>
+  using ring_queue =
+    typename RingQueueFactory::template ring_queue<T, Capacity, Index>;
+};
+
+template<template<class T, std::size_t Capacity, class Index> class RingQueue>
+struct ring_queue_factory
+{
+  template<class T, std::size_t Capacity, class Index>
+  using ring_queue = RingQueue<T, Capacity, Index>;
+};
+
+using test_ring_queue_types =
+  ::testing::Types<ring_queue_factory<cxxtrace::detail::ring_queue>>;
+TYPED_TEST_CASE(test_ring_queue, test_ring_queue_types, );
+
+template<class RingQueue>
+auto
+pop_all(RingQueue&) -> std::vector<typename RingQueue::value_type>;
+
+TYPED_TEST(test_ring_queue, new_queue_is_empty)
+{
+  auto queue = RING_QUEUE<int, 64>{};
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
   EXPECT_THAT(contents, IsEmpty());
 }
 
-TEST(test_ring_queue, pop_returns_single_pushed_int)
+TYPED_TEST(test_ring_queue, pop_returns_single_pushed_int)
 {
-  auto queue = ring_queue<int, 64>{};
+  auto queue = RING_QUEUE<int, 64>{};
   queue.push(1, [](auto data) noexcept->void { data[0] = 42; });
 
   auto contents = std::vector<int>{};
@@ -59,9 +80,9 @@ TEST(test_ring_queue, pop_returns_single_pushed_int)
   ASSERT_THAT(contents, ElementsAre(42));
 }
 
-TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
+TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
 {
-  auto queue = ring_queue<int, 64>{};
+  auto queue = RING_QUEUE<int, 64>{};
   auto values_to_write = std::vector<int>{ 42, 9001, -1 };
   for (auto value : values_to_write) {
     queue.push(1, [value](auto data) noexcept->void { data[0] = value; });
@@ -71,9 +92,9 @@ TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
   EXPECT_THAT(written_values, ContainerEq(values_to_write));
 }
 
-TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
+TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 {
-  auto queue = ring_queue<int, 64>{};
+  auto queue = RING_QUEUE<int, 64>{};
   queue.push(3, [](auto data) noexcept->void {
     data[0] = 42;
     data[1] = 9001;
@@ -84,9 +105,9 @@ TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
   EXPECT_THAT(written_values, ElementsAre(42, 9001, -1));
 }
 
-TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
+TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
 {
-  auto queue = ring_queue<int, 8>{};
+  auto queue = RING_QUEUE<int, 8>{};
   queue.push(6, [](auto) noexcept->void{});
   pop_all(queue);
 
@@ -101,9 +122,9 @@ TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
   EXPECT_THAT(written_values, ElementsAre(10, 20, 30, 40));
 }
 
-TEST(test_ring_queue, popping_again_returns_no_items)
+TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 {
-  auto queue = ring_queue<int, 64>{};
+  auto queue = RING_QUEUE<int, 64>{};
   queue.push(5, [](auto data) noexcept->void {
     data[0] = 10;
     data[1] = 20;
@@ -119,9 +140,9 @@ TEST(test_ring_queue, popping_again_returns_no_items)
   EXPECT_THAT(contents, IsEmpty());
 }
 
-TEST(test_ring_queue, clear_then_pop_returns_no_items)
+TYPED_TEST(test_ring_queue, clear_then_pop_returns_no_items)
 {
-  auto queue = ring_queue<int, 64>{};
+  auto queue = RING_QUEUE<int, 64>{};
   queue.push(5, [](auto data) noexcept->void {
     data[0] = 10;
     data[1] = 20;
@@ -136,9 +157,9 @@ TEST(test_ring_queue, clear_then_pop_returns_no_items)
   EXPECT_THAT(contents, IsEmpty());
 }
 
-TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
+TYPED_TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
 {
-  auto queue = ring_queue<int, 4>{};
+  auto queue = RING_QUEUE<int, 4>{};
   for (auto value : { 10, 20, 30, 40, 50 }) {
     queue.push(1, [value](auto data) noexcept->void { data[0] = value; });
   }
@@ -147,13 +168,16 @@ TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
   EXPECT_THAT(items, ElementsAre(20, 30, 40, 50));
 }
 
-template<std::size_t Capacity, class Index>
+template<class RingQueue>
 class test_ring_queue_against_reference : public testing::Test
 {
 protected:
-  using size_type = Index;
+  using size_type = typename RingQueue::size_type;
+  using value_type = typename RingQueue::value_type;
 
-  static constexpr auto capacity = Capacity;
+  static_assert(std::is_same_v<value_type, int>);
+
+  static constexpr auto capacity = RingQueue::capacity;
 
   auto reset() -> void
   {
@@ -184,16 +208,18 @@ protected:
     EXPECT_THAT(popped, ContainerEq(reference_popped));
   }
 
-  ring_queue<int, capacity, size_type> queue{};
-  reference_ring_queue<int, capacity> reference_queue{};
-  int cur_value = 100;
+  RingQueue queue{};
+  reference_ring_queue<value_type, capacity> reference_queue{};
+  value_type cur_value{ 100 };
 };
 
-using test_ring_queue_against_reference_basic =
-  test_ring_queue_against_reference<8, int>;
+using test_ring_queue_against_reference_types =
+  ::testing::Types<cxxtrace::detail::ring_queue<int, 8, int>>;
+TYPED_TEST_CASE(test_ring_queue_against_reference,
+                test_ring_queue_against_reference_types, );
 
-TEST_F(test_ring_queue_against_reference_basic,
-       overflow_causes_pop_to_return_only_newest_data_exhaustive)
+TYPED_TEST(test_ring_queue_against_reference,
+           overflow_causes_pop_to_return_only_newest_data_exhaustive)
 {
   auto rng = cxxtrace::exhaustive_rng{};
   while (!rng.done() && !this->HasFailure()) {
@@ -213,12 +239,13 @@ TEST_F(test_ring_queue_against_reference_basic,
   }
 }
 
-TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
+TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
 {
   // TODO(strager): Instead of asserting, make overflowing the size type not
   // special at all.
-  auto queue = ring_queue<int, 8, signed char>{};
-  auto max_index = std::numeric_limits<decltype(queue)::size_type>::max();
+  auto queue = RING_QUEUE<int, 8, signed char>{};
+  auto max_index =
+    std::numeric_limits<typename decltype(queue)::size_type>::max();
   for (auto i = 0; i < max_index; ++i) {
     queue.push(1, [](auto data) noexcept { data[0] = 0; });
   }
@@ -227,11 +254,11 @@ TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
               "Writer overflowed size_type");
 }
 
-template<class T, std::size_t Capacity, class Index>
+template<class RingQueue>
 auto
-pop_all(ring_queue<T, Capacity, Index>& queue) -> std::vector<T>
+pop_all(RingQueue& queue) -> std::vector<typename RingQueue::value_type>
 {
-  auto data = std::vector<T>{};
+  auto data = std::vector<typename RingQueue::value_type>{};
   queue.pop_all_into(data);
   return data;
 }
