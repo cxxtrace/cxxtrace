@@ -53,7 +53,11 @@ public:
     write(push_handle{ this->storage, vindex });
   }
 
-  auto clear() noexcept -> void { this->read_vindex = this->write_vindex; }
+  auto reset() noexcept -> void
+  {
+    this->read_vindex = 0;
+    this->write_vindex = 0;
+  }
 
   auto pop_all_into(std::vector<T>& output) -> void
   {

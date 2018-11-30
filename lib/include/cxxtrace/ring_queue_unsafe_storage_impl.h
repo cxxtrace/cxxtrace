@@ -22,9 +22,9 @@ ring_queue_unsafe_storage<Capacity>::~ring_queue_unsafe_storage() noexcept =
 
 template<std::size_t Capacity>
 auto
-ring_queue_unsafe_storage<Capacity>::clear_all_samples() noexcept -> void
+ring_queue_unsafe_storage<Capacity>::reset() noexcept -> void
 {
-  this->samples.clear();
+  this->samples.reset();
 }
 
 template<std::size_t Capacity>

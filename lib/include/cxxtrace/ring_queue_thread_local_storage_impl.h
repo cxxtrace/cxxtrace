@@ -12,6 +12,7 @@
 #include <cxxtrace/detail/lazy_thread_local.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <mutex>
 #include <utility>
@@ -52,15 +53,15 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
 
 template<std::size_t CapacityPerThread, class Tag>
 auto
-ring_queue_thread_local_storage<CapacityPerThread,
-                                Tag>::clear_all_samples() noexcept -> void
+ring_queue_thread_local_storage<CapacityPerThread, Tag>::reset() noexcept
+  -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
   for (auto* data : thread_list) {
     auto thread_lock = std::lock_guard{ data->mutex };
-    data->samples.clear();
+    data->samples.reset();
   }
-  disowned_samples.clear();
+  detail::reset_vector(disowned_samples);
 }
 
 template<std::size_t CapacityPerThread, class Tag>

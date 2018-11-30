@@ -140,7 +140,7 @@ TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
   EXPECT_THAT(contents, IsEmpty());
 }
 
-TYPED_TEST(test_ring_queue, clear_then_pop_returns_no_items)
+TYPED_TEST(test_ring_queue, reset_then_pop_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(5, [](auto data) noexcept->void {
@@ -151,7 +151,7 @@ TYPED_TEST(test_ring_queue, clear_then_pop_returns_no_items)
     data.set(4, 50);
   });
 
-  queue.clear();
+  queue.reset();
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
   EXPECT_THAT(contents, IsEmpty());
@@ -181,8 +181,8 @@ protected:
 
   auto reset() -> void
   {
-    this->queue = decltype(this->queue){};
-    this->reference_queue = decltype(this->reference_queue){};
+    this->queue.reset();
+    this->reference_queue.reset();
   }
 
   auto push_n(int count) -> void
@@ -195,16 +195,10 @@ protected:
     }
   }
 
-  auto clear() -> void
-  {
-    this->queue.clear();
-    this->reference_queue.clear();
-  }
-
   auto pop_all_and_check(int max_size) -> void
   {
     auto popped = ::pop_all(this->queue);
-    auto reference_popped = this->reference_queue.pop_n_and_clear(max_size);
+    auto reference_popped = this->reference_queue.pop_n_and_reset(max_size);
     EXPECT_THAT(popped, ContainerEq(reference_popped));
   }
 
@@ -229,7 +223,7 @@ TYPED_TEST(test_ring_queue_against_reference,
     SCOPED_TRACE(stringify("writer_lead = ", writer_lead));
 
     this->push_n(reader_offset);
-    this->clear();
+    this->reset();
 
     this->push_n(writer_lead);
     this->pop_all_and_check(this->capacity);

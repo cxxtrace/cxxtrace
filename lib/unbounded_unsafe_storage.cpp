@@ -1,4 +1,5 @@
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/vector.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <utility>
 #include <vector>
@@ -8,9 +9,9 @@ unbounded_unsafe_storage::unbounded_unsafe_storage() noexcept = default;
 unbounded_unsafe_storage::~unbounded_unsafe_storage() noexcept = default;
 
 auto
-unbounded_unsafe_storage::clear_all_samples() noexcept -> void
+unbounded_unsafe_storage::reset() noexcept -> void
 {
-  this->samples.clear();
+  detail::reset_vector(this->samples);
 }
 
 auto

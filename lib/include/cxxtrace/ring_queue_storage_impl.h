@@ -21,10 +21,10 @@ ring_queue_storage<Capacity>::~ring_queue_storage() noexcept = default;
 
 template<std::size_t Capacity>
 auto
-ring_queue_storage<Capacity>::clear_all_samples() noexcept -> void
+ring_queue_storage<Capacity>::reset() noexcept -> void
 {
   auto lock = std::unique_lock{ this->mutex };
-  this->storage.clear_all_samples();
+  this->storage.reset();
 }
 
 template<std::size_t Capacity>

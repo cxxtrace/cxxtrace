@@ -12,7 +12,7 @@ template<std::size_t CapacityPerThread, class Tag>
 class ring_queue_thread_local_storage
 {
 public:
-  static auto clear_all_samples() noexcept -> void;
+  static auto reset() noexcept -> void;
 
   static auto add_sample(detail::sample) noexcept -> void;
   static auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;

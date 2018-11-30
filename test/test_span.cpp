@@ -65,7 +65,7 @@ public:
     : cxxtrace_config{ cxxtrace_storage }
   {}
 
-  auto TearDown() -> void override { this->clear_all_samples(); }
+  auto TearDown() -> void override { this->reset_storage(); }
 
 protected:
   using storage_type = Storage;
@@ -85,10 +85,7 @@ protected:
     return cxxtrace::copy_incomplete_spans(this->cxxtrace_storage);
   }
 
-  auto clear_all_samples() -> void
-  {
-    this->cxxtrace_storage.clear_all_samples();
-  }
+  auto reset_storage() -> void { this->cxxtrace_storage.reset(); }
 
 private:
   storage_type cxxtrace_storage{};
@@ -334,7 +331,8 @@ TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
   thread.join();
 }
 
-TYPED_TEST(test_span, clearing_storage_removes_samples_by_other_running_threads)
+TYPED_TEST(test_span,
+           resetting_storage_removes_samples_by_other_running_threads)
 {
   auto thread_did_exit_span = event{};
   auto thread_should_exit = event{};
@@ -347,7 +345,7 @@ TYPED_TEST(test_span, clearing_storage_removes_samples_by_other_running_threads)
     thread_should_exit.wait();
   } };
   thread_did_exit_span.wait();
-  this->clear_all_samples();
+  this->reset_storage();
 
   auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 0);
@@ -356,13 +354,13 @@ TYPED_TEST(test_span, clearing_storage_removes_samples_by_other_running_threads)
   thread.join();
 }
 
-TYPED_TEST(test_span, clearing_storage_removes_samples_by_exited_threads)
+TYPED_TEST(test_span, resetting_storage_removes_samples_by_exited_threads)
 {
   auto thread = std::thread{ [&] {
     auto thread_span = CXXTRACE_SPAN("category", "thread span");
   } };
   thread.join();
-  this->clear_all_samples();
+  this->reset_storage();
 
   auto events = cxxtrace::events_snapshot{ this->take_all_events() };
   EXPECT_EQ(events.size(), 0);

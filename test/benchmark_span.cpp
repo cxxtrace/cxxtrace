@@ -90,9 +90,9 @@ public:
   }
 
 protected:
-  auto clear_all_samples() noexcept -> void
+  auto reset_storage() noexcept -> void
   {
-    this->get_cxxtrace_config().storage().clear_all_samples();
+    this->get_cxxtrace_config().storage().reset();
   }
 
   int spans_per_iteration{ 0 };
@@ -110,7 +110,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
 (benchmark::State& bench)
 {
   for (auto _ : bench) {
-    this->clear_all_samples();
+    this->reset_storage();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       auto span = CXXTRACE_SPAN("category", "span");
     }
@@ -124,7 +124,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_enter_exit_exit)
   assert(this->spans_per_iteration % 2 == 0);
   auto inner_iteration_count = this->spans_per_iteration / 2;
   for (auto _ : bench) {
-    this->clear_all_samples();
+    this->reset_storage();
     for (auto i = 0; i < inner_iteration_count; ++i) {
       auto outer_span = CXXTRACE_SPAN("category", "outer span");
       auto inner_span = CXXTRACE_SPAN("category", "inner span");
@@ -139,7 +139,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_thrash_memory_exit)
 {
   auto thrasher = cpu_data_cache_thrasher{};
   for (auto _ : bench) {
-    this->clear_all_samples();
+    this->reset_storage();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       auto span = CXXTRACE_SPAN("category", "thrash memory");
       thrasher.thrash_memory();
@@ -154,7 +154,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, thrash_memory)
 {
   auto thrasher = cpu_data_cache_thrasher{};
   for (auto _ : bench) {
-    this->clear_all_samples();
+    this->reset_storage();
     for (auto i = 0; i < this->spans_per_iteration; ++i) {
       thrasher.thrash_memory();
     }

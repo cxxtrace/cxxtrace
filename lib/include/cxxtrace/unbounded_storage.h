@@ -21,7 +21,7 @@ public:
   unbounded_storage(unbounded_storage&&) = delete;
   unbounded_storage& operator=(unbounded_storage&&) = delete;
 
-  auto clear_all_samples() noexcept -> void;
+  auto reset() noexcept -> void;
 
   auto add_sample(detail::sample) noexcept(false) -> void;
   auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;

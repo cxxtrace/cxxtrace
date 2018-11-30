@@ -20,7 +20,7 @@ public:
   ring_queue_unsafe_storage(ring_queue_unsafe_storage&&) = delete;
   ring_queue_unsafe_storage& operator=(ring_queue_unsafe_storage&&) = delete;
 
-  auto clear_all_samples() noexcept -> void;
+  auto reset() noexcept -> void;
 
   auto add_sample(detail::sample) noexcept -> void;
   auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;

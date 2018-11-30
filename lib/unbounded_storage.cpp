@@ -9,10 +9,10 @@ unbounded_storage::unbounded_storage() noexcept = default;
 unbounded_storage::~unbounded_storage() noexcept = default;
 
 auto
-unbounded_storage::clear_all_samples() noexcept -> void
+unbounded_storage::reset() noexcept -> void
 {
   auto lock = std::unique_lock{ this->mutex };
-  this->storage.clear_all_samples();
+  this->storage.reset();
 }
 
 auto

@@ -19,7 +19,7 @@ public:
   unbounded_unsafe_storage(unbounded_unsafe_storage&&) = delete;
   unbounded_unsafe_storage& operator=(unbounded_unsafe_storage&&) = delete;
 
-  auto clear_all_samples() noexcept -> void;
+  auto reset() noexcept -> void;
 
   auto add_sample(detail::sample) noexcept(false) -> void;
   auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
