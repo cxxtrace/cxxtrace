@@ -1,0 +1,308 @@
+-------------------------------------------------------------------------------
+ Fence support:
+-------------------------------------------------------------------------------
+
+Fences provide a few new modification order constraints as well as an
+interesting extension to release sequences, detailed in 29.3 (p4-p7) and 29.8
+(p2-p4). The specifications are pasted here in Appendix A and are applied to our
+model-checker in these notes.
+
+Section 29.3 details the modification order constraints established by
+sequentially-consistent fences.
+
+Section 29.8 details the behavior of release and acquire fences (note that
+memory_order_seq_cst is both release and acquire).
+
+The text of these rules are provided at the end of this document for reference.
+
+*******************************
+ Backtracking requirements
+*******************************
+
+Because we maintain the seq-cst order as consistent with the execution order,
+seq-cst fences cannot commute with each other, with seq-cst loads, nor with
+seq-cst stores; we backtrack at all such pairs.
+
+Fences extend release/acquire synchronization beyond just
+store-release/load-acquire. We must backtrack with potentially-synchronizing
+fences: that is, with any pair of store- or fence-release and load- or
+fence-acquire, where the release comes after the acquire in the execution order
+(the other ordering is OK, as we will explore both behaviors; where the pair
+synchronize and where they don't).
+
+Note that, for instance, a fence-release may synchronize with a fence-acquire
+only in the presence of a appropriate load/store pair (29.8p2); but the
+synchronization still occurs between the fences, so the backtracking
+requirements are only placed on the release/acquire fences themselves.
+
+*******************************
+ Seq-cst MO constraints (29.3 p4-p7)
+*******************************
+
+The statements given in the specification regarding sequentially consistent
+fences can be transformed into the following 4 modification order constraints.
+
+29.3p4
+
+If
+    is_write(A) && is_read(B) && is_write(W) && is_fence(X) &&
+    is_seqcst(W) && is_seqcst(X) && A != W &&
+    same_loc(W, A, B) &&
+    A --rf-> B &&
+    W --sc-> X --sb-> B
+then
+    W --mo-> A
+
+Intuition/Implementation:
+ * We may (but don't currently) limit our considertion of W to only the most
+   recent (in the SC order) store to the same location as A and B prior to X
+   (note that all prior writes will be ordered prior to W in both SC and MO)
+ * We should consider the "most recent" seq-cst fence X that precedes B
+ * This search can be combined with the r_modification_order search, since we
+   already iterate through the necessary stores W
+
+29.3p5
+
+If
+    is_write(A) && is_read(B) && is_write(W) && is_fence(X) &&
+    is_seqcst(B) && is_seqcst(X) &&
+    same_loc(W, A, B) &&
+    A != W &&
+    A --rf-> B &&
+    W --sb-> X --sc-> B
+then
+    W --mo-> A
+
+Intuition/Implementation:
+ * We only need to examine the "most recent" seq-cst fence X from each thread
+ * We only need to examine the "most recent" qualifying store W that precedes X;
+   all other W will provide a weaker MO constraint
+ * This search can be combined with the r_modification_order search, since we
+   already iterate through the necessary stores W
+
+29.3p6
+
+If
+    is_write(A) && is_read(B) && is_write(W) && is_fence(X) && is_fence(Y) &&
+    is_seqcst(X) && is_seqcst(Y) &&
+    same_loc(W, A, B) &&
+    A != W &&
+    A --rf-> B &&
+    W --sb-> X --sc-> Y --sb-> B
+then
+    W --mo-> A
+
+Intuition/Implementation:
+ * We should consider only the "most recent" fence Y in the same thread as B
+   (prior fences may only yield the same or weaker constraints)
+ * We may then consider the "most recent" seq-cst fence X prior to Y (in SC order)
+   from each thread (prior fences may only yield the same or weaker constraints)
+ * We should consider only the "most recent" store W (to the same location as A,
+   B) in the same thread as X (prior stores may only yield the same or weaker
+   constraints)
+ * This search can be combined with the r_modification_order search, since we
+   already iterate through the necessary stores W
+
+29.3p7
+
+If
+    is_write(A) && is_write(B) && is_fence(X) && is_fence(Y) &&
+    is_seqcst(X) && is_seqcst(Y) &&
+    same_loc(A, B) &&
+    A --sb-> X --sc-> Y --sb-> B
+then
+    A --mo-> B
+
+Intuition/Implementation:
+ * (Similar to 29.3p6 rules, except using A/B write/write) only search for the
+   most recent fence Y in the same thread; search for the most recent (prior to
+   Y) fence X from each thread; search for the most recent store A prior to X
+ * This search can be combined with the w_modification_order search, since we
+   already iterate through the necessary stores A
+
+**********************************************************************
+ Release/acquire synchronization: extended to fences (29.3 p4-p7)
+**********************************************************************
+
+The C++ specification statements regarding release and acquire fences make
+extensions to release sequences, using what they call "hypothetical release
+sequences." These hypothetical release sequences are the same as normal release
+sequences, except that the "head" doesn't have to be a release: it can have any
+memory order (e.g., relaxed). This change actually simplifies our release
+sequences (for the fence case), as we don't actually have to establish a
+contiguous modification order all the way to a release operation; we just need
+to reach the same thread (via a RMW chain, for instance).
+
+The statements given in the specification regarding release and acquire fences
+do not result in totally separable conditions, so I will write down my
+semi-formal notation here along with some simple notes then present my
+implementation notes at the end.
+
+Note that we will use A --rs-> B to denote that B is in the release sequence
+headed by A (we allow A = B, unless otherwise stated). The hypothetical release
+sequence will be similarly denoted A --hrs-> B.
+
+29.8p2
+
+If
+    is_fence(A) && is_write(X) && is_write(W) && is_read(Y) && is_fence(B) &&
+    is_release(A) && is_acquire(B) &&
+    A --sb-> X --hrs-> W --rf-> Y --sb-> B
+then
+    A --sw-> B
+
+Notes:
+ * The fence-release A does not result in any action on its own (i.e., when it
+   is first explored); it only affects later release operations, at which point
+   we may need to associate store X with A. Thus, for every store X, we eagerly
+   record the most recent fence-release, then this record can be utilized during
+   later (hypothetical) release sequence checks.
+ * The fence-acquire B is more troublesome, since there may be many qualifying
+   loads Y (loads from different locations; loads which read from different
+   threads; etc.). Each Y may read from different hypothetical release
+   sequences, ending in a different release A with which B should synchronize.
+   It is difficult (but not impossible) to find good stopping conditions at
+   which we should terminate our search for Y. However, we at least know we only
+   need to consder Y such that:
+       V --sb-> Y --sb-> B
+   where V is a previous fence-acquire.
+
+29.8p3
+
+If
+    is_fence(A) && is_write(X) && is_write(W) && is_read(B) &&
+    is_release(A) && is_acquire(B) &&
+    A --sb-> X --hrs-> W --rf-> B
+then
+    A --sw-> B
+
+Notes:
+ * See the note for fence-release A in 29.8p2
+
+29.8p4
+
+If
+    is_write(A) && is_write(W) && is_read(X) && is_fence(B) &&
+    is_release(A) && is_acquire(B) &&
+    A --rs-> W --rf-> X --sb-> B
+then
+    A --sw-> B
+
+Notes:
+ * See the note for fence-acquire B in 29.8p2. The A, Y, and B in 29.8p2
+   correspond to A, X, and B in this rule (29.8p4).
+
+Summary notes:
+
+Now, noting the overlap in implementation notes between 29.8p2,3,4 and the
+similarity between release sequences and hypothetical release sequences, I can
+extend our release sequence support to provide easy facilities for
+release/acquire fence support.
+
+I extend release sequence support to include fences first by distinguishing the
+'acquire' from the 'load'; previously, release sequence searches were always
+triggered by a load-acquire operation. Now, we may have a *fence*-acquire which
+finds a previous load-*relaxed*, then follows any chain to a release sequence
+(29.8p4). Any release heads found by our existing release sequence support must
+synchronize with the fence-acquire. Any uncertain release sequences can be
+stashed (along with both the fence-acquire and the load-relaxed) as "pending" in
+the existing lists.
+
+Next I extend the release sequence support to include hypothetical release
+sequences. Note that any search for a release sequence can also search for a
+hypothetical release sequence with little additional effort (and even saving
+effort in cases where a fence-release hides a prior store-release, whose release
+sequence may be harder to establish eagerly). Because the "most recent" 
+fence-release is stashed in each ModelAction (see the fence-release note in
+29.8p2), release sequence searches can easily add the most recent fence-release
+to the release_heads vector as it explores a RMW chain. Then, once it reaches a
+thread in which it looks for a store-release, it can perform this interesting
+optimization: if the most recent store-release is sequenced before the most
+recent fence-release, then we can ignore the store-release and simply
+synchronize with the fence-release. This avoids a "contiguous MO" computation.
+
+So, with hypothetical release sequences seamlessly integrated into the release
+sequence code, we easily cover 29.8p3 (fence-release --sw-> load-acquire). Then,
+it's a simple extension to see how 29.8p2 is just a combination of the rules
+described for 29.8p3 and 29.8p4: a fence-acquire triggers a search for loads in
+its same thread; these loads then launch a series of release sequence
+searches--hypothetical (29.8p2) or real (29.8p4)--and synchronizes with all the
+release heads.
+
+The best part about all of the preceding explanations: the lazy fixups, etc.,
+can simply be re-used from existing release sequence code, with slight
+adjustments for dealing the presence of a fence-acquire preceded by a
+load-relaxed.
+
+*******************************
+ Miscellaneous Notes
+*******************************
+
+fence(memory_order_consume) acts like memory_order_release, so if we ever
+support consume, we must alias consume -> release
+
+fence(memory_order_relaxed) is a no-op
+
+**************************************************
+ Appendix A: From the C++11 specification (N3337)
+**************************************************
+
+-------------
+Section 29.3
+-------------
+
+29.3p4
+
+For an atomic operation B that reads the value of an atomic object M, if there
+is a memory_order_seq_cst fence X sequenced before B, then B observes either
+the last memory_order_seq_cst modification of M preceding X in the total order
+S or a later modification of M in its modification order.
+
+29.3p5
+
+For atomic operations A and B on an atomic object M, where A modifies M and B
+takes its value, if there is a memory_order_seq_cst fence X such that A is
+sequenced before X and B follows X in S, then B observes either the effects of
+A or a later modification of M in its modification order.
+
+29.3p6
+
+For atomic operations A and B on an atomic object M, where A modifies M and B
+takes its value, if there are memory_order_seq_cst fences X and Y such that A
+is sequenced before X, Y is sequenced before B, and X precedes Y in S, then B
+observes either the effects of A or a later modification of M in its
+modification order.
+
+29.3p7
+
+For atomic operations A and B on an atomic object M, if there are
+memory_order_seq_cst fences X and Y such that A is sequenced before X, Y is
+sequenced before B, and X precedes Y in S, then B occurs later than A in the
+modification order of M.
+
+-------------
+Section 29.8
+-------------
+
+29.8p2
+
+A release fence A synchronizes with an acquire fence B if there exist atomic
+operations X and Y, both operating on some atomic object M, such that A is
+sequenced before X, X modifies M, Y is sequenced before B, and Y reads the value
+written by X or a value written by any side effect in the hypothetical release
+sequence X would head if it were a release operation.
+
+29.8p3
+
+A release fence A synchronizes with an atomic operation B that performs an
+acquire operation on an atomic object M if there exists an atomic operation X
+such that A is sequenced before X, X modifies M, and B reads the value written
+by X or a value written by any side effect in the hypothetical release sequence
+X would head if it were a release operation.
+
+29.8p4
+
+An atomic operation A that is a release operation on an atomic object M
+synchronizes with an acquire fence B if there exists some atomic operation X on
+M such that X is sequenced before B and reads the value written by A or a value
+written by any side effect in the release sequence headed by A.

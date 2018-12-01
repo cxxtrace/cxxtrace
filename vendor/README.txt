@@ -2,6 +2,23 @@
 
 This vendor directory contains third-party software.
 
+## CDSChecker
+
+The CDSChecker directory contains CDSChecker, a model checker for C11 and C++11
+atomics.
+
+Copyright: Copyright © 2013 Regents of the University of California. All rights reserved.
+Download URL: git://demsky.eecs.uci.edu/model-checker.git
+Download date: November 30, 2018
+Git commit: da671f78d0aa057272bb82f580b36a188b6331bd
+License file: LICENSE
+License type: GPL-2.0-only
+Location: CDSChecker
+Project URL: http://plrg.eecs.uci.edu/software_page/42-2/
+Release URL: N/A
+Release date: October 12, 2017
+Version: N/A
+
 ## benchmark
 
 The benchmark directory contains Google Benchmark, a performance measurement
