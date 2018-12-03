@@ -1,6 +1,4 @@
-#define CXXTRACE_ENABLE_RELACY 1
-
-#include "cxxtrace_relacy.h"
+#include "cxxtrace_concurrency_test.h"
 #include <cstdlib>
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <type_traits>
@@ -66,16 +64,16 @@ class ring_queue_push_one_pop_all_relacy_test
   : public ring_queue_relacy_test_base<RingQueue>
 {
 public:
-  auto thread(unsigned thread_index) -> void
+  auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
       this->queue.push(1, [](auto data) noexcept { data.set(0, 42); });
     } else {
       auto items = std::vector<int>{};
       this->queue.pop_all_into(items);
-      RL_ASSERT(items.size() == 0 || items.size() == 1);
+      CXXTRACE_ASSERT(items.size() == 0 || items.size() == 1);
       if (items.size() == 1) {
-        RL_ASSERT(items[0] == 42);
+        CXXTRACE_ASSERT(items[0] == 42);
       }
     }
   }
@@ -105,7 +103,7 @@ public:
     this->push_range(0, this->capacity + this->initial_overflow);
   }
 
-  auto thread(unsigned thread_index) -> void
+  auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
       auto begin = this->capacity + this->initial_overflow;
@@ -121,9 +119,9 @@ public:
     } else {
       auto items = std::vector<int>{};
       this->queue.pop_all_into(items);
-      RL_ASSERT(static_cast<size_type>(items.size()) <= this->capacity);
-      RL_ASSERT(static_cast<size_type>(items.size()) >=
-                this->capacity - this->concurrent_overflow);
+      CXXTRACE_ASSERT(static_cast<size_type>(items.size()) <= this->capacity);
+      CXXTRACE_ASSERT(static_cast<size_type>(items.size()) >=
+                      this->capacity - this->concurrent_overflow);
       assert_items_are_sequential(items);
     }
   }
@@ -151,7 +149,7 @@ public:
     assert(this->total_push_size() > 0);
   }
 
-  auto thread(unsigned thread_index) -> void
+  auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
       this->push_range(this->initial_push_size, this->total_push_size());
@@ -159,10 +157,10 @@ public:
       auto found_last_item = false;
       while (!found_last_item) {
         auto items = std::vector<int>{};
-        auto backoff = rl::linear_backoff{};
+        auto backoff = cxxtrace::backoff{};
         this->queue.pop_all_into(items);
         while (items.empty()) {
-          backoff.yield(RL_INFO);
+          backoff.yield(CXXTRACE_HERE);
           this->queue.pop_all_into(items);
         }
 
@@ -173,7 +171,7 @@ public:
 
       auto items = std::vector<int>{};
       this->queue.pop_all_into(items);
-      RL_ASSERT(items.empty());
+      CXXTRACE_ASSERT(items.empty());
     }
   }
 
@@ -210,7 +208,7 @@ public:
     assert(this->total_push_size() <= RingQueue::capacity);
   }
 
-  auto thread(unsigned thread_index) -> void
+  auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
       this->push_range(this->initial_push_size, this->total_push_size());
@@ -218,14 +216,14 @@ public:
       auto items = std::vector<int>{};
       while (items.size() < static_cast<std::size_t>(this->total_push_size())) {
         auto old_size = items.size();
-        auto backoff = rl::linear_backoff{};
+        auto backoff = cxxtrace::backoff{};
         this->queue.pop_all_into(items);
         while (items.size() == old_size) {
-          backoff.yield(RL_INFO);
+          backoff.yield(CXXTRACE_HERE);
           this->queue.pop_all_into(items);
         }
       }
-      RL_ASSERT(items == this->expected_items());
+      CXXTRACE_ASSERT(items == this->expected_items());
     }
   }
 
@@ -245,24 +243,24 @@ private:
 };
 }
 
-int
-main()
+namespace cxxtrace {
+auto
+register_concurrency_tests() -> void
 {
   using cxxtrace::detail::spsc_ring_queue;
 
-  cxxtrace::run_relacy_test<
-    2,
+  cxxtrace::register_concurrency_test<
     ring_queue_push_one_pop_all_relacy_test<spsc_ring_queue<int, 64>>>(
-    rl::fair_full_search_scheduler_type);
+    2, concurrency_test_depth::full);
 
   for (auto push_kind : { ring_queue_push_kind::one_push_per_item,
                           ring_queue_push_kind::single_bulk_push }) {
     for (auto initial_overflow : { 0, 2, 5 }) {
       auto concurrent_overflow = 2;
-      cxxtrace::run_relacy_test<
-        2,
+      cxxtrace::register_concurrency_test<
         ring_queue_overflow_drops_some_but_not_all_items_relacy_test<
-          spsc_ring_queue<int, 4>>>(rl::fair_full_search_scheduler_type,
+          spsc_ring_queue<int, 4>>>(2,
+                                    concurrency_test_depth::full,
                                     initial_overflow,
                                     concurrent_overflow,
                                     push_kind);
@@ -271,10 +269,10 @@ main()
 
   for (auto initial_push_size : { 0, 3 }) {
     for (auto concurrent_push_size : { 1, 2 }) {
-      cxxtrace::run_relacy_test<
-        2,
+      cxxtrace::register_concurrency_test<
         ring_queue_pop_eventually_returns_last_item_relacy_test<
-          spsc_ring_queue<int, 4>>>(rl::fair_context_bound_scheduler_type,
+          spsc_ring_queue<int, 4>>>(2,
+                                    concurrency_test_depth::shallow,
                                     initial_push_size,
                                     concurrent_push_size);
     }
@@ -282,15 +280,14 @@ main()
 
   for (auto [initial_push_size, concurrent_push_size] :
        { std::pair{ 0, 1 }, std::pair{ 3, 1 }, std::pair{ 0, 2 } }) {
-    cxxtrace::run_relacy_test<
-      2,
+    cxxtrace::register_concurrency_test<
       ring_queue_pop_reads_all_items_relacy_test<spsc_ring_queue<int, 4>>>(
-      rl::fair_context_bound_scheduler_type,
+      2,
+      concurrency_test_depth::shallow,
       initial_push_size,
       concurrent_push_size);
   }
-
-  return EXIT_SUCCESS;
+}
 }
 
 namespace {
@@ -299,7 +296,7 @@ assert_items_are_sequential(const std::vector<int>& items) -> void
 {
   if (!items.empty()) {
     for (auto i = 1; i < int(items.size()); ++i) {
-      RL_ASSERT(items[i] == items[i - 1] + 1);
+      CXXTRACE_ASSERT(items[i] == items[i - 1] + 1);
     }
   }
 }

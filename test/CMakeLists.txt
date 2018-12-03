@@ -17,16 +17,29 @@ target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
 
 add_executable(
-  cxxtrace_test_ring_queue_relacy
-  test_ring_queue_relacy.cpp
+  cxxtrace_test_ring_queue_concurrency_relacy
+  cxxtrace_concurrency_test.cpp
+  cxxtrace_concurrency_test_main_relacy.cpp
+  cxxtrace_concurrency_test_relacy.cpp
+  test_ring_queue_concurrency.cpp
 )
-target_link_libraries(cxxtrace_test_ring_queue_relacy PRIVATE cxxtrace relacy)
+target_compile_definitions(
+  cxxtrace_test_ring_queue_concurrency_relacy
+  PRIVATE
+  CXXTRACE_ENABLE_RELACY=1
+)
+target_link_libraries(
+  cxxtrace_test_ring_queue_concurrency_relacy
+  PRIVATE
+  cxxtrace
+  relacy
+)
 add_test(
-  NAME cxxtrace_test_ring_queue_relacy
-  COMMAND cxxtrace_test_ring_queue_relacy
+  NAME cxxtrace_test_ring_queue_concurrency_relacy
+  COMMAND cxxtrace_test_ring_queue_concurrency_relacy
 )
 set_tests_properties(
-  cxxtrace_test_ring_queue_relacy
+  cxxtrace_test_ring_queue_concurrency_relacy
   PROPERTIES
   # HACK(strager): Work around ASAN internal crashes.
   ENVIRONMENT ASAN_OPTIONS=detect_container_overflow=0
