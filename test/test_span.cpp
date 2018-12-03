@@ -10,6 +10,7 @@
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
+#include <cxxtrace/spsc_ring_queue_thread_local_storage.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
@@ -57,6 +58,14 @@ using ring_queue_thread_local_test_storage =
     CapacityPerThread,
     ring_queue_thread_local_test_storage_tag>;
 
+struct spsc_ring_queue_thread_local_test_storage_tag
+{};
+template<std::size_t CapacityPerThread>
+using spsc_ring_queue_thread_local_test_storage =
+  cxxtrace::spsc_ring_queue_thread_local_storage<
+    CapacityPerThread,
+    spsc_ring_queue_thread_local_test_storage_tag>;
+
 template<class Storage>
 class test_span : public testing::Test
 {
@@ -97,7 +106,8 @@ using test_span_types =
                    cxxtrace::ring_queue_unsafe_storage<1024>,
                    cxxtrace::unbounded_storage,
                    cxxtrace::unbounded_unsafe_storage,
-                   ring_queue_thread_local_test_storage<1024>>;
+                   ring_queue_thread_local_test_storage<1024>,
+                   spsc_ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
 
 template<class Storage>
@@ -107,7 +117,8 @@ class test_span_thread_safe : public test_span<Storage>
 using test_span_thread_safe_types =
   ::testing::Types<cxxtrace::ring_queue_storage<1024>,
                    cxxtrace::unbounded_storage,
-                   ring_queue_thread_local_test_storage<1024>>;
+                   ring_queue_thread_local_test_storage<1024>,
+                   spsc_ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
