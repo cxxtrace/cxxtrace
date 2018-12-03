@@ -3,6 +3,7 @@
 
 namespace cxxtrace {
 using czstring = const char*;
+using zstring = char*;
 }
 
 #endif

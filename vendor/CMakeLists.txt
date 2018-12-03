@@ -1,5 +1,95 @@
 cmake_minimum_required(VERSION 3.10)
 
+if (CXXTRACE_CDSCHECKER)
+  add_library(
+    CDSChecker_model
+    SHARED
+    # See CDSChecker/Makefile and CDSChecker/sfence/Makefile.
+    CDSChecker/action.cc
+    CDSChecker/clockvector.cc
+    CDSChecker/cmodelint.cc
+    CDSChecker/common.cc
+    CDSChecker/conditionvariable.cc
+    CDSChecker/context.cc
+    CDSChecker/cyclegraph.cc
+    CDSChecker/datarace.cc
+    CDSChecker/execution.cc
+    CDSChecker/impatomic.cc
+    CDSChecker/libannotate.cc
+    CDSChecker/librace.cc
+    CDSChecker/libthreads.cc
+    CDSChecker/main.cc
+    CDSChecker/malloc.c
+    CDSChecker/model.cc
+    CDSChecker/mutex.cc
+    CDSChecker/mymemory.cc
+    CDSChecker/nodestack.cc
+    CDSChecker/plugins.cc
+    CDSChecker/promise.cc
+    CDSChecker/scanalysis.cc
+    CDSChecker/scfence/inference.cc
+    CDSChecker/scfence/inferlist.cc
+    CDSChecker/scfence/inferset.cc
+    CDSChecker/scfence/patch.cc
+    CDSChecker/scfence/scfence.cc
+    CDSChecker/scfence/scgen.cc
+    CDSChecker/schedule.cc
+    CDSChecker/snapshot-interface.cc
+    CDSChecker/snapshot.cc
+    CDSChecker/threads.cc
+  )
+  # See CDSChecker/Makefile.
+  set_property(
+    SOURCE CDSChecker/malloc.c
+    APPEND PROPERTY
+    COMPILE_DEFINITIONS
+    HAVE_MMAP=0
+    MSPACES=1
+    ONLY_MSPACES=1
+  )
+  # See CDSChecker/Makefile and CDSChecker/test/Makefile.
+  target_include_directories(
+    CDSChecker_model
+    PUBLIC CDSChecker CDSChecker/include
+    PRIVATE CDSChecker/scfence
+  )
+  # See CDSChecker/Makefile.
+  target_link_libraries(CDSChecker_model PUBLIC -rdynamic PRIVATE dl)
+  if (APPLE)
+    # See CDSChecker/test/Makefile and CDSChecker/common.mk.
+    target_compile_definitions(CDSChecker_model PUBLIC MAC=1 _XOPEN_SOURCE=1)
+    # See CDSChecker/Makefile.
+    set_property(
+      TARGET CDSChecker_model
+      APPEND_STRING PROPERTY
+      LINK_FLAGS
+      " -Wl,-undefined,dynamic_lookup"
+    )
+  else ()
+    # See CDSChecker/Makefile.
+    target_link_libraries(CDSChecker_model PRIVATE rt)
+  endif ()
+  target_compile_options(
+    CDSChecker_model
+    PRIVATE
+    -Wno-deprecated-declarations
+    -Wno-dynamic-exception-spec
+    -Wno-gnu-statement-expression
+    -Wno-gnu-zero-variadic-macro-arguments
+    -Wno-ignored-qualifiers
+    -Wno-implicit-exception-spec-mismatch
+    -Wno-unused-parameter
+    -Wno-unused-private-field
+    -Wno-vla-extension
+  )
+  set_property(
+    SOURCE CDSChecker/malloc.c
+    APPEND_STRING PROPERTY
+    COMPILE_FLAGS
+    " -Wno-expansion-to-defined -Wno-null-pointer-arithmetic -Wno-sign-compare -Wno-unknown-warning-option -Wno-unused-variable"
+  )
+endif ()
+
 set(BENCHMARK_DOWNLOAD_DEPENDENCIES FALSE CACHE INTERNAL "")
 set(BENCHMARK_ENABLE_ASSEMBLY_TESTS FALSE CACHE INTERNAL "")
 set(BENCHMARK_ENABLE_EXCEPTIONS TRUE CACHE INTERNAL "")

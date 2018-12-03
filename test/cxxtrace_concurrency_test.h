@@ -11,6 +11,10 @@
 #include <utility>
 #include <vector>
 
+#if CXXTRACE_ENABLE_CDSCHECKER
+#include <model-assert.h>
+#endif
+
 #if CXXTRACE_ENABLE_RELACY
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -32,6 +36,10 @@
 #include <relacy/stdlib/mutex.hpp>
 
 #pragma clang diagnostic pop
+#endif
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+#define CXXTRACE_ASSERT(...) MODEL_ASSERT((__VA_ARGS__))
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -99,6 +107,17 @@ register_concurrency_test(int thread_count,
     std::make_unique<test>(thread_count, depth, args...));
 }
 
+#if CXXTRACE_ENABLE_CDSCHECKER
+class cdschecker_backoff
+{
+public:
+  explicit cdschecker_backoff();
+  ~cdschecker_backoff();
+
+  auto yield(detail::debug_source_location) -> void;
+};
+#endif
+
 #if CXXTRACE_ENABLE_RELACY
 class relacy_backoff
 {
@@ -113,7 +132,9 @@ private:
 };
 #endif
 
-#if CXXTRACE_ENABLE_RELACY
+#if CXXTRACE_ENABLE_CDSCHECKER
+using backoff = cdschecker_backoff;
+#elif CXXTRACE_ENABLE_RELACY
 using backoff = relacy_backoff;
 #else
 #error "Unknown configuration"

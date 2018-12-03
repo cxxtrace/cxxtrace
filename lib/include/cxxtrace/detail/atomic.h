@@ -2,7 +2,15 @@
 #define CXXTRACE_DETAIL_ATOMIC_H
 
 #include <atomic>
+#include <cxxtrace/detail/workarounds.h>
 #include <utility>
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <librace.h>
+#endif
 
 #if CXXTRACE_ENABLE_RELACY
 #pragma clang diagnostic push
@@ -77,7 +85,12 @@ public:
   auto load(std::memory_order memory_order, debug_source_location) const
     noexcept -> T
   {
-    return this->data.load(memory_order);
+#if CXXTRACE_WORK_AROUND_NON_CONST_STD_ATOMIC_LOAD
+    auto& data = const_cast<std::atomic<T>&>(this->data);
+#else
+    auto& data = this->data;
+#endif
+    return data.load(memory_order);
   }
 
   auto store(T value,
@@ -129,6 +142,162 @@ real_atomic_thread_fence(std::memory_order memory_order,
 {
   std::atomic_thread_fence(memory_order);
 }
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+template<class T>
+class cdschecker_atomic : public atomic_base<T, cdschecker_atomic<T>>
+{
+private:
+  using base = atomic_base<T, cdschecker_atomic<T>>;
+
+public:
+  using base::load;
+  using base::store;
+
+  explicit cdschecker_atomic() noexcept /* data uninitialized */ = default;
+
+  explicit cdschecker_atomic(T value) noexcept
+  {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+    _ATOMIC_INIT_(&this->data, value);
+#pragma clang diagnostic pop
+  }
+
+  auto load(std::memory_order memory_order, debug_source_location) const
+    noexcept -> T
+  {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+    return _ATOMIC_LOAD_(&this->data, memory_order);
+#pragma clang diagnostic pop
+  }
+
+  auto store(T value,
+             std::memory_order memory_order,
+             debug_source_location) noexcept -> void
+  {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+    _ATOMIC_STORE_(&this->data, value, memory_order);
+#pragma clang diagnostic pop
+  }
+
+private:
+  std::atomic<T> data /* uninitialized */;
+};
+
+template<std::size_t Size>
+struct cdschecker_nonatomic_traits;
+
+template<>
+struct cdschecker_nonatomic_traits<1>
+{
+  using value_type = std::uint8_t;
+
+  static auto load(const value_type& data) noexcept -> value_type
+  {
+    return ::load_8(&data);
+  }
+
+  static auto store(value_type& data, value_type value) noexcept -> void
+  {
+    return ::store_8(&data, value);
+  }
+};
+
+template<>
+struct cdschecker_nonatomic_traits<2>
+{
+  using value_type = std::uint16_t;
+
+  static auto load(const value_type& data) noexcept -> value_type
+  {
+    return ::load_16(&data);
+  }
+
+  static auto store(value_type& data, value_type value) noexcept -> void
+  {
+    return ::store_16(&data, value);
+  }
+};
+
+template<>
+struct cdschecker_nonatomic_traits<4>
+{
+  using value_type = std::uint32_t;
+
+  static auto load(const value_type& data) noexcept -> value_type
+  {
+    return ::load_32(&data);
+  }
+
+  static auto store(value_type& data, value_type value) noexcept -> void
+  {
+    return ::store_32(&data, value);
+  }
+};
+
+template<>
+struct cdschecker_nonatomic_traits<8>
+{
+  using value_type = std::uint64_t;
+
+  static auto load(const value_type& data) noexcept -> value_type
+  {
+    return ::load_64(&data);
+  }
+
+  static auto store(value_type& data, value_type value) noexcept -> void
+  {
+    return ::store_64(&data, value);
+  }
+};
+
+template<class T>
+class cdschecker_nonatomic : public nonatomic_base
+{
+private:
+  using traits = cdschecker_nonatomic_traits<sizeof(T)>;
+  using storage_type = typename traits::value_type;
+
+public:
+  explicit cdschecker_nonatomic() /* data uninitialized */ = default;
+
+  explicit cdschecker_nonatomic(T value) noexcept
+    : storage{ this->value_to_storage(value) }
+  {}
+
+  auto load(debug_source_location) const noexcept -> T
+  {
+    return this->storage_to_value(traits::load(this->storage));
+  }
+
+  auto store(T value, debug_source_location) noexcept -> void
+  {
+    traits::store(this->storage, this->value_to_storage(value));
+  }
+
+private:
+  static auto storage_to_value(storage_type storage) noexcept -> T
+  {
+    T value;
+    static_assert(sizeof(value) == sizeof(storage));
+    std::memcpy(&value, &storage, sizeof(value));
+    return value;
+  }
+
+  static auto value_to_storage(T value) noexcept -> storage_type
+  {
+    storage_type storage;
+    static_assert(sizeof(storage) == sizeof(value));
+    std::memcpy(&storage, &value, sizeof(storage));
+    return storage;
+  }
+
+  storage_type storage /* uninitialized */;
+};
+#endif
 
 #if CXXTRACE_ENABLE_RELACY
 inline auto
@@ -216,7 +385,12 @@ relacy_atomic_thread_fence(std::memory_order memory_order,
 }
 #endif
 
-#if CXXTRACE_ENABLE_RELACY
+#if CXXTRACE_ENABLE_CDSCHECKER
+template<class T>
+using atomic = cdschecker_atomic<T>;
+template<class T>
+using nonatomic = cdschecker_nonatomic<T>;
+#elif CXXTRACE_ENABLE_RELACY
 template<class T>
 using atomic = relacy_atomic<T>;
 template<class T>

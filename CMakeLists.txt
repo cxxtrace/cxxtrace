@@ -4,6 +4,13 @@ project(cxxtrace)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(
+  CXXTRACE_CDSCHECKER
+  TRUE
+  CACHE
+  BOOL
+  "Enable extra testing using CDSChecker."
+)
+set(
   CXXTRACE_FILECHECK
   ""
   CACHE

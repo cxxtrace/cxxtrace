@@ -35,6 +35,9 @@ auto
 get_registered_concurrency_tests() -> std::vector<concurrency_test*>;
 
 auto
+run_concurrency_test_from_cdschecker(concurrency_test*) -> void;
+
+auto
 run_concurrency_test_with_relacy(concurrency_test*) -> void;
 }
 }
