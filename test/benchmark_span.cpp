@@ -168,6 +168,13 @@ class concurrent_span_benchmark
   , public cxxtrace::thread_shared_benchmark_fixture
 {
 public:
+  auto set_up_thread(benchmark::State& bench) -> void override
+  {
+    if (bench.thread_index == 0) {
+      this->get_cxxtrace_config().storage().reset();
+    }
+  }
+
   auto tear_down_thread(benchmark::State& bench) -> void override
   {
     if (bench.thread_index == 0) {
