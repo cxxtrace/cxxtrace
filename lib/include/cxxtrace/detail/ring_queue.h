@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
+#include <cxxtrace/detail/queue_sink.h>
 #include <limits>
 #include <type_traits>
 #include <vector>
@@ -61,6 +62,12 @@ public:
 
   auto pop_all_into(std::vector<T>& output) -> void
   {
+    this->pop_all_into(vector_queue_sink<T>{ output });
+  }
+
+  template<class Sink>
+  auto pop_all_into(Sink&& output) -> void
+  {
     assert(this->read_vindex <= this->write_vindex);
 
     auto begin_vindex = size_type{};
@@ -73,8 +80,9 @@ public:
     }
     auto end_vindex = this->write_vindex;
 
+    output.reserve(end_vindex - begin_vindex);
     for (auto i = begin_vindex; i < end_vindex; ++i) {
-      output.emplace_back(this->storage[i % this->capacity]);
+      output.push_back(this->storage[i % this->capacity]);
     }
     this->read_vindex = end_vindex;
   }

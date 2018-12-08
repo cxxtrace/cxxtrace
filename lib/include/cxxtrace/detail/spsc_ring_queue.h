@@ -9,6 +9,7 @@
 #include <cxxtrace/detail/add.h>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/molecular.h>
+#include <cxxtrace/detail/queue_sink.h>
 #include <limits>
 #include <type_traits>
 #include <vector>
@@ -68,6 +69,12 @@ public:
 
   auto pop_all_into(std::vector<T>& output) -> void
   {
+    this->pop_all_into(vector_queue_sink<T>{ output });
+  }
+
+  template<class Sink>
+  auto pop_all_into(Sink&& output) -> void
+  {
     auto read_vindex = this->read_vindex.load(CXXTRACE_HERE);
 
     auto get_begin_vindex = [&read_vindex](
@@ -93,9 +100,9 @@ public:
 
       begin_vindex = get_begin_vindex(write_end_vindex);
       end_vindex = write_begin_vindex;
+      output.reserve(end_vindex - begin_vindex);
       for (auto i = begin_vindex; i < end_vindex; ++i) {
-        output.emplace_back(
-          this->storage[i % this->capacity].load(CXXTRACE_HERE));
+        output.push_back(this->storage[i % this->capacity].load(CXXTRACE_HERE));
       }
     }
     auto output_item_count = end_vindex - begin_vindex;
@@ -112,8 +119,7 @@ public:
         assert(new_begin_vindex >= begin_vindex);
         auto items_to_unoutput =
           std::min(new_begin_vindex - begin_vindex, output_item_count);
-        auto output_start_it = output.end() - output_item_count;
-        output.erase(output_start_it, output_start_it + items_to_unoutput);
+        output.pop_front_n(items_to_unoutput);
       }
     }
 
