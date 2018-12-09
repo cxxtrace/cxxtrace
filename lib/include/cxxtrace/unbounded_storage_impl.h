@@ -14,46 +14,48 @@
 #include <utility>
 
 namespace cxxtrace {
-template<class Nocommit>
-unbounded_storage<Nocommit>::unbounded_storage() noexcept = default;
+template<class ClockSample>
+unbounded_storage<ClockSample>::unbounded_storage() noexcept = default;
 
-template<class Nocommit>
-unbounded_storage<Nocommit>::~unbounded_storage() noexcept = default;
+template<class ClockSample>
+unbounded_storage<ClockSample>::~unbounded_storage() noexcept = default;
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_storage<Nocommit>::reset() noexcept -> void
+unbounded_storage<ClockSample>::reset() noexcept -> void
 {
   auto lock = std::unique_lock{ this->mutex };
   this->storage.reset();
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_storage<Nocommit>::add_sample(czstring category,
-                                        czstring name,
-                                        detail::sample_kind kind,
-                                        thread_id thread_id) noexcept(false)
+unbounded_storage<ClockSample>::add_sample(czstring category,
+                                           czstring name,
+                                           detail::sample_kind kind,
+                                           ClockSample time_point,
+                                           thread_id thread_id) noexcept(false)
   -> void
 {
   auto lock = std::unique_lock{ this->mutex };
-  this->storage.add_sample(category, name, kind, thread_id);
+  this->storage.add_sample(category, name, kind, time_point, thread_id);
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_storage<Nocommit>::add_sample(
+unbounded_storage<ClockSample>::add_sample(
   czstring category,
   czstring name,
-  detail::sample_kind kind) noexcept(false) -> void
+  detail::sample_kind kind,
+  ClockSample time_point) noexcept(false) -> void
 {
-  this->add_sample(category, name, kind, get_current_thread_id());
+  this->add_sample(category, name, kind, time_point, get_current_thread_id());
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_storage<Nocommit>::take_all_samples() noexcept(false)
-  -> std::vector<detail::sample>
+unbounded_storage<ClockSample>::take_all_samples() noexcept(false)
+  -> std::vector<detail::sample<ClockSample>>
 {
   auto lock = std::unique_lock{ this->mutex };
   return this->storage.take_all_samples();

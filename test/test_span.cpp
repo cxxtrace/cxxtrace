@@ -4,6 +4,7 @@
 #include <cassert>
 #include <condition_variable>
 #include <cstddef>
+#include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/ring_queue_thread_local_storage.h>
@@ -52,68 +53,78 @@ private:
 
 struct ring_queue_thread_local_test_storage_tag
 {};
-template<std::size_t CapacityPerThread>
+template<std::size_t CapacityPerThread, class ClockSample>
 using ring_queue_thread_local_test_storage =
   cxxtrace::ring_queue_thread_local_storage<
     CapacityPerThread,
-    ring_queue_thread_local_test_storage_tag>;
+    ring_queue_thread_local_test_storage_tag,
+    ClockSample>;
 
 struct spsc_ring_queue_thread_local_test_storage_tag
 {};
-template<std::size_t CapacityPerThread>
+template<std::size_t CapacityPerThread, class ClockSample>
 using spsc_ring_queue_thread_local_test_storage =
   cxxtrace::spsc_ring_queue_thread_local_storage<
     CapacityPerThread,
-    spsc_ring_queue_thread_local_test_storage_tag>;
+    spsc_ring_queue_thread_local_test_storage_tag,
+    ClockSample>;
+
+using clock = cxxtrace::fake_clock;
+using clock_sample = clock::sample;
 
 template<class Storage>
 class test_span : public testing::Test
 {
 public:
   explicit test_span()
-    : cxxtrace_config{ cxxtrace_storage }
+    : cxxtrace_config{ cxxtrace_storage, clock_ }
   {}
 
   auto TearDown() -> void override { this->reset_storage(); }
 
 protected:
+  using clock_type = clock;
   using storage_type = Storage;
 
-  auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<storage_type>&
+  auto get_cxxtrace_config() noexcept
+    -> cxxtrace::basic_config<storage_type, clock_type>&
   {
     return this->cxxtrace_config;
   }
 
   auto take_all_events() -> cxxtrace::events_snapshot
   {
-    return cxxtrace::take_all_events(this->cxxtrace_storage);
+    return cxxtrace::take_all_events(this->cxxtrace_storage, this->clock());
   }
 
   auto reset_storage() -> void { this->cxxtrace_storage.reset(); }
 
+  auto clock() noexcept -> clock_type& { return this->clock_; }
+
 private:
+  clock_type clock_{};
   storage_type cxxtrace_storage{};
-  cxxtrace::basic_config<storage_type> cxxtrace_config;
+  cxxtrace::basic_config<storage_type, clock_type> cxxtrace_config;
 };
 
-using test_span_types =
-  ::testing::Types<cxxtrace::ring_queue_storage<1024>,
-                   cxxtrace::ring_queue_unsafe_storage<1024>,
-                   cxxtrace::unbounded_storage<>,
-                   cxxtrace::unbounded_unsafe_storage<>,
-                   ring_queue_thread_local_test_storage<1024>,
-                   spsc_ring_queue_thread_local_test_storage<1024>>;
+using test_span_types = ::testing::Types<
+  cxxtrace::ring_queue_storage<1024, clock_sample>,
+  cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>,
+  cxxtrace::unbounded_storage<clock_sample>,
+  cxxtrace::unbounded_unsafe_storage<clock_sample>,
+  ring_queue_thread_local_test_storage<1024, clock_sample>,
+  spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
 
 template<class Storage>
 class test_span_thread_safe : public test_span<Storage>
 {};
 
-using test_span_thread_safe_types =
-  ::testing::Types<cxxtrace::ring_queue_storage<1024>,
-                   cxxtrace::unbounded_storage<>,
-                   ring_queue_thread_local_test_storage<1024>,
-                   spsc_ring_queue_thread_local_test_storage<1024>>;
+using test_span_thread_safe_types = ::testing::Types<
+  cxxtrace::ring_queue_storage<1024, clock_sample>,
+  cxxtrace::unbounded_storage<clock_sample>,
+  ring_queue_thread_local_test_storage<1024, clock_sample>,
+  spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 
 TYPED_TEST(test_span, no_events_exist_by_default)
@@ -262,6 +273,25 @@ TYPED_TEST(test_span, span_events_include_thread_id)
   EXPECT_EQ(get_event("thread 2 span").thread_id(), thread_2_id);
 }
 
+TYPED_TEST(test_span, span_events_include_timestamps)
+{
+  auto& clock = this->clock();
+  auto timestamp_before_span = clock.make_time_point(clock.query());
+  auto timestamp_inside_span = [&] {
+    auto span = CXXTRACE_SPAN("category", "span");
+    return clock.make_time_point(clock.query());
+  }();
+  auto timestamp_after_span = clock.make_time_point(clock.query());
+
+  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
+  auto event_begin_timestamp = events.at(0).begin_timestamp();
+  auto event_end_timestamp = events.at(0).end_timestamp();
+  EXPECT_LE(timestamp_before_span, event_begin_timestamp);
+  EXPECT_LE(event_begin_timestamp, timestamp_inside_span);
+  EXPECT_LE(timestamp_inside_span, event_end_timestamp);
+  EXPECT_LE(event_end_timestamp, timestamp_after_span);
+}
+
 TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
 {
   {
@@ -358,6 +388,7 @@ TYPED_TEST(test_span, resetting_storage_removes_samples_by_exited_threads)
 TYPED_TEST(test_span_thread_safe,
            span_enter_and_exit_synchronize_across_threads)
 {
+  using clock_type = typename TestFixture::clock_type;
   using storage_type = typename TestFixture::storage_type;
 
   // NOTE(strager): This test relies on dynamic analysis tools or crashes (due
@@ -392,12 +423,13 @@ TYPED_TEST(test_span_thread_safe,
       do_not_optimize_away(data);
     }
 
-    auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<storage_type>&
+    auto get_cxxtrace_config() noexcept
+      -> cxxtrace::basic_config<storage_type, clock_type>&
     {
       return this->cxxtrace_config;
     }
 
-    cxxtrace::basic_config<storage_type>& cxxtrace_config;
+    cxxtrace::basic_config<storage_type, clock_type>& cxxtrace_config;
 
     std::mt19937 rng{};
     std::uniform_int_distribution<std::size_t> size_distribution{

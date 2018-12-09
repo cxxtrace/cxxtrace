@@ -6,11 +6,13 @@
 
 namespace cxxtrace {
 #define CXXTRACE_SPAN_WITH_CONFIG(config, category, name)                      \
-  (::cxxtrace::detail::span_guard<::std::remove_reference_t<decltype(          \
-     (config).storage())>>::enter((config).storage(), (category), (name)))
+  (::cxxtrace::detail::span_guard<                                             \
+    ::std::remove_reference_t<decltype((config).storage())>,                   \
+    ::std::remove_reference_t<decltype((config).clock())>>::                   \
+     enter((config).storage(), (config).clock(), (category), (name)))
 
 namespace detail {
-template<class Storage>
+template<class Storage, class Clock>
 class span_guard
 {
 public:
@@ -21,15 +23,21 @@ public:
 
   ~span_guard() noexcept;
 
-  static auto enter(Storage&, czstring category, czstring name) noexcept(false)
-    -> span_guard;
+  static auto enter(Storage&,
+                    Clock&,
+                    czstring category,
+                    czstring name) noexcept(false) -> span_guard;
 
 private:
-  explicit span_guard(Storage&, czstring category, czstring name) noexcept;
+  explicit span_guard(Storage&,
+                      Clock&,
+                      czstring category,
+                      czstring name) noexcept;
 
   auto exit() noexcept(false) -> void;
 
   Storage& storage;
+  Clock& clock;
   czstring category{ nullptr };
   czstring name{ nullptr };
 };

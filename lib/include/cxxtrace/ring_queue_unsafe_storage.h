@@ -9,7 +9,7 @@
 #include <vector>
 
 namespace cxxtrace {
-template<std::size_t Capacity>
+template<std::size_t Capacity, class ClockSample>
 class ring_queue_unsafe_storage
 {
 public:
@@ -27,14 +27,17 @@ public:
   auto add_sample(czstring category,
                   czstring name,
                   detail::sample_kind,
+                  ClockSample time_point,
                   thread_id) noexcept -> void;
   auto add_sample(czstring category,
                   czstring name,
-                  detail::sample_kind) noexcept -> void;
-  auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
+                  detail::sample_kind,
+                  ClockSample time_point) noexcept -> void;
+  auto take_all_samples() noexcept(false)
+    -> std::vector<detail::sample<ClockSample>>;
 
 private:
-  detail::ring_queue<detail::sample, Capacity> samples;
+  detail::ring_queue<detail::sample<ClockSample>, Capacity> samples;
 };
 }
 

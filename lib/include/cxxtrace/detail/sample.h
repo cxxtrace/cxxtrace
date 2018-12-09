@@ -12,12 +12,14 @@ enum class sample_kind
   exit_span,
 };
 
+template<class ClockSample>
 struct sample
 {
   czstring category;
   czstring name;
   sample_kind kind;
   thread_id thread_id;
+  ClockSample time_point;
 };
 }
 }

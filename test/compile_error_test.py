@@ -60,7 +60,6 @@ def main():
 
 
 class Project:
-
     def __init__(self, source_dir: pathlib.Path, build_dir: pathlib.Path) -> None:
         super().__init__()
         self.__build_dir = build_dir

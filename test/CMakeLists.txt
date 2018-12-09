@@ -7,6 +7,7 @@ add_executable(
   test_cxxtrace
   exhaustive_rng.cpp
   test_add.cpp
+  test_clock.cpp
   test_exhaustive_rng.cpp
   test_molecular.cpp
   test_ring_queue.cpp
@@ -85,6 +86,7 @@ set_tests_properties(
 
 add_executable(
   benchmark_cxxtrace
+  benchmark_clock.cpp
   benchmark_span.cpp
   benchmark_thread.cpp
   cxxtrace_benchmark.cpp

@@ -14,46 +14,49 @@
 #include <vector>
 
 namespace cxxtrace {
-template<class Nocommit>
-unbounded_unsafe_storage<Nocommit>::unbounded_unsafe_storage() noexcept =
+template<class ClockSample>
+unbounded_unsafe_storage<ClockSample>::unbounded_unsafe_storage() noexcept =
   default;
 
-template<class Nocommit>
-unbounded_unsafe_storage<Nocommit>::~unbounded_unsafe_storage() noexcept =
+template<class ClockSample>
+unbounded_unsafe_storage<ClockSample>::~unbounded_unsafe_storage() noexcept =
   default;
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_unsafe_storage<Nocommit>::reset() noexcept -> void
+unbounded_unsafe_storage<ClockSample>::reset() noexcept -> void
 {
   detail::reset_vector(this->samples);
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_unsafe_storage<Nocommit>::add_sample(
+unbounded_unsafe_storage<ClockSample>::add_sample(
   czstring category,
   czstring name,
   detail::sample_kind kind,
+  ClockSample time_point,
   thread_id thread_id) noexcept(false) -> void
 {
-  this->samples.emplace_back(detail::sample{ category, name, kind, thread_id });
+  this->samples.emplace_back(
+    detail::sample<ClockSample>{ category, name, kind, thread_id, time_point });
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_unsafe_storage<Nocommit>::add_sample(
+unbounded_unsafe_storage<ClockSample>::add_sample(
   czstring category,
   czstring name,
-  detail::sample_kind kind) noexcept(false) -> void
+  detail::sample_kind kind,
+  ClockSample time_point) noexcept(false) -> void
 {
-  this->add_sample(category, name, kind, get_current_thread_id());
+  this->add_sample(category, name, kind, time_point, get_current_thread_id());
 }
 
-template<class Nocommit>
+template<class ClockSample>
 auto
-unbounded_unsafe_storage<Nocommit>::take_all_samples() noexcept(false)
-  -> std::vector<detail::sample>
+unbounded_unsafe_storage<ClockSample>::take_all_samples() noexcept(false)
+  -> std::vector<detail::sample<ClockSample>>
 {
   return std::move(this->samples);
 }
