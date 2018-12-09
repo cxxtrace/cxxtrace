@@ -31,17 +31,19 @@ namespace cxxtrace {
 // 3. Unlock thread_data::mutex
 // 4. Unlock global_mutex
 
-template<std::size_t CapacityPerThread, class Tag>
-struct ring_queue_thread_local_storage<CapacityPerThread,
-                                       Tag>::thread_local_sample
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
+struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  thread_local_sample
 {
   czstring category;
   czstring name;
   detail::sample_kind kind;
+  ClockSample time_point;
 };
 
-template<std::size_t CapacityPerThread, class Tag>
-struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
+struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  thread_data
 {
   explicit thread_data() noexcept(false)
   {
@@ -58,14 +60,15 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
   thread_data(thread_data&&) = delete;
   thread_data& operator=(thread_data&&) = delete;
 
-  auto pop_all_into(std::vector<detail::sample>& output) noexcept(false) -> void
+  auto pop_all_into(std::vector<detail::sample<ClockSample>>& output) noexcept(
+    false) -> void
   {
     auto thread_id = this->id;
     auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
-                         ->detail::sample
+                         ->detail::sample<ClockSample>
     {
-      return detail::sample{
-        sample.category, sample.name, sample.kind, thread_id
+      return detail::sample<ClockSample>{
+        sample.category, sample.name, sample.kind, thread_id, sample.time_point,
       };
     };
     this->samples.pop_all_into(
@@ -78,10 +81,10 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag>::thread_data
   detail::ring_queue<thread_local_sample, CapacityPerThread> samples{};
 };
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread, Tag>::reset() noexcept
-  -> void
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  reset() noexcept -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
   for (auto* data : thread_list) {
@@ -91,25 +94,25 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::reset() noexcept
   detail::reset_vector(disowned_samples);
 }
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_sample(
-  czstring category,
-  czstring name,
-  detail::sample_kind kind) noexcept -> void
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  add_sample(czstring category,
+             czstring name,
+             detail::sample_kind kind,
+             ClockSample time_point) noexcept -> void
 {
   auto& thread_data = get_thread_data();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, thread_local_sample{ category, name, kind });
+    data.set(0, thread_local_sample{ category, name, kind, time_point });
   });
 }
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread,
-                                Tag>::take_all_samples() noexcept(false)
-  -> std::vector<detail::sample>
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  take_all_samples() noexcept(false) -> std::vector<detail::sample<ClockSample>>
 {
   auto global_lock = std::lock_guard{ global_mutex };
   auto samples = std::move(disowned_samples);
@@ -120,10 +123,10 @@ ring_queue_thread_local_storage<CapacityPerThread,
   return samples;
 }
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread, Tag>::get_thread_data()
-  -> thread_data&
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  get_thread_data() -> thread_data&
 {
 #if CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS
   struct tag
@@ -139,18 +142,18 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag>::get_thread_data()
 #endif
 }
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread, Tag>::add_to_thread_list(
-  thread_data* data) noexcept(false) -> void
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  add_to_thread_list(thread_data* data) noexcept(false) -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
   thread_list.emplace_back(data);
 }
 
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-ring_queue_thread_local_storage<CapacityPerThread, Tag>::
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   remove_from_thread_list(thread_data* data) noexcept -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };

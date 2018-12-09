@@ -15,7 +15,8 @@
 // CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F must be used before using
 // CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F.
 #define CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(fixture_class_template, ...)   \
-  static ::cxxtrace::detail::benchmark_template_args<__VA_ARGS__>              \
+  static ::cxxtrace::detail::benchmark_template_args<CXXTRACE_CPP_MAP(         \
+    CXXTRACE_BENCHMARK_GET_TYPE, __VA_ARGS__)>                                 \
     _cxxtrace_benchmark_template_args_##fixture_class_template(                \
       { CXXTRACE_CPP_STRING_LITERALS(__VA_ARGS__) })
 
@@ -47,6 +48,10 @@
         _cxxtrace_benchmark_template_args_##fixture_class_template,            \
         #fixture_class_template,                                               \
         #name)
+
+#define CXXTRACE_BENCHMARK_GET_TYPE(possibly_parenthesized_type)               \
+  typename ::cxxtrace::detail::parameter_type<void(                            \
+    possibly_parenthesized_type)>::type
 
 namespace cxxtrace {
 class benchmark_fixture
@@ -96,6 +101,17 @@ benchmark_register_template(
   const benchmark_template_args<BenchmarkArgs...>& args,
   const char* fixture_name,
   const char* benchmark_name) -> benchmark_group*;
+}
+
+namespace detail {
+template<class Function>
+struct parameter_type;
+
+template<class Parameter>
+struct parameter_type<void(Parameter)>
+{
+  using type = Parameter;
+};
 }
 }
 

@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace cxxtrace {
-template<std::size_t CapacityPerThread, class Tag>
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 class ring_queue_thread_local_storage
 {
 public:
@@ -18,8 +18,10 @@ public:
 
   static auto add_sample(czstring category,
                          czstring name,
-                         detail::sample_kind) noexcept -> void;
-  static auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
+                         detail::sample_kind,
+                         ClockSample time_point) noexcept -> void;
+  static auto take_all_samples() noexcept(false)
+    -> std::vector<detail::sample<ClockSample>>;
 
 private:
   struct thread_data;
@@ -33,7 +35,7 @@ private:
   // See NOTE[ring_queue_thread_local_storage lock order].
   inline static std::mutex global_mutex{};
   inline static std::vector<thread_data*> thread_list{};
-  inline static std::vector<detail::sample> disowned_samples{};
+  inline static std::vector<detail::sample<ClockSample>> disowned_samples{};
 };
 }
 

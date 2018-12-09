@@ -53,6 +53,18 @@ event_ref::thread_id() const noexcept -> cxxtrace::thread_id
   return this->event->thread_id;
 }
 
+auto
+event_ref::begin_timestamp() const -> time_point
+{
+  return this->event->begin_timestamp;
+}
+
+auto
+event_ref::end_timestamp() const -> time_point
+{
+  return this->event->end_timestamp;
+}
+
 event_ref::event_ref(const detail::event* event) noexcept
   : event{ event }
 {}

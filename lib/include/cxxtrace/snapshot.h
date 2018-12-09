@@ -2,6 +2,7 @@
 #define CXXTRACE_SNAPSHOT_H
 
 #include <cstddef>
+#include <cxxtrace/clock.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
@@ -13,12 +14,14 @@ enum class event_kind;
 
 namespace detail {
 struct event;
+
+template<class ClockSample>
 struct sample;
 }
 
-template<class Storage>
+template<class Storage, class Clock>
 auto
-take_all_events(Storage&) noexcept(false) -> events_snapshot;
+take_all_events(Storage&, Clock&) noexcept(false) -> events_snapshot;
 
 class events_snapshot
 {
@@ -42,8 +45,9 @@ private:
 
   std::vector<detail::event> events;
 
-  template<class Storage>
-  friend auto take_all_events(Storage&) noexcept(false) -> events_snapshot;
+  template<class Storage, class Clock>
+  friend auto take_all_events(Storage&, Clock&) noexcept(false)
+    -> events_snapshot;
 };
 
 enum class event_kind
@@ -59,6 +63,9 @@ public:
   auto kind() const noexcept -> event_kind;
   auto name() const noexcept -> czstring;
   auto thread_id() const noexcept -> thread_id;
+
+  auto begin_timestamp() const -> time_point;
+  auto end_timestamp() const -> time_point;
 
 private:
   explicit event_ref(const detail::event* event) noexcept;

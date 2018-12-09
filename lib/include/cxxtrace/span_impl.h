@@ -15,36 +15,42 @@
 
 namespace cxxtrace {
 namespace detail {
-template<class Storage>
-span_guard<Storage>::~span_guard() noexcept
+template<class Storage, class Clock>
+span_guard<Storage, Clock>::~span_guard() noexcept
 {
   this->exit();
 }
 
-template<class Storage>
+template<class Storage, class Clock>
 auto
-span_guard<Storage>::enter(Storage& storage,
-                           czstring category,
-                           czstring name) noexcept(false) -> span_guard
+span_guard<Storage, Clock>::enter(Storage& storage,
+                                  Clock& clock,
+                                  czstring category,
+                                  czstring name) noexcept(false) -> span_guard
 {
-  storage.add_sample(category, name, sample_kind::enter_span);
-  return span_guard{ storage, category, name };
+  auto begin_timestamp = clock.query();
+  storage.add_sample(category, name, sample_kind::enter_span, begin_timestamp);
+  return span_guard{ storage, clock, category, name };
 }
 
-template<class Storage>
-span_guard<Storage>::span_guard(Storage& storage,
-                                czstring category,
-                                czstring name) noexcept
+template<class Storage, class Clock>
+span_guard<Storage, Clock>::span_guard(Storage& storage,
+                                       Clock& clock,
+                                       czstring category,
+                                       czstring name) noexcept
   : storage{ storage }
+  , clock{ clock }
   , category{ category }
   , name{ name }
 {}
 
-template<class Storage>
+template<class Storage, class Clock>
 auto
-span_guard<Storage>::exit() noexcept(false) -> void
+span_guard<Storage, Clock>::exit() noexcept(false) -> void
 {
-  this->storage.add_sample(this->category, this->name, sample_kind::exit_span);
+  auto end_timestamp = clock.query();
+  this->storage.add_sample(
+    this->category, this->name, sample_kind::exit_span, end_timestamp);
 }
 }
 }

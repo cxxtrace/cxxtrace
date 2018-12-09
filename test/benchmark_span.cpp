@@ -3,6 +3,7 @@
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cstddef>
+#include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/ring_queue_thread_local_storage.h>
@@ -19,23 +20,30 @@
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
 namespace {
+using clock = cxxtrace::apple_absolute_time_clock;
+using clock_sample = clock::sample;
+
 template<class Storage>
 class cxxtrace_benchmark_base
 {
 public:
+  using clock_type = clock;
+
   explicit cxxtrace_benchmark_base()
-    : cxxtrace_config{ cxxtrace_storage }
+    : cxxtrace_config{ cxxtrace_storage, cxxtrace_clock }
   {}
 
 protected:
-  auto get_cxxtrace_config() noexcept -> cxxtrace::basic_config<Storage>&
+  auto get_cxxtrace_config() noexcept
+    -> cxxtrace::basic_config<Storage, clock_type>&
   {
     return this->cxxtrace_config;
   }
 
 private:
+  clock_type cxxtrace_clock{};
   Storage cxxtrace_storage{};
-  cxxtrace::basic_config<Storage> cxxtrace_config;
+  cxxtrace::basic_config<Storage, clock_type> cxxtrace_config;
 };
 
 class cpu_data_cache_thrasher
@@ -64,19 +72,21 @@ private:
 
 struct ring_queue_thread_local_benchmark_storage_tag
 {};
-template<std::size_t CapacityPerThread>
+template<std::size_t CapacityPerThread, class ClockSample>
 using ring_queue_thread_local_benchmark_storage =
   cxxtrace::ring_queue_thread_local_storage<
     CapacityPerThread,
-    ring_queue_thread_local_benchmark_storage_tag>;
+    ring_queue_thread_local_benchmark_storage_tag,
+    ClockSample>;
 
 struct spsc_ring_queue_thread_local_benchmark_storage_tag
 {};
-template<std::size_t CapacityPerThread>
+template<std::size_t CapacityPerThread, class ClockSample>
 using spsc_ring_queue_thread_local_benchmark_storage =
   cxxtrace::spsc_ring_queue_thread_local_storage<
     CapacityPerThread,
-    spsc_ring_queue_thread_local_benchmark_storage_tag>;
+    spsc_ring_queue_thread_local_benchmark_storage_tag,
+    ClockSample>;
 
 template<class Storage>
 class span_benchmark
@@ -109,12 +119,12 @@ protected:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   span_benchmark,
-  cxxtrace::ring_queue_storage<1024>,
-  cxxtrace::ring_queue_unsafe_storage<1024>,
-  cxxtrace::unbounded_storage<>,
-  cxxtrace::unbounded_unsafe_storage<>,
-  ring_queue_thread_local_benchmark_storage<1024>,
-  spsc_ring_queue_thread_local_benchmark_storage<1024>);
+  (cxxtrace::ring_queue_storage<1024, clock_sample>),
+  (cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>),
+  cxxtrace::unbounded_storage<clock_sample>,
+  cxxtrace::unbounded_unsafe_storage<clock_sample>,
+  (ring_queue_thread_local_benchmark_storage<1024, clock_sample>),
+  (spsc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
 (benchmark::State& bench)
@@ -198,9 +208,9 @@ public:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   concurrent_span_benchmark,
-  cxxtrace::ring_queue_storage<1024>,
-  ring_queue_thread_local_benchmark_storage<1024>,
-  spsc_ring_queue_thread_local_benchmark_storage<1024>);
+  (cxxtrace::ring_queue_storage<1024, clock_sample>),
+  (ring_queue_thread_local_benchmark_storage<1024, clock_sample>),
+  (spsc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(concurrent_span_benchmark, enter_exit)
 (benchmark::State& bench)

@@ -8,10 +8,12 @@
 namespace cxxtrace {
 namespace detail {
 enum class sample_kind;
+
+template<class ClockSample>
 struct sample;
 }
 
-template<class = void> // @nocommit
+template<class ClockSample>
 class unbounded_unsafe_storage
 {
 public:
@@ -28,14 +30,17 @@ public:
   auto add_sample(czstring category,
                   czstring name,
                   detail::sample_kind,
+                  ClockSample time_point,
                   thread_id) noexcept(false) -> void;
   auto add_sample(czstring category,
                   czstring name,
-                  detail::sample_kind) noexcept(false) -> void;
-  auto take_all_samples() noexcept(false) -> std::vector<detail::sample>;
+                  detail::sample_kind,
+                  ClockSample time_point) noexcept(false) -> void;
+  auto take_all_samples() noexcept(false)
+    -> std::vector<detail::sample<ClockSample>>;
 
 private:
-  std::vector<detail::sample> samples;
+  std::vector<detail::sample<ClockSample>> samples;
 };
 }
 
