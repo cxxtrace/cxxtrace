@@ -16,8 +16,18 @@ namespace cxxtrace {
 namespace detail {
 struct event
 {
+  explicit constexpr event(event_kind kind, sample sample) noexcept
+    : kind{ kind }
+    , category{ sample.category }
+    , name{ sample.name }
+    , thread_id{ sample.thread_id }
+  {}
+
   event_kind kind;
-  detail::sample sample;
+
+  czstring category;
+  czstring name;
+  thread_id thread_id;
 };
 }
 
