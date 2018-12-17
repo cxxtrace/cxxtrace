@@ -41,4 +41,6 @@ private:
 };
 }
 
+#include <cxxtrace/unbounded_storage_impl.h>
+
 #endif

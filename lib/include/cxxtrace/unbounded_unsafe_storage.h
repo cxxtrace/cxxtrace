@@ -38,4 +38,6 @@ private:
 };
 }
 
+#include <cxxtrace/unbounded_unsafe_storage_impl.h>
+
 #endif
