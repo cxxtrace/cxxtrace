@@ -9,8 +9,6 @@
 namespace cxxtrace {
 class event_ref;
 class events_snapshot;
-class incomplete_span_ref;
-class incomplete_spans_snapshot;
 enum class event_kind;
 
 namespace detail {
@@ -21,10 +19,6 @@ struct sample;
 template<class Storage>
 auto
 take_all_events(Storage&) noexcept(false) -> events_snapshot;
-
-template<class Storage>
-auto
-copy_incomplete_spans(Storage&) noexcept(false) -> incomplete_spans_snapshot;
 
 class events_snapshot
 {
@@ -72,46 +66,6 @@ private:
   const detail::event* event{ nullptr };
 
   friend class events_snapshot;
-};
-
-class incomplete_spans_snapshot
-{
-public:
-  using size_type = std::size_t;
-
-  incomplete_spans_snapshot(const incomplete_spans_snapshot&) noexcept(false);
-  incomplete_spans_snapshot(incomplete_spans_snapshot&&) noexcept;
-  incomplete_spans_snapshot& operator=(
-    const incomplete_spans_snapshot&) noexcept(false);
-  incomplete_spans_snapshot& operator=(incomplete_spans_snapshot&&) noexcept;
-  ~incomplete_spans_snapshot() noexcept;
-
-  auto at(size_type index) noexcept(false) -> incomplete_span_ref;
-  auto size() const noexcept -> size_type;
-
-private:
-  explicit incomplete_spans_snapshot(
-    std::vector<detail::sample> samples) noexcept;
-
-  std::vector<detail::sample> samples;
-
-  template<class Storage>
-  friend auto copy_incomplete_spans(Storage&) noexcept(false)
-    -> incomplete_spans_snapshot;
-};
-
-class incomplete_span_ref
-{
-public:
-  auto category() noexcept -> czstring;
-  auto name() noexcept -> czstring;
-
-private:
-  explicit incomplete_span_ref(detail::sample* sample) noexcept;
-
-  detail::sample* sample{ nullptr };
-
-  friend class incomplete_spans_snapshot;
 };
 }
 
