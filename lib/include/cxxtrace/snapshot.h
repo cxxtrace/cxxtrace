@@ -11,7 +11,6 @@ class event_ref;
 class events_snapshot;
 class incomplete_span_ref;
 class incomplete_spans_snapshot;
-class unbounded_storage;
 enum class event_kind;
 
 namespace detail {

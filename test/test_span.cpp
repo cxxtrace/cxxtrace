@@ -104,8 +104,8 @@ private:
 using test_span_types =
   ::testing::Types<cxxtrace::ring_queue_storage<1024>,
                    cxxtrace::ring_queue_unsafe_storage<1024>,
-                   cxxtrace::unbounded_storage,
-                   cxxtrace::unbounded_unsafe_storage,
+                   cxxtrace::unbounded_storage<>,
+                   cxxtrace::unbounded_unsafe_storage<>,
                    ring_queue_thread_local_test_storage<1024>,
                    spsc_ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
@@ -116,7 +116,7 @@ class test_span_thread_safe : public test_span<Storage>
 
 using test_span_thread_safe_types =
   ::testing::Types<cxxtrace::ring_queue_storage<1024>,
-                   cxxtrace::unbounded_storage,
+                   cxxtrace::unbounded_storage<>,
                    ring_queue_thread_local_test_storage<1024>,
                    spsc_ring_queue_thread_local_test_storage<1024>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );

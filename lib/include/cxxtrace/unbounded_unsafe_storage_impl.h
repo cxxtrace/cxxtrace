@@ -14,37 +14,45 @@
 #include <vector>
 
 namespace cxxtrace {
-inline unbounded_unsafe_storage::unbounded_unsafe_storage() noexcept = default;
+template<class Nocommit>
+unbounded_unsafe_storage<Nocommit>::unbounded_unsafe_storage() noexcept =
+  default;
 
-inline unbounded_unsafe_storage::~unbounded_unsafe_storage() noexcept = default;
+template<class Nocommit>
+unbounded_unsafe_storage<Nocommit>::~unbounded_unsafe_storage() noexcept =
+  default;
 
-inline auto
-unbounded_unsafe_storage::reset() noexcept -> void
+template<class Nocommit>
+auto
+unbounded_unsafe_storage<Nocommit>::reset() noexcept -> void
 {
   detail::reset_vector(this->samples);
 }
 
-inline auto
-unbounded_unsafe_storage::add_sample(czstring category,
-                                     czstring name,
-                                     detail::sample_kind kind,
-                                     thread_id thread_id) noexcept(false)
-  -> void
+template<class Nocommit>
+auto
+unbounded_unsafe_storage<Nocommit>::add_sample(
+  czstring category,
+  czstring name,
+  detail::sample_kind kind,
+  thread_id thread_id) noexcept(false) -> void
 {
   this->samples.emplace_back(detail::sample{ category, name, kind, thread_id });
 }
 
-inline auto
-unbounded_unsafe_storage::add_sample(czstring category,
-                                     czstring name,
-                                     detail::sample_kind kind) noexcept(false)
-  -> void
+template<class Nocommit>
+auto
+unbounded_unsafe_storage<Nocommit>::add_sample(
+  czstring category,
+  czstring name,
+  detail::sample_kind kind) noexcept(false) -> void
 {
   this->add_sample(category, name, kind, get_current_thread_id());
 }
 
-inline auto
-unbounded_unsafe_storage::take_all_samples() noexcept(false)
+template<class Nocommit>
+auto
+unbounded_unsafe_storage<Nocommit>::take_all_samples() noexcept(false)
   -> std::vector<detail::sample>
 {
   return std::move(this->samples);

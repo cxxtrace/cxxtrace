@@ -11,6 +11,7 @@ enum class sample_kind;
 struct sample;
 }
 
+template<class = void> // @nocommit
 class unbounded_unsafe_storage
 {
 public:
