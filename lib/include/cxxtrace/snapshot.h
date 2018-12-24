@@ -9,7 +9,6 @@
 namespace cxxtrace {
 class event_ref;
 class events_snapshot;
-class unbounded_storage;
 enum class event_kind;
 
 namespace detail {

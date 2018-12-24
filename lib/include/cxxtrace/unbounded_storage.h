@@ -13,6 +13,7 @@ enum class sample_kind;
 struct sample;
 }
 
+template<class = void>
 class unbounded_storage
 {
 public:
@@ -37,7 +38,7 @@ public:
 
 private:
   std::mutex mutex{};
-  unbounded_unsafe_storage storage{};
+  unbounded_unsafe_storage<> storage{};
 };
 }
 

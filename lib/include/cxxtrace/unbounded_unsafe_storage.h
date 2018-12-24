@@ -11,6 +11,7 @@ enum class sample_kind;
 struct sample;
 }
 
+template<class = void>
 class unbounded_unsafe_storage
 {
 public:

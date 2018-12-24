@@ -111,8 +111,8 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   span_benchmark,
   cxxtrace::ring_queue_storage<1024>,
   cxxtrace::ring_queue_unsafe_storage<1024>,
-  cxxtrace::unbounded_storage,
-  cxxtrace::unbounded_unsafe_storage,
+  cxxtrace::unbounded_storage<>,
+  cxxtrace::unbounded_unsafe_storage<>,
   ring_queue_thread_local_benchmark_storage<1024>,
   spsc_ring_queue_thread_local_benchmark_storage<1024>);
 

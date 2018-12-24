@@ -14,37 +14,45 @@
 #include <utility>
 
 namespace cxxtrace {
-inline unbounded_storage::unbounded_storage() noexcept = default;
+template<class Nocommit>
+unbounded_storage<Nocommit>::unbounded_storage() noexcept = default;
 
-inline unbounded_storage::~unbounded_storage() noexcept = default;
+template<class Nocommit>
+unbounded_storage<Nocommit>::~unbounded_storage() noexcept = default;
 
-inline auto
-unbounded_storage::reset() noexcept -> void
+template<class Nocommit>
+auto
+unbounded_storage<Nocommit>::reset() noexcept -> void
 {
   auto lock = std::unique_lock{ this->mutex };
   this->storage.reset();
 }
 
-inline auto
-unbounded_storage::add_sample(czstring category,
-                              czstring name,
-                              detail::sample_kind kind,
-                              thread_id thread_id) noexcept(false) -> void
+template<class Nocommit>
+auto
+unbounded_storage<Nocommit>::add_sample(czstring category,
+                                        czstring name,
+                                        detail::sample_kind kind,
+                                        thread_id thread_id) noexcept(false)
+  -> void
 {
   auto lock = std::unique_lock{ this->mutex };
   this->storage.add_sample(category, name, kind, thread_id);
 }
 
-inline auto
-unbounded_storage::add_sample(czstring category,
-                              czstring name,
-                              detail::sample_kind kind) noexcept(false) -> void
+template<class Nocommit>
+auto
+unbounded_storage<Nocommit>::add_sample(
+  czstring category,
+  czstring name,
+  detail::sample_kind kind) noexcept(false) -> void
 {
   this->add_sample(category, name, kind, get_current_thread_id());
 }
 
-inline auto
-unbounded_storage::take_all_samples() noexcept(false)
+template<class Nocommit>
+auto
+unbounded_storage<Nocommit>::take_all_samples() noexcept(false)
   -> std::vector<detail::sample>
 {
   auto lock = std::unique_lock{ this->mutex };
