@@ -89,11 +89,6 @@ protected:
     return cxxtrace::take_all_events(this->cxxtrace_storage);
   }
 
-  auto copy_incomplete_spans() -> cxxtrace::incomplete_spans_snapshot
-  {
-    return cxxtrace::copy_incomplete_spans(this->cxxtrace_storage);
-  }
-
   auto reset_storage() -> void { this->cxxtrace_storage.reset(); }
 
 private:
@@ -136,26 +131,6 @@ TYPED_TEST(test_span, span_adds_event_at_scope_enter)
   EXPECT_STREQ(event.category(), "span category");
   EXPECT_STREQ(event.name(), "span name");
   EXPECT_EQ(event.kind(), cxxtrace::event_kind::incomplete_span);
-}
-
-TYPED_TEST(test_span, incomplete_spans_includes_span_in_scope)
-{
-  auto span = CXXTRACE_SPAN("span category", "span name");
-  auto spans =
-    cxxtrace::incomplete_spans_snapshot{ this->copy_incomplete_spans() };
-  EXPECT_EQ(spans.size(), 1);
-  EXPECT_STREQ(spans.at(0).category(), "span category");
-  EXPECT_STREQ(spans.at(0).name(), "span name");
-}
-
-TYPED_TEST(test_span, incomplete_spans_excludes_span_for_exited_scope)
-{
-  {
-    auto span = CXXTRACE_SPAN("span category", "span name");
-  }
-  auto spans =
-    cxxtrace::incomplete_spans_snapshot{ this->copy_incomplete_spans() };
-  EXPECT_EQ(spans.size(), 0);
 }
 
 TYPED_TEST(test_span, span_adds_event_at_scope_exit)

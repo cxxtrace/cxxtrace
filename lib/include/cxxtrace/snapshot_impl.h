@@ -58,28 +58,6 @@ take_all_events(Storage& storage) noexcept(false) -> events_snapshot
   return events_snapshot{ events };
 }
 
-template<class Storage>
-auto
-copy_incomplete_spans(Storage& storage) noexcept(false)
-  -> incomplete_spans_snapshot
-{
-  using namespace detail;
-
-  auto incomplete_spans = std::vector<detail::sample>{};
-  for (const auto& sample : storage.take_all_samples()) {
-    switch (sample.kind) {
-      case sample_kind::enter_span:
-        incomplete_spans.emplace_back(sample);
-        break;
-      case sample_kind::exit_span:
-        assert(!incomplete_spans.empty());
-        incomplete_spans.pop_back();
-        break;
-    }
-  }
-  return incomplete_spans_snapshot{ incomplete_spans };
-}
-
 template<class Predicate>
 auto
 events_snapshot::get_if(Predicate&& predicate) noexcept(false) -> event_ref
