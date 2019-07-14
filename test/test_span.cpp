@@ -157,7 +157,7 @@ TYPED_TEST(test_span, span_adds_event_at_scope_exit)
   EXPECT_EQ(event.kind(), cxxtrace::event_kind::span);
 }
 
-TYPED_TEST(test_span, events_for_later_incomplete_spans_spans_appear_later)
+TYPED_TEST(test_span, events_for_later_incomplete_spans_appear_later)
 {
   auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
   auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
