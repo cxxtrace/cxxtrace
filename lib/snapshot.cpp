@@ -4,68 +4,63 @@
 #include <vector>
 
 namespace cxxtrace {
-events_snapshot::events_snapshot(const events_snapshot&) noexcept(false) =
+samples_snapshot::samples_snapshot(const samples_snapshot&) noexcept(false) =
   default;
-events_snapshot::events_snapshot(events_snapshot&&) noexcept = default;
-events_snapshot&
-events_snapshot::operator=(const events_snapshot&) noexcept(false) = default;
-events_snapshot&
-events_snapshot::operator=(events_snapshot&&) noexcept = default;
-events_snapshot::~events_snapshot() noexcept = default;
+samples_snapshot::samples_snapshot(samples_snapshot&&) noexcept = default;
+samples_snapshot&
+samples_snapshot::operator=(const samples_snapshot&) noexcept(false) = default;
+samples_snapshot&
+samples_snapshot::operator=(samples_snapshot&&) noexcept = default;
+samples_snapshot::~samples_snapshot() noexcept = default;
 
 auto
-events_snapshot::at(size_type index) noexcept(false) -> event_ref
+samples_snapshot::at(size_type index) noexcept(false) -> sample_ref
 {
-  return event_ref{ &this->events.at(index) };
+  return sample_ref{ &this->samples.at(index) };
 }
 
 auto
-events_snapshot::size() const noexcept -> size_type
+samples_snapshot::size() const noexcept -> size_type
 {
-  return size_type{ this->events.size() };
+  return size_type{ this->samples.size() };
 }
 
-events_snapshot::events_snapshot(std::vector<detail::event> events) noexcept
-  : events{ events }
+samples_snapshot::samples_snapshot(
+  std::vector<detail::snapshot_sample> samples) noexcept
+  : samples{ std::move(samples) }
 {}
 
 auto
-event_ref::category() const noexcept -> czstring
+sample_ref::category() const noexcept -> czstring
 {
-  return this->event->category;
+  return this->sample->category;
 }
 
 auto
-event_ref::kind() const noexcept -> event_kind
+sample_ref::kind() const noexcept -> sample_kind
 {
-  return this->event->kind;
+  return this->sample->kind;
 }
 
 auto
-event_ref::name() const noexcept -> czstring
+sample_ref::name() const noexcept -> czstring
 {
-  return this->event->name;
+  return this->sample->name;
 }
 
 auto
-event_ref::thread_id() const noexcept -> cxxtrace::thread_id
+sample_ref::thread_id() const noexcept -> cxxtrace::thread_id
 {
-  return this->event->thread_id;
+  return this->sample->thread_id;
 }
 
 auto
-event_ref::begin_timestamp() const -> time_point
+sample_ref::timestamp() const -> time_point
 {
-  return this->event->begin_timestamp;
+  return this->sample->timestamp;
 }
 
-auto
-event_ref::end_timestamp() const -> time_point
-{
-  return this->event->end_timestamp;
-}
-
-event_ref::event_ref(const detail::event* event) noexcept
-  : event{ event }
+sample_ref::sample_ref(const detail::snapshot_sample* sample) noexcept
+  : sample{ sample }
 {}
 }

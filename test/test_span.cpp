@@ -16,6 +16,7 @@
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <mutex>
 #include <random>
@@ -33,6 +34,9 @@
 
 using namespace std::literals::string_view_literals;
 using cxxtrace::stringify;
+using testing::AnyOf;
+using testing::ElementsAre;
+using testing::UnorderedElementsAre;
 
 namespace {
 template<class T>
@@ -92,9 +96,9 @@ protected:
     return this->cxxtrace_config;
   }
 
-  auto take_all_events() -> cxxtrace::events_snapshot
+  auto take_all_samples() -> cxxtrace::samples_snapshot
   {
-    return cxxtrace::take_all_events(this->cxxtrace_storage, this->clock());
+    return cxxtrace::take_all_samples(this->cxxtrace_storage, this->clock());
   }
 
   auto reset_storage() -> void { this->cxxtrace_storage.reset(); }
@@ -127,89 +131,91 @@ using test_span_thread_safe_types = ::testing::Types<
   spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 
-TYPED_TEST(test_span, no_events_exist_by_default)
+TYPED_TEST(test_span, no_samples_exist_by_default)
 {
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 0);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 0);
 }
 
-TYPED_TEST(test_span, span_adds_event_at_scope_enter)
+TYPED_TEST(test_span, span_adds_sample_at_scope_enter)
 {
   auto span = CXXTRACE_SPAN("span category", "span name");
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 1);
-  auto event = cxxtrace::event_ref{ events.at(0) };
-  EXPECT_STREQ(event.category(), "span category");
-  EXPECT_STREQ(event.name(), "span name");
-  EXPECT_EQ(event.kind(), cxxtrace::event_kind::incomplete_span);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 1);
+  auto sample = cxxtrace::sample_ref{ samples.at(0) };
+  EXPECT_STREQ(sample.category(), "span category");
+  EXPECT_STREQ(sample.name(), "span name");
+  EXPECT_EQ(sample.kind(), cxxtrace::sample_kind::enter_span);
 }
 
-TYPED_TEST(test_span, span_adds_event_at_scope_exit)
+TYPED_TEST(test_span, span_adds_sample_at_scope_exit)
 {
   {
     auto span = CXXTRACE_SPAN("span category", "span name");
   }
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 1);
-  auto event = cxxtrace::event_ref{ events.at(0) };
-  EXPECT_STREQ(event.category(), "span category");
-  EXPECT_STREQ(event.name(), "span name");
-  EXPECT_EQ(event.kind(), cxxtrace::event_kind::span);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 2);
+  auto sample = cxxtrace::sample_ref{ samples.at(samples.size() - 1) };
+  EXPECT_STREQ(sample.category(), "span category");
+  EXPECT_STREQ(sample.name(), "span name");
+  EXPECT_EQ(sample.kind(), cxxtrace::sample_kind::exit_span);
 }
 
-TYPED_TEST(test_span, events_for_later_incomplete_spans_appear_later)
+TYPED_TEST(test_span, enter_samples_for_nested_spans_are_ordered)
 {
   auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
   auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
   auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 3);
-  auto event_1 = cxxtrace::event_ref{ events.at(0) };
-  EXPECT_STREQ(event_1.name(), "span name 1");
-  auto event_2 = cxxtrace::event_ref{ events.at(1) };
-  EXPECT_STREQ(event_2.name(), "span name 2");
-  auto event_3 = cxxtrace::event_ref{ events.at(2) };
-  EXPECT_STREQ(event_3.name(), "span name 3");
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 3);
+  auto sample_1 = cxxtrace::sample_ref{ samples.at(0) };
+  EXPECT_STREQ(sample_1.name(), "span name 1");
+  auto sample_2 = cxxtrace::sample_ref{ samples.at(1) };
+  EXPECT_STREQ(sample_2.name(), "span name 2");
+  auto sample_3 = cxxtrace::sample_ref{ samples.at(2) };
+  EXPECT_STREQ(sample_3.name(), "span name 3");
 }
 
-TYPED_TEST(test_span, events_for_later_spans_appear_later)
+TYPED_TEST(test_span, exit_samples_for_nested_spans_are_ordered_and_adjacent)
 {
   {
     auto span_1 = CXXTRACE_SPAN("span category", "span name 1");
     auto span_2 = CXXTRACE_SPAN("span category", "span name 2");
     auto span_3 = CXXTRACE_SPAN("span category", "span name 3");
   }
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 3);
-  EXPECT_STREQ(events.at(0).name(), "span name 3");
-  EXPECT_STREQ(events.at(1).name(), "span name 2");
-  EXPECT_STREQ(events.at(2).name(), "span name 1");
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 6);
+  EXPECT_STREQ(samples.at(samples.size() - 3).name(), "span name 3");
+  EXPECT_STREQ(samples.at(samples.size() - 2).name(), "span name 2");
+  EXPECT_STREQ(samples.at(samples.size() - 1).name(), "span name 1");
 }
 
 TYPED_TEST(test_span,
-           event_for_incomplete_span_appears_after_sibling_complete_span)
+           samples_for_incomplete_span_appears_after_sibling_complete_span)
 {
   {
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
   auto incomplete_span = CXXTRACE_SPAN("span category", "incomplete span");
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 2);
-  EXPECT_STREQ(events.at(0).name(), "complete span");
-  EXPECT_STREQ(events.at(1).name(), "incomplete span");
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 3);
+  EXPECT_STREQ(samples.at(0).name(), "complete span");
+  EXPECT_STREQ(samples.at(1).name(), "complete span");
+  EXPECT_STREQ(samples.at(2).name(), "incomplete span");
 }
 
 TYPED_TEST(test_span,
-           event_for_complete_span_appears_after_parent_incomplete_span)
+           sample_for_complete_span_appears_after_parent_incomplete_span)
 {
   auto incomplete_span = CXXTRACE_SPAN("span category", "incomplete span");
   {
     auto complete_span = CXXTRACE_SPAN("span category", "complete span");
   }
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 2);
-  EXPECT_STREQ(events.at(0).name(), "incomplete span");
-  EXPECT_STREQ(events.at(1).name(), "complete span");
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 3);
+  EXPECT_STREQ(samples.at(0).name(), "incomplete span");
+  EXPECT_STREQ(samples.at(1).name(), "complete span");
+  EXPECT_STREQ(samples.at(2).name(), "complete span");
 }
 
 TYPED_TEST(test_span, later_snapshot_includes_only_new_spans)
@@ -217,19 +223,37 @@ TYPED_TEST(test_span, later_snapshot_includes_only_new_spans)
   {
     auto span_before = CXXTRACE_SPAN("category", "before");
   }
-  auto events_1 = cxxtrace::events_snapshot{ this->take_all_events() };
+  auto samples_1 = cxxtrace::samples_snapshot{ this->take_all_samples() };
   {
     auto span_after = CXXTRACE_SPAN("category", "after");
   }
-  auto events_2 = cxxtrace::events_snapshot{ this->take_all_events() };
+  auto samples_2 = cxxtrace::samples_snapshot{ this->take_all_samples() };
 
-  EXPECT_EQ(events_1.size(), 1);
-  EXPECT_STREQ(events_1.at(0).name(), "before");
-  EXPECT_EQ(events_2.size(), 1);
-  EXPECT_STREQ(events_2.at(0).name(), "after");
+  EXPECT_EQ(samples_1.size(), 2);
+  EXPECT_STREQ(samples_1.at(0).name(), "before");
+  EXPECT_STREQ(samples_1.at(1).name(), "before");
+  EXPECT_EQ(samples_2.size(), 2);
+  EXPECT_STREQ(samples_2.at(0).name(), "after");
+  EXPECT_STREQ(samples_2.at(1).name(), "after");
 }
 
-TYPED_TEST(test_span, span_events_include_thread_id)
+TYPED_TEST(test_span, later_snapshot_includes_exit_sample_of_completed_span)
+{
+  auto samples_1 = [&] {
+    auto span = CXXTRACE_SPAN("category", "test span");
+    return cxxtrace::samples_snapshot{ this->take_all_samples() };
+  }();
+  auto samples_2 = cxxtrace::samples_snapshot{ this->take_all_samples() };
+
+  EXPECT_EQ(samples_1.size(), 1);
+  EXPECT_STREQ(samples_1.at(0).name(), "test span");
+  EXPECT_EQ(samples_1.at(0).kind(), cxxtrace::sample_kind::enter_span);
+  EXPECT_EQ(samples_2.size(), 1);
+  EXPECT_STREQ(samples_2.at(0).name(), "test span");
+  EXPECT_EQ(samples_2.at(0).kind(), cxxtrace::sample_kind::exit_span);
+}
+
+TYPED_TEST(test_span, span_samples_include_thread_id)
 {
   {
     auto main_span = CXXTRACE_SPAN("category", "main span");
@@ -257,23 +281,24 @@ TYPED_TEST(test_span, span_events_include_thread_id)
   ASSERT_NE(thread_2_id, main_thread_id);
   ASSERT_NE(thread_1_id, thread_2_id);
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  auto get_event = [&events](std::string_view name) -> cxxtrace::event_ref {
-    for (auto i = cxxtrace::events_snapshot::size_type{ 0 }; i < events.size();
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  auto get_sample = [&samples](std::string_view name) -> cxxtrace::sample_ref {
+    for (auto i = cxxtrace::samples_snapshot::size_type{ 0 };
+         i < samples.size();
          ++i) {
-      auto event = cxxtrace::event_ref{ events.at(i) };
-      if (event.name() == name) {
-        return event;
+      auto sample = cxxtrace::sample_ref{ samples.at(i) };
+      if (sample.name() == name) {
+        return sample;
       }
     }
-    throw std::out_of_range("Could not find event");
+    throw std::out_of_range("Could not find sample");
   };
-  EXPECT_EQ(get_event("main span").thread_id(), main_thread_id);
-  EXPECT_EQ(get_event("thread 1 span").thread_id(), thread_1_id);
-  EXPECT_EQ(get_event("thread 2 span").thread_id(), thread_2_id);
+  EXPECT_EQ(get_sample("main span").thread_id(), main_thread_id);
+  EXPECT_EQ(get_sample("thread 1 span").thread_id(), thread_1_id);
+  EXPECT_EQ(get_sample("thread 2 span").thread_id(), thread_2_id);
 }
 
-TYPED_TEST(test_span, span_events_include_timestamps)
+TYPED_TEST(test_span, span_samples_include_timestamps)
 {
   auto& clock = this->clock();
   auto timestamp_before_span = clock.make_time_point(clock.query());
@@ -283,16 +308,16 @@ TYPED_TEST(test_span, span_events_include_timestamps)
   }();
   auto timestamp_after_span = clock.make_time_point(clock.query());
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  auto event_begin_timestamp = events.at(0).begin_timestamp();
-  auto event_end_timestamp = events.at(0).end_timestamp();
-  EXPECT_LE(timestamp_before_span, event_begin_timestamp);
-  EXPECT_LE(event_begin_timestamp, timestamp_inside_span);
-  EXPECT_LE(timestamp_inside_span, event_end_timestamp);
-  EXPECT_LE(event_end_timestamp, timestamp_after_span);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  auto span_begin_timestamp = samples.at(0).timestamp();
+  auto span_end_timestamp = samples.at(1).timestamp();
+  EXPECT_LE(timestamp_before_span, span_begin_timestamp);
+  EXPECT_LE(span_begin_timestamp, timestamp_inside_span);
+  EXPECT_LE(timestamp_inside_span, span_end_timestamp);
+  EXPECT_LE(span_end_timestamp, timestamp_after_span);
 }
 
-TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
+TYPED_TEST(test_span, span_samples_can_interleave_using_multiple_threads)
 {
   {
     auto mutex = std::mutex{};
@@ -315,14 +340,46 @@ TYPED_TEST(test_span, span_events_can_interleave_using_multiple_threads)
     thread.join();
   }
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 2);
-  EXPECT_NO_THROW(events.get_if([](const cxxtrace::event_ref& event) {
-    return event.name() == "main span"sv;
-  }));
-  EXPECT_NO_THROW(events.get_if([](const cxxtrace::event_ref& event) {
-    return event.name() == "thread span"sv;
-  }));
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+
+  using name_and_kind = std::pair<std::string, cxxtrace::sample_kind>;
+  auto names_and_kinds = std::vector<name_and_kind>{};
+  for (auto i = cxxtrace::samples_snapshot::size_type{ 0 }; i < samples.size();
+       ++i) {
+    auto sample = cxxtrace::sample_ref{ samples.at(i) };
+    names_and_kinds.emplace_back(sample.name(), sample.kind());
+  }
+  auto enter = [](cxxtrace::czstring name) {
+    return name_and_kind{ name, cxxtrace::sample_kind::enter_span };
+  };
+  auto exit = [](cxxtrace::czstring name) {
+    return name_and_kind{ name, cxxtrace::sample_kind::exit_span };
+  };
+  EXPECT_THAT(names_and_kinds,
+              AnyOf(ElementsAre(enter("main span"),
+                                exit("main span"),
+                                enter("thread span"),
+                                exit("thread span")),
+                    ElementsAre(enter("main span"),
+                                enter("thread span"),
+                                exit("main span"),
+                                exit("thread span")),
+                    ElementsAre(enter("main span"),
+                                enter("thread span"),
+                                exit("thread span"),
+                                exit("main span")),
+                    ElementsAre(enter("thread span"),
+                                exit("thread span"),
+                                enter("main span"),
+                                exit("main span")),
+                    ElementsAre(enter("thread span"),
+                                enter("main span"),
+                                exit("thread span"),
+                                exit("main span")),
+                    ElementsAre(enter("thread span"),
+                                enter("main span"),
+                                exit("main span"),
+                                exit("thread span"))));
 }
 
 TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
@@ -336,15 +393,21 @@ TYPED_TEST(test_span, snapshot_includes_spans_from_other_running_threads)
       auto thread_span = CXXTRACE_SPAN("category", "thread span");
       thread_id = cxxtrace::get_current_thread_id();
     }
+    auto incomplete_thread_span =
+      CXXTRACE_SPAN("category", "incomplete thread span");
     thread_did_exit_span.set();
     thread_should_exit.wait();
   } };
   thread_did_exit_span.wait();
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 1);
-  EXPECT_STREQ(events.at(0).name(), "thread span");
-  EXPECT_EQ(events.at(0).thread_id(), thread_id);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 3);
+  EXPECT_STREQ(samples.at(0).name(), "thread span");
+  EXPECT_STREQ(samples.at(1).name(), "thread span");
+  EXPECT_STREQ(samples.at(2).name(), "incomplete thread span");
+  EXPECT_EQ(samples.at(0).thread_id(), thread_id);
+  EXPECT_EQ(samples.at(1).thread_id(), thread_id);
+  EXPECT_EQ(samples.at(2).thread_id(), thread_id);
 
   thread_should_exit.set();
   thread.join();
@@ -366,8 +429,8 @@ TYPED_TEST(test_span,
   thread_did_exit_span.wait();
   this->reset_storage();
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 0);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 0);
 
   thread_should_exit.set();
   thread.join();
@@ -381,8 +444,8 @@ TYPED_TEST(test_span, resetting_storage_removes_samples_by_exited_threads)
   thread.join();
   this->reset_storage();
 
-  auto events = cxxtrace::events_snapshot{ this->take_all_events() };
-  EXPECT_EQ(events.size(), 0);
+  auto samples = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples.size(), 0);
 }
 
 TYPED_TEST(test_span_thread_safe,

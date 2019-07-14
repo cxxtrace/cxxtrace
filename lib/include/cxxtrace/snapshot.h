@@ -8,71 +8,61 @@
 #include <vector>
 
 namespace cxxtrace {
-class event_ref;
-class events_snapshot;
+class sample_ref;
+class samples_snapshot;
 enum class event_kind;
 
 namespace detail {
-struct event;
-
-template<class ClockSample>
-struct sample;
+struct snapshot_sample;
+enum class sample_kind;
 }
+
+// TODO(strager): Move sample_kind into its own public header.
+using sample_kind = detail::sample_kind;
 
 template<class Storage, class Clock>
 auto
-take_all_events(Storage&, Clock&) noexcept(false) -> events_snapshot;
+take_all_samples(Storage&, Clock&) noexcept(false) -> samples_snapshot;
 
-class events_snapshot
+class samples_snapshot
 {
 public:
   using size_type = std::size_t;
 
-  events_snapshot(const events_snapshot&) noexcept(false);
-  events_snapshot(events_snapshot&&) noexcept;
-  events_snapshot& operator=(const events_snapshot&) noexcept(false);
-  events_snapshot& operator=(events_snapshot&&) noexcept;
-  ~events_snapshot() noexcept;
+  samples_snapshot(const samples_snapshot&) noexcept(false);
+  samples_snapshot(samples_snapshot&&) noexcept;
+  samples_snapshot& operator=(const samples_snapshot&) noexcept(false);
+  samples_snapshot& operator=(samples_snapshot&&) noexcept;
+  ~samples_snapshot() noexcept;
 
-  auto at(size_type index) noexcept(false) -> event_ref;
+  auto at(size_type index) noexcept(false) -> sample_ref;
   auto size() const noexcept -> size_type;
 
-  template<class Predicate>
-  auto get_if(Predicate&&) noexcept(false) -> event_ref;
-
 private:
-  explicit events_snapshot(std::vector<detail::event> events) noexcept;
+  explicit samples_snapshot(std::vector<detail::snapshot_sample>) noexcept;
 
-  std::vector<detail::event> events;
+  std::vector<detail::snapshot_sample> samples;
 
   template<class Storage, class Clock>
-  friend auto take_all_events(Storage&, Clock&) noexcept(false)
-    -> events_snapshot;
+  friend auto take_all_samples(Storage&, Clock&) noexcept(false)
+    -> samples_snapshot;
 };
 
-enum class event_kind
-{
-  span,
-  incomplete_span,
-};
-
-class event_ref
+class sample_ref
 {
 public:
   auto category() const noexcept -> czstring;
-  auto kind() const noexcept -> event_kind;
+  auto kind() const noexcept -> sample_kind;
   auto name() const noexcept -> czstring;
   auto thread_id() const noexcept -> thread_id;
-
-  auto begin_timestamp() const -> time_point;
-  auto end_timestamp() const -> time_point;
+  auto timestamp() const -> time_point;
 
 private:
-  explicit event_ref(const detail::event* event) noexcept;
+  explicit sample_ref(const detail::snapshot_sample*) noexcept;
 
-  const detail::event* event{ nullptr };
+  const detail::snapshot_sample* sample{ nullptr };
 
-  friend class events_snapshot;
+  friend class samples_snapshot;
 };
 }
 

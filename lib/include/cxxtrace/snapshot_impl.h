@@ -11,95 +11,48 @@
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/uninitialized.h>
+#include <iterator>
 #include <stdexcept>
 #include <vector>
 
 namespace cxxtrace {
 namespace detail {
-struct event
+struct snapshot_sample
 {
-  template<class ClockSample>
-  explicit event(event_kind kind,
-                 sample<ClockSample> sample,
-                 time_point begin_timestamp,
-                 time_point end_timestamp) noexcept
-    : kind{ kind }
-    , category{ sample.category }
+  template<class Clock>
+  explicit snapshot_sample(const sample<typename Clock::sample>& sample,
+                           Clock& clock) noexcept
+    : category{ sample.category }
     , name{ sample.name }
+    , kind{ sample.kind }
     , thread_id{ sample.thread_id }
-    , begin_timestamp{ begin_timestamp }
-    , end_timestamp{ end_timestamp }
+    , timestamp{ clock.make_time_point(sample.time_point) }
   {}
-
-  template<class ClockSample>
-  explicit event(event_kind kind,
-                 sample<ClockSample> sample,
-                 time_point begin_timestamp) noexcept
-    : kind{ kind }
-    , category{ sample.category }
-    , name{ sample.name }
-    , thread_id{ sample.thread_id }
-    , begin_timestamp{ begin_timestamp }
-    , end_timestamp{ uninitialized }
-  {}
-
-  event_kind kind;
 
   czstring category;
   czstring name;
+  sample_kind kind;
   thread_id thread_id;
-  time_point begin_timestamp;
-  time_point end_timestamp;
+  time_point timestamp;
 };
 }
 
 template<class Storage, class Clock>
 auto
-take_all_events(Storage& storage, Clock& clock) noexcept(false)
-  -> events_snapshot
+take_all_samples(Storage& storage, Clock& clock) noexcept(false)
+  -> samples_snapshot
 {
-  using detail::event;
-  using detail::sample_kind;
-
-  auto events = std::vector<event>{};
-  for (const auto& sample : storage.take_all_samples()) {
-    switch (sample.kind) {
-      case sample_kind::enter_span: {
-        auto begin_timestamp = clock.make_time_point(sample.time_point);
-        events.emplace_back(
-          event{ event_kind::incomplete_span, sample, begin_timestamp });
-        break;
-      }
-      case sample_kind::exit_span: {
-        auto end_timestamp = clock.make_time_point(sample.time_point);
-        auto incomplete_span_event_it =
-          std::find_if(events.crbegin(), events.crend(), [](const event& e) {
-            return e.kind == event_kind::incomplete_span;
-          });
-        assert(incomplete_span_event_it != events.crend());
-        auto begin_timestamp = incomplete_span_event_it->begin_timestamp;
-        events.erase(std::prev(incomplete_span_event_it.base()));
-        events.emplace_back(
-          event{ event_kind::span, sample, begin_timestamp, end_timestamp });
-        break;
-      }
-    }
-  }
-  return events_snapshot{ events };
-}
-
-template<class Predicate>
-auto
-events_snapshot::get_if(Predicate&& predicate) noexcept(false) -> event_ref
-{
-  auto size = this->size();
-  for (auto i = size_type{ 0 }; i < size; ++i) {
-    auto event = this->at(i);
-    if (predicate(static_cast<const event_ref&>(event))) {
-      return event;
-    }
-  }
-  throw std::out_of_range{ "No events match predicate" };
+  auto raw_samples = storage.take_all_samples();
+  auto samples = std::vector<detail::snapshot_sample>{};
+  samples.reserve(raw_samples.size());
+  std::transform(raw_samples.begin(),
+                 raw_samples.end(),
+                 std::back_inserter(samples),
+                 [&](const detail::sample<typename Clock::sample>&
+                       raw_sample) noexcept->detail::snapshot_sample {
+                   return detail::snapshot_sample{ raw_sample, clock };
+                 });
+  return samples_snapshot{ std::move(samples) };
 }
 }
 
