@@ -104,6 +104,11 @@ set(INSTALL_GTEST FALSE)
 set(gmock_build_tests FALSE CACHE INTERNAL "")
 add_subdirectory(googletest)
 
+set(JSON_BuildTests FALSE CACHE INTERNAL "")
+set(JSON_Install FALSE CACHE INTERNAL "")
+set(JSON_MultipleHeaders TRUE CACHE INTERNAL "")
+add_subdirectory(nlohmann-json)
+
 add_library(relacy INTERFACE)
 target_include_directories(relacy INTERFACE relacy)
 if (APPLE)

@@ -53,6 +53,31 @@ Release URL: https://github.com/google/googletest/releases/tag/release-1.8.1
 Release date: August 31, 2018
 Version: v1.8.1
 
+## JSON for Modern C++
+
+The nlohmann-json directory contains JSON for Modern C++, a library for the JSON
+data storage format.
+
+The following directories have been deleted to reduce storage consumption and
+simplify license compliance:
+
+* nlohmann-json/benchmarks/
+* nlohmann-json/doc/
+* nlohmann-json/test/
+* nlohmann-json/third_party/
+
+Copyright: Copyright (c) 2013-2019 Niels Lohmann; Copyright (c) 2009 Florian Loitsch; Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+Download URL: https://github.com/nlohmann/json/archive/v3.6.1.tar.gz
+Download date: July 14, 2019
+Git commit: 1126c9ca74fdea22d2ce3a065ac0fcb5792cbdaf
+License file: nlohmann-json/LICENSE.MIT
+License type: MIT
+Location: nlohmann-json
+Project URL: https://nlohmann.github.io/json/
+Release URL: https://github.com/nlohmann/json/releases/tag/v3.6.1
+Release date: March 20, 2019
+Version: 3.6.1
+
 ## relacy
 
 The relacy directory contains Relacy Race Detector, a tool for testing C++
