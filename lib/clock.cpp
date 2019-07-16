@@ -145,6 +145,7 @@ posix_gettimeofday_clock::make_time_point(const sample& sample) -> time_point
 
 fake_clock::fake_clock() noexcept
   : next_sample{ std::chrono::nanoseconds{ 1 }.count() }
+  , query_increment{ std::chrono::nanoseconds{ 1 }.count() }
 {}
 
 auto
@@ -152,7 +153,7 @@ fake_clock::query() -> sample
 {
   return std::exchange(this->next_sample,
                        (std::chrono::nanoseconds{ this->next_sample } +
-                        std::chrono::nanoseconds{ 1 })
+                        std::chrono::nanoseconds{ this->query_increment })
                          .count());
 }
 
@@ -160,5 +161,22 @@ auto
 fake_clock::make_time_point(const sample& sample) -> time_point
 {
   return time_point{ std::chrono::nanoseconds{ sample } };
+}
+
+auto
+fake_clock::set_duration_between_samples(
+  std::chrono::nanoseconds duration) noexcept -> void
+{
+  this->query_increment = duration.count();
+}
+
+auto
+fake_clock::set_next_time_point(
+  std::chrono::nanoseconds next_time_point) noexcept -> void
+{
+  auto new_next_sample = sample{ next_time_point.count() };
+  assert(new_next_sample >= this->next_sample &&
+         "fake_clock is strictly increasing");
+  this->next_sample = new_next_sample;
 }
 }

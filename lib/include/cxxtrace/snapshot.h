@@ -35,7 +35,7 @@ public:
   samples_snapshot& operator=(samples_snapshot&&) noexcept;
   ~samples_snapshot() noexcept;
 
-  auto at(size_type index) noexcept(false) -> sample_ref;
+  auto at(size_type index) const noexcept(false) -> sample_ref;
   auto size() const noexcept -> size_type;
 
 private:

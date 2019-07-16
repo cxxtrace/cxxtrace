@@ -7,6 +7,7 @@ add_executable(
   test_cxxtrace
   exhaustive_rng.cpp
   test_add.cpp
+  test_chrome_trace_event_format.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp
   test_molecular.cpp
@@ -14,7 +15,7 @@ add_executable(
   test_span.cpp
   test_thread.cpp
 )
-target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
+target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main nlohmann_json)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)

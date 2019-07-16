@@ -164,8 +164,12 @@ public:
   auto query() -> sample;
   auto make_time_point(const sample&) -> time_point;
 
+  auto set_duration_between_samples(std::chrono::nanoseconds) noexcept -> void;
+  auto set_next_time_point(std::chrono::nanoseconds) noexcept -> void;
+
 private:
   sample next_sample;
+  sample query_increment;
 };
 }
 

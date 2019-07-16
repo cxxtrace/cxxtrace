@@ -23,6 +23,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 add_subdirectory(vendor)
 
+add_subdirectory(example)
 add_subdirectory(lib)
 include(CTest)
 if (BUILD_TESTING)

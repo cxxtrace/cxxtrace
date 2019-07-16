@@ -14,7 +14,7 @@ samples_snapshot::operator=(samples_snapshot&&) noexcept = default;
 samples_snapshot::~samples_snapshot() noexcept = default;
 
 auto
-samples_snapshot::at(size_type index) noexcept(false) -> sample_ref
+samples_snapshot::at(size_type index) const noexcept(false) -> sample_ref
 {
   return sample_ref{ &this->samples.at(index) };
 }

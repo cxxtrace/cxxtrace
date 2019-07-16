@@ -2,11 +2,13 @@
 #include <chrono>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/clock_extra.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
 #include <vector>
 
 using namespace std::chrono_literals;
+using testing::ElementsAre;
 
 namespace cxxtrace {
 namespace {
@@ -179,6 +181,42 @@ TYPED_TEST(test_real_clock, clock_advances_within_decisecond_of_system_clock)
                   delta_differences.end(),
                   [](nanoseconds difference) { return difference >= 100ms; });
   EXPECT_LE(mismatches, tolerated_mismatches);
+}
+
+TEST(test_fake_clock,
+     querying_returns_sequence_of_time_points_1_nanosecond_apart)
+{
+  auto clock = fake_clock{};
+  clock.set_next_time_point(4ns);
+  auto samples = sample_clock_n(clock, 6);
+  auto queried_times = std::vector<std::chrono::nanoseconds>{};
+  std::transform(
+    samples.begin(),
+    samples.end(),
+    std::back_inserter(queried_times),
+    [&](fake_clock::sample sample) {
+      return clock.make_time_point(sample).nanoseconds_since_reference();
+    });
+  EXPECT_THAT(queried_times, ElementsAre(4ns, 5ns, 6ns, 7ns, 8ns, 9ns));
+}
+
+TEST(test_fake_clock,
+     querying_returns_sequence_of_time_points_configured_duration)
+{
+  auto clock = fake_clock{};
+  clock.set_duration_between_samples(1098ns);
+  clock.set_next_time_point(813ns);
+  auto samples = sample_clock_n(clock, 3);
+  auto queried_times = std::vector<std::chrono::nanoseconds>{};
+  std::transform(
+    samples.begin(),
+    samples.end(),
+    std::back_inserter(queried_times),
+    [&](fake_clock::sample sample) {
+      return clock.make_time_point(sample).nanoseconds_since_reference();
+    });
+  EXPECT_THAT(queried_times,
+              ElementsAre(813ns, 813ns + 1098ns, 813ns + 1098ns + 1098ns));
 }
 
 namespace {

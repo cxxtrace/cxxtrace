@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.10)
+
+add_executable(cxxtrace_example_group_and_sort group_and_sort.cpp)
+target_link_libraries(cxxtrace_example_group_and_sort PRIVATE cxxtrace)
+
+add_executable(cxxtrace_example_small small.cpp)
+target_link_libraries(cxxtrace_example_small PRIVATE cxxtrace)
