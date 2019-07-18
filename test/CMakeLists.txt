@@ -15,6 +15,7 @@ add_executable(
   test_exhaustive_rng.cpp
   test_molecular.cpp
   test_ring_queue.cpp
+  test_snapshot.cpp
   test_span.cpp
   test_span_thread.cpp
   test_thread.cpp

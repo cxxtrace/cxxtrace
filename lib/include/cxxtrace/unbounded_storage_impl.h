@@ -62,6 +62,15 @@ unbounded_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(false)
   auto lock = std::unique_lock{ this->mutex };
   return this->storage.take_all_samples(clock);
 }
+
+template<class ClockSample>
+auto
+unbounded_storage<ClockSample>::remember_current_thread_name_for_next_snapshot()
+  -> void
+{
+  auto lock = std::unique_lock{ this->mutex };
+  return this->storage.remember_current_thread_name_for_next_snapshot();
+}
 }
 
 #endif

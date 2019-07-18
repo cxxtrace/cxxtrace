@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
@@ -24,6 +25,7 @@ public:
                          ClockSample time_point) noexcept -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
+  auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
   struct thread_data;
@@ -38,6 +40,7 @@ private:
   inline static std::mutex global_mutex{};
   inline static std::vector<thread_data*> thread_list{};
   inline static std::vector<detail::sample<ClockSample>> disowned_samples{};
+  inline static detail::thread_name_set disowned_thread_names{};
 };
 }
 

@@ -10,6 +10,7 @@
 #include <iterator>
 #include <map>
 #include <mutex>
+#include <pthread.h>
 #include <random>
 #include <string>
 #include <thread>
@@ -108,9 +109,14 @@ sort_grouped_lines_in_parallel(
     auto thread_begin_index = i;
     auto thread_end_index =
       std::min(thread_begin_index + groups_per_thread, groups.size());
-    threads.emplace_back(sort_grouped_lines,
-                         &group_vectors[thread_begin_index],
-                         &group_vectors[thread_end_index]);
+    threads.emplace_back(
+      [&group_vectors, thread_begin_index, thread_end_index] {
+        ::pthread_setname_np("worker");
+        cxxtrace::remember_current_thread_name_for_next_snapshot(config);
+
+        sort_grouped_lines(&group_vectors[thread_begin_index],
+                           &group_vectors[thread_end_index]);
+      });
   }
   for (auto& thread : threads) {
     thread.join();

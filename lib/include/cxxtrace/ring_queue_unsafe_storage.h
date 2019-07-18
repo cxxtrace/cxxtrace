@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
@@ -37,9 +38,11 @@ public:
                   ClockSample time_point) noexcept -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
+  auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
   detail::ring_queue<detail::sample<ClockSample>, Capacity> samples;
+  detail::thread_name_set remembered_thread_names;
 };
 }
 

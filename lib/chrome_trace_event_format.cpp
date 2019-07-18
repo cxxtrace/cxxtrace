@@ -46,6 +46,21 @@ chrome_trace_event_writer::write_snapshot(const samples_snapshot& snapshot)
 
   *this->output << "{\"traceEvents\": [";
   auto should_output_comma = false;
+  for (auto tid : snapshot.thread_ids()) {
+    if (should_output_comma) {
+      *this->output << ',';
+    }
+    should_output_comma = true;
+    auto thread_name = czstring{ snapshot.thread_name(tid) };
+    if (thread_name) {
+      // TODO(strager): Write a useful process ID.
+      *this->output << "{\"ph\": \"M\", \"pid\": 0, \"tid\": ";
+      this->write_number(tid);
+      *this->output << ", \"name\": \"thread_name\", \"args\": {\"name\": \"";
+      this->write_string_piece(thread_name);
+      *this->output << "\"}}";
+    }
+  }
   for (auto i = samples_snapshot::size_type{ 0 }; i < snapshot.size(); ++i) {
     if (should_output_comma) {
       *this->output << ',';

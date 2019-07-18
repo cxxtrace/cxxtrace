@@ -71,8 +71,30 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
   // TODO(strager): Convert to detail::snapshot_sample directly in pop_all_into
   // to avoid an intermediate std::vector.
   this->samples.pop_all_into(samples);
+
+  auto thread_ids = std::vector<thread_id>{};
+  for (const auto& sample : samples) {
+    auto id = sample.thread_id;
+    if (std::find(thread_ids.begin(), thread_ids.end(), id) ==
+        thread_ids.end()) {
+      thread_ids.emplace_back(id);
+    }
+  }
+  auto thread_names = std::move(this->remembered_thread_names);
+  thread_names.fetch_and_remember_thread_names_for_ids(
+    thread_ids.data(), &thread_ids.data()[thread_ids.size()]);
+
   return samples_snapshot{ detail::snapshot_sample::many_from_samples(
-    samples.begin(), samples.end(), clock) };
+                             samples.begin(), samples.end(), clock),
+                           std::move(thread_names) };
+}
+
+template<std::size_t Capacity, class ClockSample>
+auto
+ring_queue_unsafe_storage<Capacity, ClockSample>::
+  remember_current_thread_name_for_next_snapshot() -> void
+{
+  this->remembered_thread_names.fetch_and_remember_name_of_current_thread();
 }
 }
 

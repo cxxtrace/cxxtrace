@@ -1,7 +1,9 @@
+#include "event.h"
 #include "nlohmann_json.h"
 #include "stringify.h"
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
@@ -12,6 +14,7 @@
 #include <gtest/gtest.h>
 #include <iterator>
 #include <locale>
+#include <pthread.h>
 #include <sstream>
 #include <thread>
 #include <type_traits>
@@ -32,6 +35,9 @@ PrintTo(const nlohmann::json& value, std::ostream* output) -> void
 }
 
 namespace {
+auto
+drop_metadata_events(const nlohmann::json& trace_events) -> nlohmann::json;
+
 auto
 get(const nlohmann::json& object, cxxtrace::czstring key) -> nlohmann::json;
 
@@ -97,7 +103,7 @@ TEST_F(test_chrome_trace_event_format, span_adds_span_event)
     auto span = CXXTRACE_SPAN("test category", "test span");
   }
   auto parsed = this->write_snapshot_and_parse();
-  auto trace_events = get(parsed, "traceEvents");
+  auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
   EXPECT_THAT(trace_events.size(), AnyOf(Eq(1), Eq(2)));
   if (trace_events.size() == 1) {
     auto event = trace_events.at(0);
@@ -135,6 +141,18 @@ TEST_F(test_chrome_trace_event_format, events_have_required_fields)
       EXPECT_TRUE(get(event, "pid").is_number_integer());
       EXPECT_TRUE(get(event, "tid").is_number_integer());
       EXPECT_TRUE(get(event, "ts").is_number());
+    } else if (ph == "M") {
+      auto name = get(event, "name");
+      EXPECT_EQ(name.type(), value_t::string);
+      EXPECT_TRUE(get(event, "pid").is_number_integer());
+      EXPECT_TRUE(get(event, "tid").is_number_integer());
+      if (name == "thread_name") {
+        auto args = get(event, "args");
+        EXPECT_EQ(args.type(), value_t::object);
+        EXPECT_EQ(get(args, "name").type(), value_t::string);
+      } else {
+        ADD_FAILURE() << "Unknown metadata name: " << name;
+      }
     } else {
       ADD_FAILURE() << "Unknown ph: \"" << ph << '"';
     }
@@ -156,7 +174,7 @@ TEST_F(test_chrome_trace_event_format, span_timestamps_are_in_microseconds)
   }
 
   auto parsed = this->write_snapshot_and_parse();
-  auto trace_events = get(parsed, "traceEvents");
+  auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
   EXPECT_THAT(trace_events.size(), AnyOf(Eq(1), Eq(2)));
   if (trace_events.size() == 1) {
     auto event = trace_events.at(0);
@@ -209,7 +227,7 @@ TEST_F(test_chrome_trace_event_format,
     }
 
     auto parsed = this->write_snapshot_and_parse();
-    auto trace_events = get(parsed, "traceEvents");
+    auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
 
     auto event = trace_events.at(0);
     EXPECT_NEAR(get(event, "ts").get<double>(), test_case.expected_ts, 0.001);
@@ -228,7 +246,7 @@ TEST_F(test_chrome_trace_event_format, large_timestamps_round_trip)
 
   EXPECT_NO_THROW({
     auto parsed = this->write_snapshot_and_parse();
-    auto trace_events = get(parsed, "traceEvents");
+    auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
     auto event = trace_events.at(0);
     get(event, "ts").dump(); // Force the number to be parsed.
   });
@@ -238,7 +256,7 @@ TEST_F(test_chrome_trace_event_format, incomplete_span_adds_span_begin_event)
 {
   auto incomplete_span = CXXTRACE_SPAN("test category", "test span");
   auto parsed = this->write_snapshot_and_parse();
-  auto trace_events = get(parsed, "traceEvents");
+  auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
   EXPECT_EQ(trace_events.size(), 1);
   auto event = trace_events.at(0);
   EXPECT_EQ(get(event, "ph"), "B");
@@ -271,7 +289,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
   SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
 
   auto parsed = this->write_snapshot_and_parse();
-  auto trace_events = get(parsed, "traceEvents");
+  auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
   auto found_main_span = false;
   auto found_thread_1_span = false;
   auto found_thread_2_span = false;
@@ -293,6 +311,72 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
   EXPECT_TRUE(found_main_span);
   EXPECT_TRUE(found_thread_1_span);
   EXPECT_TRUE(found_thread_2_span);
+}
+
+TEST_F(test_chrome_trace_event_format, metadata_includes_thread_names)
+{
+  auto rc = ::pthread_setname_np("main thread name");
+  ASSERT_EQ(rc, 0) << std::strerror(rc);
+  auto main_thread_id = cxxtrace::get_current_thread_id();
+  {
+    auto main_thread_span = CXXTRACE_SPAN("category", "main thread span");
+  }
+
+  auto test_done = cxxtrace_test::event{};
+
+  auto live_thread_ready = cxxtrace_test::event{};
+  auto live_thread_id = cxxtrace::thread_id{};
+  auto live_thread = std::thread{ [&] {
+    auto rc = ::pthread_setname_np("live thread name");
+    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    live_thread_id = cxxtrace::get_current_thread_id();
+    {
+      auto live_thread_span = CXXTRACE_SPAN("category", "live thread span");
+    }
+    live_thread_ready.set();
+    test_done.wait();
+  } };
+  live_thread_ready.wait();
+
+  auto dead_thread_id = cxxtrace::thread_id{};
+  auto dead_thread = std::thread{ [&] {
+    auto rc = ::pthread_setname_np("dead thread name");
+    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    dead_thread_id = cxxtrace::get_current_thread_id();
+    auto dead_thread_span = CXXTRACE_SPAN("category", "dead thread");
+
+    cxxtrace::remember_current_thread_name_for_next_snapshot(
+      this->get_cxxtrace_config());
+  } };
+  dead_thread.join();
+
+  auto parsed = this->write_snapshot_and_parse();
+  auto trace_events = get(parsed, "traceEvents");
+  auto found_main_thread_name = false;
+  auto found_live_thread_name = false;
+  auto found_dead_thread_name = false;
+  for (const auto& event : trace_events) {
+    SCOPED_TRACE(stringify(event));
+    if (get(event, "ph") == "M" && get(event, "name") == "thread_name") {
+      auto event_thread_id = get(event, "tid");
+      if (event_thread_id == main_thread_id) {
+        EXPECT_EQ(get(get(event, "args"), "name"), "main thread name");
+        found_main_thread_name = true;
+      } else if (event_thread_id == live_thread_id) {
+        EXPECT_EQ(get(get(event, "args"), "name"), "live thread name");
+        found_live_thread_name = true;
+      } else if (event_thread_id == dead_thread_id) {
+        EXPECT_EQ(get(get(event, "args"), "name"), "dead thread name");
+        found_dead_thread_name = true;
+      }
+    }
+  }
+  EXPECT_TRUE(found_main_thread_name);
+  EXPECT_TRUE(found_live_thread_name);
+  EXPECT_TRUE(found_dead_thread_name);
+
+  test_done.set();
+  live_thread.join();
 }
 
 TEST_F(test_chrome_trace_event_format,
@@ -346,7 +430,8 @@ TEST_F(test_chrome_trace_event_format,
 {
   auto parse_and_get_name = [&] {
     auto parsed = this->write_snapshot_and_parse();
-    get(get(parsed, "traceEvents").at(0), "name");
+    auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
+    get(trace_events.at(0), "name");
   };
 
   {
@@ -360,6 +445,19 @@ TEST_F(test_chrome_trace_event_format,
     EXPECT_THROW({ parse_and_get_name(); }, nlohmann::json::parse_error);
     this->reset_storage();
   }
+}
+
+auto
+drop_metadata_events(const nlohmann::json& trace_events) -> nlohmann::json
+{
+  auto result = nlohmann::json{};
+  for (auto& event : trace_events) {
+    if (get(event, "ph") == "M") {
+      continue;
+    }
+    result.emplace_back(event);
+  }
+  return result;
 }
 
 auto

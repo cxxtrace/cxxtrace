@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_UNBOUNDED_UNSAFE_STORAGE_H
 #define CXXTRACE_UNBOUNDED_UNSAFE_STORAGE_H
 
+#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
@@ -39,9 +40,11 @@ public:
                   ClockSample time_point) noexcept(false) -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
+  auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
   std::vector<detail::sample<ClockSample>> samples;
+  detail::thread_name_set remembered_thread_names;
 };
 }
 

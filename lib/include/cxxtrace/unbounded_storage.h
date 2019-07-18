@@ -41,6 +41,7 @@ public:
                   ClockSample time_point) noexcept(false) -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
+  auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
   std::mutex mutex{};

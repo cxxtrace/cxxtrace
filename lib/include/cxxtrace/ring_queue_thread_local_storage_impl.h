@@ -14,6 +14,7 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
+#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/snapshot.h>
@@ -119,16 +120,26 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
   auto samples = std::vector<detail::sample<ClockSample>>{};
+  auto thread_names = detail::thread_name_set{};
+  auto thread_ids = std::vector<thread_id>{};
   {
     auto global_lock = std::lock_guard{ global_mutex };
     samples = std::move(disowned_samples);
+    thread_names = std::move(disowned_thread_names);
+    thread_ids.reserve(thread_list.size());
     for (auto* data : thread_list) {
       auto thread_lock = std::lock_guard{ data->mutex };
       data->pop_all_into(samples);
+      thread_ids.emplace_back(data->id);
     }
   }
+
+  thread_names.fetch_and_remember_thread_names_for_ids(
+    thread_ids.data(), &thread_ids.data()[thread_ids.size()]);
+
   return samples_snapshot{ detail::snapshot_sample::many_from_samples(
-    samples.begin(), samples.end(), clock) };
+                             samples.begin(), samples.end(), clock),
+                           std::move(thread_names) };
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
@@ -171,6 +182,15 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   thread_list.erase(it, thread_list.end());
 
   data->pop_all_into(disowned_samples);
+  disowned_thread_names.fetch_and_remember_name_of_current_thread(data->id);
+}
+
+template<std::size_t CapacityPerThread, class Tag, class ClockSample>
+auto
+ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+  remember_current_thread_name_for_next_snapshot() -> void
+{
+  // Do nothing. remove_from_thread_list will remember this thread's name.
 }
 }
 
