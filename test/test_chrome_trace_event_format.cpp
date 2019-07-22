@@ -182,11 +182,12 @@ TEST_F(test_chrome_trace_event_format,
     int span_enter_nanoseconds;
     double expected_ts;
   } test_cases[] = {
-    { 1234'567, 1234.567 }, { 1'024, 1.024 }, // One leading zero in fraction.
-    { 9'001, 9.001 },                         // Two leading zeros in fraction.
-    { 3'140, 3.140 },                         // One trailing zero in fraction.
-    { 7'600, 7.600 },                         // Two trailing zeros in fraction.
-    { 20, 0.020 },                            // Zero integer component.
+    { 1234'567, 1234.567 }, //
+    { 1'024, 1.024 },       // One leading zero in fraction.
+    { 9'001, 9.001 },       // Two leading zeros in fraction.
+    { 3'140, 3.140 },       // One trailing zero in fraction.
+    { 7'600, 7.600 },       // Two trailing zeros in fraction.
+    { 20, 0.020 },          // Zero integer component.
   };
   // fake_clock must be strictly increasing, and we reuse the clock between
   // iterations. Ensure faked clock values are strictly increasing.
