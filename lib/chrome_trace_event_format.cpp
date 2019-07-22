@@ -12,6 +12,12 @@
 #include <system_error>
 #include <type_traits>
 
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 8000
+// Work around std::to_chars adding leading zeros.
+// Bug report: https://bugs.llvm.org/show_bug.cgi?id=42166
+#define CXXTRACE_WORK_AROUND_LIBCXX_42166 1
+#endif
+
 namespace cxxtrace {
 namespace {
 // Reset the formatting options to their defaults.
@@ -96,6 +102,16 @@ chrome_trace_event_writer::write_number(T number)
   assert(result.ec == std::errc{});
   auto number_chars =
     std::string_view{ chars, static_cast<std::size_t>(result.ptr - chars) };
+
+#if CXXTRACE_WORK_AROUND_LIBCXX_42166
+  {
+    auto non_zero_digit_index = number_chars.find_first_not_of('0');
+    if (non_zero_digit_index != number_chars.npos) {
+      number_chars.remove_prefix(non_zero_digit_index);
+    }
+  }
+#endif
+
   *this->output << number_chars;
 }
 

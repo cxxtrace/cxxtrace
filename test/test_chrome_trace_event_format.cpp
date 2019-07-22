@@ -216,6 +216,24 @@ TEST_F(test_chrome_trace_event_format,
   }
 }
 
+TEST_F(test_chrome_trace_event_format, large_timestamps_round_trip)
+{
+  // In libc++ 8.0.0, std::to_chars writes leading zeros for large integers.
+  // (See bug report: https://bugs.llvm.org/show_bug.cgi?id=42166) Leading zeros
+  // confuse JSON parsers. Verify (indirectly) that chrome_trace_event_writer
+  // does not write leading zeros.
+
+  this->clock.set_next_time_point(std::chrono::nanoseconds{ 292986141227516 });
+  auto span = CXXTRACE_SPAN("test category", "test span");
+
+  EXPECT_NO_THROW({
+    auto parsed = this->write_snapshot_and_parse();
+    auto trace_events = get(parsed, "traceEvents");
+    auto event = trace_events.at(0);
+    get(event, "ts").dump(); // Force the number to be parsed.
+  });
+}
+
 TEST_F(test_chrome_trace_event_format, incomplete_span_adds_span_begin_event)
 {
   auto incomplete_span = CXXTRACE_SPAN("test category", "test span");
