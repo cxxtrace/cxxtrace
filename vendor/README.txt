@@ -94,3 +94,20 @@ Project URL: https://github.com/dvyukov/relacy
 Release URL: https://github.com/dvyukov/relacy/tree/dc6be4854d82491483b1781254753706df68a8b3
 Release date: November 22, 2018
 Version: N/A
+
+## Cotire
+
+The cotire directory contains Cotire, a CMake module enabling precompiled
+headers and unity builds.
+
+Copyright: Copyright (c) 2012-2018 Sascha Kratky
+Download URL: https://github.com/sakra/cotire/archive/cotire-1.8.0.tar.gz
+Download date: July 21, 2019
+Git commit: 391bf6b7609e14f5976bd5247b68d63cbf8d4d12
+License file: cotire/license
+License type: MIT
+Location: cotire
+Project URL: https://github.com/sakra/cotire
+Release URL: https://github.com/sakra/cotire/releases/tag/cotire-1.8.0
+Release date: March 18, 2018
+Version: 1.8.0
