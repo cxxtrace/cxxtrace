@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 enable_language(ASM)
 
+include(cxxtrace_cotire)
+
 add_subdirectory(test_ring_queue)
 
 add_executable(
@@ -16,6 +18,9 @@ add_executable(
   test_thread.cpp
 )
 target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main nlohmann_json)
+set_target_properties(test_cxxtrace PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+set_target_properties(test_cxxtrace PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch.h)
+cxxtrace_cotire(test_cxxtrace)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
