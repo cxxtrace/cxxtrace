@@ -1,3 +1,4 @@
+#include "nlohmann_json.h"
 #include "stringify.h"
 #include <algorithm>
 #include <atomic>
@@ -11,7 +12,6 @@
 #include <gtest/gtest.h>
 #include <iterator>
 #include <locale>
-#include <nlohmann/json.hpp>
 #include <sstream>
 #include <thread>
 #include <type_traits>
