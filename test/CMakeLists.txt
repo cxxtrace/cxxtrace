@@ -7,9 +7,9 @@ add_subdirectory(test_ring_queue)
 
 add_executable(
   test_cxxtrace
+  $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
   exhaustive_rng.cpp
   test_add.cpp
-  test_chrome_trace_event_format.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp
   test_molecular.cpp
@@ -17,11 +17,22 @@ add_executable(
   test_span.cpp
   test_thread.cpp
 )
-target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main nlohmann_json)
+target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch.h)
 cxxtrace_cotire(test_cxxtrace)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
+
+add_library(
+  test_cxxtrace_nlohmann_json
+  OBJECT
+  nlohmann_json.cpp
+  test_chrome_trace_event_format.cpp
+)
+target_link_libraries(test_cxxtrace_nlohmann_json PRIVATE cxxtrace gmock gtest gmock_main nlohmann_json)
+set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch_nlohmann_json.h)
+cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
 
