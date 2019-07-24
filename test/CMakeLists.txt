@@ -15,6 +15,7 @@ add_executable(
   test_molecular.cpp
   test_ring_queue.cpp
   test_span.cpp
+  test_span_thread.cpp
   test_thread.cpp
 )
 target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
