@@ -9,9 +9,7 @@
 #include <vector>
 
 namespace cxxtrace {
-namespace detail {
-struct snapshot_sample;
-}
+class samples_snapshot;
 
 template<std::size_t Capacity, class ClockSample>
 class ring_queue_unsafe_storage
@@ -38,8 +36,7 @@ public:
                   sample_kind,
                   ClockSample time_point) noexcept -> void;
   template<class Clock>
-  auto take_all_samples(Clock&) noexcept(false)
-    -> std::vector<detail::snapshot_sample>;
+  auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
 
 private:
   detail::ring_queue<detail::sample<ClockSample>, Capacity> samples;

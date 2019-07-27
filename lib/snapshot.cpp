@@ -1,9 +1,14 @@
 #include <cassert>
-#include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/snapshot.h>
 #include <vector>
 
 namespace cxxtrace {
+samples_snapshot::samples_snapshot(
+  std::vector<detail::snapshot_sample> samples) noexcept
+  : samples{ std::move(samples) }
+{}
+
 samples_snapshot::samples_snapshot(const samples_snapshot&) noexcept(false) =
   default;
 samples_snapshot::samples_snapshot(samples_snapshot&&) noexcept = default;
@@ -24,11 +29,6 @@ samples_snapshot::size() const noexcept -> size_type
 {
   return size_type{ this->samples.size() };
 }
-
-samples_snapshot::samples_snapshot(
-  std::vector<detail::snapshot_sample> samples) noexcept
-  : samples{ std::move(samples) }
-{}
 
 auto
 sample_ref::category() const noexcept -> czstring

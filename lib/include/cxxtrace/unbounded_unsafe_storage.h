@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace cxxtrace {
+class samples_snapshot;
 enum class sample_kind;
 
 namespace detail {
@@ -37,8 +38,7 @@ public:
                   sample_kind,
                   ClockSample time_point) noexcept(false) -> void;
   template<class Clock>
-  auto take_all_samples(Clock&) noexcept(false)
-    -> std::vector<detail::snapshot_sample>;
+  auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;
 
 private:
   std::vector<detail::sample<ClockSample>> samples;

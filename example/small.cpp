@@ -21,7 +21,7 @@ main()
 
   auto& output = std::cout;
   auto writer = cxxtrace::chrome_trace_event_writer{ &output };
-  writer.write_snapshot(cxxtrace::take_all_samples(storage, clock));
+  writer.write_snapshot(storage.take_all_samples(clock));
   writer.close();
 
   return 0;

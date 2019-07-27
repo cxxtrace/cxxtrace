@@ -17,14 +17,12 @@ namespace detail {
 struct snapshot_sample;
 }
 
-template<class Storage, class Clock>
-auto
-take_all_samples(Storage&, Clock&) noexcept(false) -> samples_snapshot;
-
 class samples_snapshot
 {
 public:
   using size_type = std::size_t;
+
+  explicit samples_snapshot(std::vector<detail::snapshot_sample>) noexcept;
 
   samples_snapshot(const samples_snapshot&) noexcept(false);
   samples_snapshot(samples_snapshot&&) noexcept;
@@ -36,13 +34,7 @@ public:
   auto size() const noexcept -> size_type;
 
 private:
-  explicit samples_snapshot(std::vector<detail::snapshot_sample>) noexcept;
-
   std::vector<detail::snapshot_sample> samples;
-
-  template<class Storage, class Clock>
-  friend auto take_all_samples(Storage&, Clock&) noexcept(false)
-    -> samples_snapshot;
 };
 
 class sample_ref
@@ -62,7 +54,5 @@ private:
   friend class samples_snapshot;
 };
 }
-
-#include <cxxtrace/snapshot_impl.h>
 
 #endif

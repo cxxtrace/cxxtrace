@@ -98,7 +98,7 @@ protected:
 
   auto take_all_samples() -> cxxtrace::samples_snapshot
   {
-    return cxxtrace::take_all_samples(this->cxxtrace_storage, this->clock());
+    return this->cxxtrace_storage.take_all_samples(this->clock());
   }
 
   auto reset_storage() -> void { this->cxxtrace_storage.reset(); }

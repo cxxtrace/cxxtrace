@@ -7,6 +7,7 @@
 #endif
 
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
@@ -56,7 +57,7 @@ template<class ClockSample>
 template<class Clock>
 auto
 unbounded_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(false)
-  -> std::vector<detail::snapshot_sample>
+  -> samples_snapshot
 {
   auto lock = std::unique_lock{ this->mutex };
   return this->storage.take_all_samples(clock);

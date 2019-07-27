@@ -16,6 +16,7 @@
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
@@ -115,8 +116,7 @@ template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 template<class Clock>
 auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
-  take_all_samples(Clock& clock) noexcept(false)
-    -> std::vector<detail::snapshot_sample>
+  take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
   auto samples = std::vector<detail::sample<ClockSample>>{};
   {
@@ -127,8 +127,8 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
       data->pop_all_into(samples);
     }
   }
-  return detail::snapshot_sample::many_from_samples(
-    samples.begin(), samples.end(), clock);
+  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
+    samples.begin(), samples.end(), clock) };
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>

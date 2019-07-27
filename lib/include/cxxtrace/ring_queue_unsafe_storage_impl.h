@@ -9,6 +9,7 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <utility>
 #include <vector>
@@ -62,7 +63,7 @@ template<std::size_t Capacity, class ClockSample>
 template<class Clock>
 auto
 ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
-  Clock& clock) noexcept(false) -> std::vector<detail::snapshot_sample>
+  Clock& clock) noexcept(false) -> samples_snapshot
 {
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
 
@@ -70,8 +71,8 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
   // TODO(strager): Convert to detail::snapshot_sample directly in pop_all_into
   // to avoid an intermediate std::vector.
   this->samples.pop_all_into(samples);
-  return detail::snapshot_sample::many_from_samples(
-    samples.begin(), samples.end(), clock);
+  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
+    samples.begin(), samples.end(), clock) };
 }
 }
 

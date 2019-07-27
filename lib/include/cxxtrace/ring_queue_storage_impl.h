@@ -8,6 +8,7 @@
 
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <utility>
@@ -58,7 +59,7 @@ template<std::size_t Capacity, class ClockSample>
 template<class Clock>
 auto
 ring_queue_storage<Capacity, ClockSample>::take_all_samples(
-  Clock& clock) noexcept(false) -> std::vector<detail::snapshot_sample>
+  Clock& clock) noexcept(false) -> samples_snapshot
 {
   auto lock = std::unique_lock{ this->mutex };
   return this->storage.take_all_samples(clock);

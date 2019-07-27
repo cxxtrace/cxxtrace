@@ -9,6 +9,7 @@
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/vector.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <utility>
@@ -58,11 +59,11 @@ template<class ClockSample>
 template<class Clock>
 auto
 unbounded_unsafe_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(
-  false) -> std::vector<detail::snapshot_sample>
+  false) -> samples_snapshot
 {
   auto samples = std::move(this->samples);
-  return detail::snapshot_sample::many_from_samples(
-    samples.begin(), samples.end(), clock);
+  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
+    samples.begin(), samples.end(), clock) };
 }
 }
 
