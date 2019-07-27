@@ -38,8 +38,9 @@ public:
                   czstring name,
                   sample_kind,
                   ClockSample time_point) noexcept(false) -> void;
-  auto take_all_samples() noexcept(false)
-    -> std::vector<detail::sample<ClockSample>>;
+  template<class Clock>
+  auto take_all_samples(Clock&) noexcept(false)
+    -> std::vector<detail::snapshot_sample>;
 
 private:
   std::mutex mutex{};

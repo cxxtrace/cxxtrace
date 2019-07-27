@@ -53,12 +53,13 @@ unbounded_storage<ClockSample>::add_sample(
 }
 
 template<class ClockSample>
+template<class Clock>
 auto
-unbounded_storage<ClockSample>::take_all_samples() noexcept(false)
-  -> std::vector<detail::sample<ClockSample>>
+unbounded_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(false)
+  -> std::vector<detail::snapshot_sample>
 {
   auto lock = std::unique_lock{ this->mutex };
-  return this->storage.take_all_samples();
+  return this->storage.take_all_samples(clock);
 }
 }
 

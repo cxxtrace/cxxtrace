@@ -20,8 +20,9 @@ public:
                          czstring name,
                          sample_kind,
                          ClockSample time_point) noexcept -> void;
-  static auto take_all_samples() noexcept(false)
-    -> std::vector<detail::sample<ClockSample>>;
+  template<class Clock>
+  static auto take_all_samples(Clock&) noexcept(false)
+    -> std::vector<detail::snapshot_sample>;
 
 private:
   struct thread_data;

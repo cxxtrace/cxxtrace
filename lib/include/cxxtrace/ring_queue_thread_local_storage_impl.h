@@ -13,6 +13,7 @@
 #include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
+#include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/string.h>
@@ -64,6 +65,7 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
     false) -> void
   {
     auto thread_id = this->id;
+    // TODO(strager): Convert to detail::snapshot_sample instead.
     auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
                          ->detail::sample<ClockSample>
     {
@@ -110,17 +112,23 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
+template<class Clock>
 auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
-  take_all_samples() noexcept(false) -> std::vector<detail::sample<ClockSample>>
+  take_all_samples(Clock& clock) noexcept(false)
+    -> std::vector<detail::snapshot_sample>
 {
-  auto global_lock = std::lock_guard{ global_mutex };
-  auto samples = std::move(disowned_samples);
-  for (auto* data : thread_list) {
-    auto thread_lock = std::lock_guard{ data->mutex };
-    data->pop_all_into(samples);
+  auto samples = std::vector<detail::sample<ClockSample>>{};
+  {
+    auto global_lock = std::lock_guard{ global_mutex };
+    samples = std::move(disowned_samples);
+    for (auto* data : thread_list) {
+      auto thread_lock = std::lock_guard{ data->mutex };
+      data->pop_all_into(samples);
+    }
   }
-  return samples;
+  return detail::snapshot_sample::many_from_samples(
+    samples.begin(), samples.end(), clock);
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
