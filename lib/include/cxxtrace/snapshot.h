@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
@@ -14,11 +15,7 @@ enum class event_kind;
 
 namespace detail {
 struct snapshot_sample;
-enum class sample_kind;
 }
-
-// TODO(strager): Move sample_kind into its own public header.
-using sample_kind = detail::sample_kind;
 
 template<class Storage, class Clock>
 auto

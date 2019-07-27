@@ -34,7 +34,7 @@ auto
 unbounded_unsafe_storage<ClockSample>::add_sample(
   czstring category,
   czstring name,
-  detail::sample_kind kind,
+  sample_kind kind,
   ClockSample time_point,
   thread_id thread_id) noexcept(false) -> void
 {
@@ -47,7 +47,7 @@ auto
 unbounded_unsafe_storage<ClockSample>::add_sample(
   czstring category,
   czstring name,
-  detail::sample_kind kind,
+  sample_kind kind,
   ClockSample time_point) noexcept(false) -> void
 {
   this->add_sample(category, name, kind, time_point, get_current_thread_id());

@@ -18,7 +18,7 @@ public:
 
   static auto add_sample(czstring category,
                          czstring name,
-                         detail::sample_kind,
+                         sample_kind,
                          ClockSample time_point) noexcept -> void;
   static auto take_all_samples() noexcept(false)
     -> std::vector<detail::sample<ClockSample>>;

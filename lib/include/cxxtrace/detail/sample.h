@@ -1,17 +1,12 @@
 #ifndef CXXTRACE_DETAIL_SAMPLE_H
 #define CXXTRACE_DETAIL_SAMPLE_H
 
+#include <cxxtrace/sample.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 
 namespace cxxtrace {
 namespace detail {
-enum class sample_kind
-{
-  enter_span,
-  exit_span,
-};
-
 template<class ClockSample>
 struct sample
 {

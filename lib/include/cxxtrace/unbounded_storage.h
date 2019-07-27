@@ -8,9 +8,9 @@
 #include <vector>
 
 namespace cxxtrace {
-namespace detail {
 enum class sample_kind;
 
+namespace detail {
 template<class ClockSample>
 struct sample;
 }
@@ -31,12 +31,12 @@ public:
 
   auto add_sample(czstring category,
                   czstring name,
-                  detail::sample_kind,
+                  sample_kind,
                   ClockSample time_point,
                   thread_id) noexcept(false) -> void;
   auto add_sample(czstring category,
                   czstring name,
-                  detail::sample_kind,
+                  sample_kind,
                   ClockSample time_point) noexcept(false) -> void;
   auto take_all_samples() noexcept(false)
     -> std::vector<detail::sample<ClockSample>>;

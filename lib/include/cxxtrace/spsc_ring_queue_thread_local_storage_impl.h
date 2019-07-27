@@ -27,7 +27,7 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
 {
   czstring category;
   czstring name;
-  detail::sample_kind kind;
+  sample_kind kind;
   ClockSample time_point;
 };
 
@@ -87,7 +87,7 @@ auto
 spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   add_sample(czstring category,
              czstring name,
-             detail::sample_kind kind,
+             sample_kind kind,
              ClockSample time_point) noexcept -> void
 {
   auto& thread_data = get_thread_data();
