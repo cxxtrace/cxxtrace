@@ -9,6 +9,7 @@ add_executable(
   test_cxxtrace
   $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
   exhaustive_rng.cpp
+  event.cpp
   test_add.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp

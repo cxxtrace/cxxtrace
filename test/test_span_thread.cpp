@@ -1,3 +1,4 @@
+#include "event.h"
 #include "stringify.h"
 #include "test_span.h"
 #include <algorithm>
@@ -35,18 +36,6 @@ namespace {
 template<class T>
 auto
 do_not_optimize_away(const T&) noexcept -> void;
-
-class event
-{
-public:
-  auto set() -> void;
-  auto wait() -> void;
-
-private:
-  std::mutex mutex{};
-  std::condition_variable cond_var{};
-  bool value{ false };
-};
 }
 
 namespace cxxtrace_test {
@@ -305,20 +294,5 @@ auto
 do_not_optimize_away(const T&) noexcept -> void
 {
   // TODO
-}
-
-auto
-event::set() -> void
-{
-  auto lock = std::lock_guard{ this->mutex };
-  this->value = true;
-  this->cond_var.notify_all();
-}
-
-auto
-event::wait() -> void
-{
-  auto lock = std::unique_lock{ this->mutex };
-  this->cond_var.wait(lock, [&] { return this->value; });
 }
 }
