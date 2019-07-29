@@ -6,6 +6,7 @@
 #include <type_traits>
 
 namespace cxxtrace {
+class sample_ref;
 class samples_snapshot;
 
 // Write a trace file in the Chrome Trace Event format [1].
@@ -37,6 +38,8 @@ public:
   auto close() -> void;
 
 private:
+  auto write_sample(sample_ref) -> void;
+
   template<class T>
   auto write_number(T number) -> std::enable_if_t<std::is_integral_v<T>, void>;
 

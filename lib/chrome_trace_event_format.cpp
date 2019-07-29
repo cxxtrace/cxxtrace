@@ -51,35 +51,7 @@ chrome_trace_event_writer::write_snapshot(const samples_snapshot& snapshot)
       *this->output << ',';
     }
     should_output_comma = true;
-
-    auto sample = sample_ref{ snapshot.at(i) };
-    *this->output << "{\"ph\": \"";
-    switch (sample.kind()) {
-      case sample_kind::enter_span:
-        *this->output << 'B';
-        break;
-      case sample_kind::exit_span:
-        *this->output << 'E';
-        break;
-    }
-    *this->output << "\", \"cat\": \"";
-    this->write_string_piece(sample.category());
-    *this->output << "\", \"name\": \"";
-    this->write_string_piece(sample.name());
-    *this->output << "\", \"tid\": ";
-    this->write_number(sample.thread_id());
-    *this->output << ", \"ts\": ";
-    auto timestamp_nanoseconds =
-      sample.timestamp().nanoseconds_since_reference().count();
-    assert(timestamp_nanoseconds >= 0);
-    this->write_number(timestamp_nanoseconds / 1000);
-    *this->output << ".";
-    this->output->width(3);
-    this->output->fill('0');
-    this->write_number(timestamp_nanoseconds % 1000);
-    // TODO(strager): Write a useful process ID.
-    *this->output << ", \"pid\": 0";
-    *this->output << "}";
+    this->write_sample(snapshot.at(i));
   }
   *this->output << "]}";
 }
@@ -87,6 +59,38 @@ chrome_trace_event_writer::write_snapshot(const samples_snapshot& snapshot)
 auto
 chrome_trace_event_writer::close() -> void
 {}
+
+auto
+chrome_trace_event_writer::write_sample(sample_ref sample) -> void
+{
+  *this->output << "{\"ph\": \"";
+  switch (sample.kind()) {
+    case sample_kind::enter_span:
+      *this->output << 'B';
+      break;
+    case sample_kind::exit_span:
+      *this->output << 'E';
+      break;
+  }
+  *this->output << "\", \"cat\": \"";
+  this->write_string_piece(sample.category());
+  *this->output << "\", \"name\": \"";
+  this->write_string_piece(sample.name());
+  *this->output << "\", \"tid\": ";
+  this->write_number(sample.thread_id());
+  *this->output << ", \"ts\": ";
+  auto timestamp_nanoseconds =
+    sample.timestamp().nanoseconds_since_reference().count();
+  assert(timestamp_nanoseconds >= 0);
+  this->write_number(timestamp_nanoseconds / 1000);
+  *this->output << ".";
+  this->output->width(3);
+  this->output->fill('0');
+  this->write_number(timestamp_nanoseconds % 1000);
+  // TODO(strager): Write a useful process ID.
+  *this->output << ", \"pid\": 0";
+  *this->output << "}";
+}
 
 template<class T>
 auto
