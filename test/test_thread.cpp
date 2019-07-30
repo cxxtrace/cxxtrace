@@ -162,8 +162,46 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
 #if defined(__APPLE__) && defined(__MACH__)
     {
       auto fetch = [&](thread_name_set& names) {
+        names.fetch_and_remember_thread_name_for_id(thread_id);
+      };
+      EXPECT_EQ(thread_name(fetch), expected_thread_name);
+    }
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+    {
+      auto fetch = [&](thread_name_set& names) {
+        names.fetch_and_remember_thread_name_for_id_libproc(thread_id);
+      };
+      EXPECT_EQ(thread_name(fetch), expected_thread_name);
+    }
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+    {
+      auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_thread_names_for_ids(&thread_id,
                                                       &thread_id + 1);
+      };
+      EXPECT_EQ(thread_name(fetch), expected_thread_name);
+    }
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+    {
+      auto fetch = [&](thread_name_set& names) {
+        names.fetch_and_remember_thread_names_for_ids_libproc(&thread_id,
+                                                              &thread_id + 1);
+      };
+      EXPECT_EQ(thread_name(fetch), expected_thread_name);
+    }
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+    {
+      auto fetch = [&](thread_name_set& names) {
+        names.fetch_and_remember_thread_names_for_ids_mach(&thread_id,
+                                                           &thread_id + 1);
       };
       EXPECT_EQ(thread_name(fetch), expected_thread_name);
     }

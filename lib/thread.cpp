@@ -159,6 +159,24 @@ thread_name_set::fetch_and_remember_thread_names_for_ids(
   const thread_id* begin,
   const thread_id* end) noexcept(false) -> void
 {
+  return this->fetch_and_remember_thread_names_for_ids_libproc(begin, end);
+}
+
+auto
+thread_name_set::fetch_and_remember_thread_names_for_ids_libproc(
+  const thread_id* begin,
+  const thread_id* end) noexcept(false) -> void
+{
+  for (auto it = begin; it != end; ++it) {
+    fetch_and_remember_thread_name_for_id_libproc(*it);
+  }
+}
+
+auto
+thread_name_set::fetch_and_remember_thread_names_for_ids_mach(
+  const thread_id* begin,
+  const thread_id* end) noexcept(false) -> void
+{
   // TODO(strager): Improve this function's algorithmic efficiency.
   // O(number-of-threads-in-process) is silly.
   // * Should we cache the cxxtrace::thread_id-to-thread_act_t mapping across
@@ -307,20 +325,35 @@ thread_name_set::fetch_and_remember_name_of_current_thread_libproc(
   thread_id current_thread_id) noexcept(false) -> void
 {
   assert(current_thread_id == get_current_thread_id());
+  this->fetch_and_remember_thread_name_for_id_libproc(current_thread_id);
+}
 
-  auto thread_port = mach_thread_self();
-  auto thread_handle =
-    get_thread_identifier_info_or_terminate(thread_port).thread_handle;
+auto
+thread_name_set::fetch_and_remember_thread_name_for_id(thread_id id) noexcept(
+  false) -> void
+{
+  this->fetch_and_remember_thread_name_for_id_libproc(id);
+}
 
+auto
+thread_name_set::fetch_and_remember_thread_name_for_id_libproc(
+  thread_id id) noexcept(false) -> void
+{
   auto info = ::proc_threadinfo{};
-  auto info_size = ::proc_pidinfo(
-    ::getpid(), PROC_PIDTHREADINFO, thread_handle, &info, sizeof(info));
+  auto info_size =
+    ::proc_pidinfo(::getpid(), PROC_PIDTHREADID64INFO, id, &info, sizeof(info));
   if (info_size == 0) {
-    // FIXME(strager): How should we handle this error? Should we throw an
-    // exception?
-    std::fprintf(stderr,
-                 "error: could not get name of current thread: %s\n",
-                 std::strerror(errno));
+    auto error = errno;
+    if (error == ESRCH) {
+      // The thread is dead, or was never alive. Ignore it.
+      // TODO(strager): Should we communicate this fact to the caller?
+    } else {
+      // FIXME(strager): How should we handle this error? Should we throw an
+      // exception?
+      std::fprintf(stderr,
+                   "error: could not get name of current thread: %s\n",
+                   std::strerror(error));
+    }
     return;
   }
   if (info_size < int{ sizeof(info) }) {
@@ -333,14 +366,11 @@ thread_name_set::fetch_and_remember_name_of_current_thread_libproc(
   }
   auto thread_name_length = ::strnlen(info.pth_name, sizeof(info.pth_name));
 
-  auto [it, inserted] = this->names.try_emplace(
-    current_thread_id, info.pth_name, thread_name_length);
+  auto [it, inserted] =
+    this->names.try_emplace(id, info.pth_name, thread_name_length);
   if (!inserted) {
     it->second.assign(info.pth_name, thread_name_length);
   }
-
-  // Intentionally leak thread_port. Holding a reference does not prevent the
-  // thread from being cleaned up.
 }
 
 auto
