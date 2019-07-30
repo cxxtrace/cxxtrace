@@ -176,26 +176,6 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
       EXPECT_EQ(thread_name(fetch), expected_thread_name);
     }
 #endif
-
-#if defined(__APPLE__) && defined(__MACH__)
-    {
-      auto fetch = [&](thread_name_set& names) {
-        names.fetch_and_remember_thread_names_for_ids(&thread_id,
-                                                      &thread_id + 1);
-      };
-      EXPECT_EQ(thread_name(fetch), expected_thread_name);
-    }
-#endif
-
-#if defined(__APPLE__) && defined(__MACH__)
-    {
-      auto fetch = [&](thread_name_set& names) {
-        names.fetch_and_remember_thread_names_for_ids_libproc(&thread_id,
-                                                              &thread_id + 1);
-      };
-      EXPECT_EQ(thread_name(fetch), expected_thread_name);
-    }
-#endif
   } }
     .join();
 }
@@ -234,15 +214,10 @@ TEST(test_thread_name, names_of_other_live_threads_match_pthread_setname_np)
   for (auto& thread : threads) {
     thread.ready.wait();
   }
-  auto thread_ids = std::vector<cxxtrace::thread_id>{};
-  for (auto& thread : threads) {
-    thread_ids.emplace_back(thread.id);
-  }
 
   auto names = cxxtrace::detail::thread_name_set{};
-  names.fetch_and_remember_thread_names_for_ids(
-    thread_ids.data(), thread_ids.data() + thread_ids.size());
   for (auto& thread : threads) {
+    names.fetch_and_remember_thread_name_for_id(thread.id);
     EXPECT_STREQ(names.name_of_thread_by_id(thread.id), thread.name.c_str());
   }
 
@@ -260,8 +235,7 @@ TEST(test_thread_name, dead_threads_have_no_name)
   std::thread{ [&] { thread_id = cxxtrace::get_current_thread_id(); } }.join();
 
   auto thread_names = cxxtrace::detail::thread_name_set{};
-  thread_names.fetch_and_remember_thread_names_for_ids(&thread_id,
-                                                       &thread_id + 1);
+  thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_FALSE(thread_names.name_of_thread_by_id(thread_id));
 }
 #endif
@@ -276,15 +250,13 @@ TEST(test_thread_name, getting_name_of_live_thread_updates_set)
 
   rc = ::pthread_setname_np("first thread name");
   ASSERT_EQ(rc, 0) << std::strerror(rc);
-  thread_names.fetch_and_remember_thread_names_for_ids(&thread_id,
-                                                       &thread_id + 1);
+  thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id),
                "first thread name");
 
   rc = ::pthread_setname_np("second thread name");
   ASSERT_EQ(rc, 0) << std::strerror(rc);
-  thread_names.fetch_and_remember_thread_names_for_ids(&thread_id,
-                                                       &thread_id + 1);
+  thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id),
                "second thread name");
 }
@@ -323,12 +295,10 @@ TEST(test_thread_name, getting_name_of_new_live_thread_updates_set)
   ASSERT_NE(thread_1_id, thread_2_id);
 
   auto thread_names = cxxtrace::detail::thread_name_set{};
-  thread_names.fetch_and_remember_thread_names_for_ids(&thread_1_id,
-                                                       &thread_1_id + 1);
+  thread_names.fetch_and_remember_thread_name_for_id(thread_1_id);
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_1_id), "thread 1 name");
   EXPECT_FALSE(thread_names.name_of_thread_by_id(thread_2_id));
-  thread_names.fetch_and_remember_thread_names_for_ids(&thread_2_id,
-                                                       &thread_2_id + 1);
+  thread_names.fetch_and_remember_thread_name_for_id(thread_2_id);
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_1_id), "thread 1 name")
     << "get_thread_names_by_id should not change thread 1's name";
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_2_id), "thread 2 name");
@@ -363,13 +333,13 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
   thread_ready.wait();
 
   auto names = cxxtrace::detail::thread_name_set{};
-  names.fetch_and_remember_thread_names_for_ids(&thread_id, &thread_id + 1);
+  names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original thread name");
 
   kill_thread.set();
   thread.join();
 
-  names.fetch_and_remember_thread_names_for_ids(&thread_id, &thread_id + 1);
+  names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original thread name")
     << "Updated thread name should not be fetched (because thread thread died "
        "before we queried its name)";

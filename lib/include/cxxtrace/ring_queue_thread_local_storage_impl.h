@@ -134,8 +134,9 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
     }
   }
 
-  thread_names.fetch_and_remember_thread_names_for_ids(
-    thread_ids.data(), &thread_ids.data()[thread_ids.size()]);
+  for (const auto& thread_id : thread_ids) {
+    thread_names.fetch_and_remember_thread_name_for_id(thread_id);
+  }
 
   return samples_snapshot{ detail::snapshot_sample::many_from_samples(
                              samples.begin(), samples.end(), clock),

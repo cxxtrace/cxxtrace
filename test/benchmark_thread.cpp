@@ -188,49 +188,6 @@ BENCHMARK(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc);
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-auto
-benchmark_fetch_and_remember_name_of_current_thread_by_thread_ids(
-  benchmark::State& bench) -> void
-{
-  set_current_thread_name("my thread name");
-
-  auto thread_id = cxxtrace::get_current_thread_id();
-  char buffer[1024];
-  for (auto _ : bench) {
-    auto allocator = monotonic_buffer_resource{ buffer, sizeof(buffer) };
-    auto thread_names = cxxtrace::detail::thread_name_set{ &allocator };
-    thread_names.fetch_and_remember_thread_names_for_ids(&thread_id,
-                                                         &thread_id + 1);
-    // FIXME(strager): Is this usage of DoNotOptimize correct?
-    benchmark::DoNotOptimize(thread_names);
-  }
-}
-BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread_by_thread_ids);
-#endif
-
-#if defined(__APPLE__) && defined(__MACH__)
-auto
-benchmark_fetch_and_remember_name_of_current_thread_by_thread_ids_libproc(
-  benchmark::State& bench) -> void
-{
-  set_current_thread_name("my thread name");
-
-  auto thread_id = cxxtrace::get_current_thread_id();
-  char buffer[1024];
-  for (auto _ : bench) {
-    auto allocator = monotonic_buffer_resource{ buffer, sizeof(buffer) };
-    auto thread_names = cxxtrace::detail::thread_name_set{ &allocator };
-    thread_names.fetch_and_remember_thread_names_for_ids_libproc(
-      &thread_id, &thread_id + 1);
-    // FIXME(strager): Is this usage of DoNotOptimize correct?
-    benchmark::DoNotOptimize(thread_names);
-  }
-}
-BENCHMARK(
-  benchmark_fetch_and_remember_name_of_current_thread_by_thread_ids_libproc);
-#endif
-
 monotonic_buffer_resource::monotonic_buffer_resource(
   void* buffer,
   std::size_t buffer_size) noexcept

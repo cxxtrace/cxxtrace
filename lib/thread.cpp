@@ -102,26 +102,6 @@ thread_name_set&
 thread_name_set::operator=(thread_name_set&&) noexcept(false) = default;
 thread_name_set::~thread_name_set() = default;
 
-#if defined(__APPLE__) && defined(__MACH__)
-auto
-thread_name_set::fetch_and_remember_thread_names_for_ids(
-  const thread_id* begin,
-  const thread_id* end) noexcept(false) -> void
-{
-  return this->fetch_and_remember_thread_names_for_ids_libproc(begin, end);
-}
-
-auto
-thread_name_set::fetch_and_remember_thread_names_for_ids_libproc(
-  const thread_id* begin,
-  const thread_id* end) noexcept(false) -> void
-{
-  for (auto it = begin; it != end; ++it) {
-    fetch_and_remember_thread_name_for_id_libproc(*it);
-  }
-}
-#endif
-
 auto
 thread_name_set::name_of_thread_by_id(thread_id id) const noexcept -> czstring
 {
