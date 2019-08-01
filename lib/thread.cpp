@@ -315,7 +315,7 @@ thread_name_set::fetch_and_remember_name_of_current_thread_libproc(
   auto info = ::proc_threadinfo{};
   auto info_size = ::proc_pidinfo(
     ::getpid(), PROC_PIDTHREADINFO, thread_handle, &info, sizeof(info));
-  if (info_size == -1) {
+  if (info_size == 0) {
     // FIXME(strager): How should we handle this error? Should we throw an
     // exception?
     std::fprintf(stderr,
