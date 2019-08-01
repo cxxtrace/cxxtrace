@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 template<class... Args>
 auto
 stringify(Args&&...) -> std::string;

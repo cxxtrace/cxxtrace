@@ -5,6 +5,7 @@
 #include <cxxtrace/detail/vector.h>
 #include <vector>
 
+namespace cxxtrace_test {
 template<class T, std::size_t Capacity>
 class reference_ring_queue
 {
@@ -28,5 +29,6 @@ public:
 private:
   std::vector<T> items;
 };
+}
 
 #endif

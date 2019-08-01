@@ -20,7 +20,7 @@
 
 #pragma clang diagnostic pop
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace detail {
 namespace {
 template<int ThreadCount>
@@ -114,7 +114,7 @@ relacy_backoff::relacy_backoff() = default;
 relacy_backoff::~relacy_backoff() = default;
 
 auto
-relacy_backoff::yield(detail::debug_source_location caller) -> void
+relacy_backoff::yield(cxxtrace::detail::debug_source_location caller) -> void
 {
   this->backoff.yield(caller);
 }

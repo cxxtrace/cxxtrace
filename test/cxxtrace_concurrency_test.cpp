@@ -5,7 +5,7 @@
 #include <utility>
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace detail {
 namespace {
 std::vector<std::unique_ptr<concurrency_test>> registered_concurrency_tests{};

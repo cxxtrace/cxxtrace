@@ -23,7 +23,7 @@
 #include <vector>
 
 namespace {
-cxxtrace::detail::concurrency_test* test_to_run{};
+cxxtrace_test::detail::concurrency_test* test_to_run{};
 
 constexpr std::string_view select_test_argument_prefix{
   "--cxxtrace-concurrency-test-index="
@@ -37,11 +37,11 @@ struct child_process_result
 
 [[noreturn]] auto
 run_all_tests_in_child_processes(
-  const std::vector<cxxtrace::detail::concurrency_test*>&,
+  const std::vector<cxxtrace_test::detail::concurrency_test*>&,
   const std::vector<cxxtrace::czstring>& argv) -> void;
 
 [[noreturn]] auto
-run_single_cdschecker_test(cxxtrace::detail::concurrency_test*,
+run_single_cdschecker_test(cxxtrace_test::detail::concurrency_test*,
                            const std::vector<cxxtrace::czstring>& argv) -> void;
 
 auto
@@ -51,7 +51,7 @@ auto
 cdschecker_main(int argc, char** argv) -> int;
 
 auto
-default_test_options(const cxxtrace::detail::concurrency_test*)
+default_test_options(const cxxtrace_test::detail::concurrency_test*)
   -> std::vector<std::string>;
 
 auto
@@ -77,8 +77,8 @@ main(int argc, char** argv) -> int
 {
   auto argv_vector = std::vector<cxxtrace::czstring>{ &argv[0], &argv[argc] };
 
-  cxxtrace::register_concurrency_tests();
-  auto tests = cxxtrace::detail::get_registered_concurrency_tests();
+  cxxtrace_test::register_concurrency_tests();
+  auto tests = cxxtrace_test::detail::get_registered_concurrency_tests();
   if (tests.empty()) {
     std::fprintf(stderr, "fatal: No concurrency tests were registered\n");
     return EXIT_FAILURE;
@@ -96,7 +96,7 @@ main(int argc, char** argv) -> int
                         test_index);
       if (parse_result.ec != std::errc{}) {
         throw std::system_error{ std::make_error_code(parse_result.ec),
-                                 cxxtrace::stringify(
+                                 cxxtrace_test::stringify(
                                    "Parsing ", argument, " failed") };
       }
       return test_index;
@@ -115,7 +115,7 @@ extern "C"
 {
   __attribute__((visibility("default"))) auto user_main(int, char**) -> int
   {
-    cxxtrace::detail::run_concurrency_test_from_cdschecker(test_to_run);
+    cxxtrace_test::detail::run_concurrency_test_from_cdschecker(test_to_run);
     return 0;
   }
 }
@@ -123,7 +123,7 @@ extern "C"
 namespace {
 [[noreturn]] auto
 run_all_tests_in_child_processes(
-  const std::vector<cxxtrace::detail::concurrency_test*>& tests,
+  const std::vector<cxxtrace_test::detail::concurrency_test*>& tests,
   const std::vector<cxxtrace::czstring>& argv) -> void
 {
   auto executable = current_executable_path();
@@ -133,7 +133,7 @@ run_all_tests_in_child_processes(
 
     auto test_argv = argv;
     const auto select_argument =
-      cxxtrace::stringify(select_test_argument_prefix, test_index);
+      cxxtrace_test::stringify(select_test_argument_prefix, test_index);
     test_argv.insert(test_argv.begin() + 1, select_argument.c_str());
 
     auto result = run_child_process(executable.c_str(), test_argv);
@@ -170,7 +170,7 @@ did_cdschecker_test_succeed(const child_process_result& result) -> bool
 }
 
 [[noreturn]] auto
-run_single_cdschecker_test(cxxtrace::detail::concurrency_test* test,
+run_single_cdschecker_test(cxxtrace_test::detail::concurrency_test* test,
                            const std::vector<cxxtrace::czstring>& argv) -> void
 {
   auto test_argv = argv;
@@ -192,22 +192,22 @@ cdschecker_main(int argc, char** argv) -> int
   auto* cdschecker_main =
     reinterpret_cast<int (*)(int, char**)>(::dlsym(RTLD_NEXT, "main"));
   if (!cdschecker_main) {
-    throw std::runtime_error{ cxxtrace::stringify("Could not load CDSChecker: ",
-                                                  ::dlerror()) };
+    throw std::runtime_error{ cxxtrace_test::stringify(
+      "Could not load CDSChecker: ", ::dlerror()) };
   }
   return cdschecker_main(argc, argv);
 }
 
 auto
-default_test_options(const cxxtrace::detail::concurrency_test* test)
+default_test_options(const cxxtrace_test::detail::concurrency_test* test)
   -> std::vector<std::string>
 {
   auto options = std::vector<std::string>{};
   switch (test->test_depth()) {
-    case cxxtrace::concurrency_test_depth::shallow:
+    case cxxtrace_test::concurrency_test_depth::shallow:
       options.emplace_back("--bound=60");
       break;
-    case cxxtrace::concurrency_test_depth::full:
+    case cxxtrace_test::concurrency_test_depth::full:
       options.emplace_back("--bound=0");
       break;
   }
@@ -367,7 +367,7 @@ run_child_process(cxxtrace::czstring executable_path,
     if (rc != 0) {
       throw std::system_error{ rc,
                                std::generic_category(),
-                               cxxtrace::stringify(
+                               cxxtrace_test::stringify(
                                  "posix_spawnp failed for executable ",
                                  executable_path) };
     }

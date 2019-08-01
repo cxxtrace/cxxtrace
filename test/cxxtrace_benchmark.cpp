@@ -1,6 +1,6 @@
 #include "cxxtrace_benchmark.h"
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace detail {
 benchmark_group::benchmark_group(
   std::vector<benchmark::internal::Benchmark*> benchmarks)

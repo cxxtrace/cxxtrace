@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 template<class Iterator, class OutputIterator, class BinaryOperation>
 auto
 zip_adjacent(Iterator begin,

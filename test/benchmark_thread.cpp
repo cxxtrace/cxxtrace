@@ -40,6 +40,7 @@ private:
 
 auto set_current_thread_name(cxxtrace::czstring) -> void;
 
+namespace cxxtrace_test {
 auto
 benchmark_get_current_thread_id(benchmark::State& bench) -> void
 {
@@ -187,6 +188,7 @@ benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc(
 BENCHMARK(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc);
 #endif
+}
 
 monotonic_buffer_resource::monotonic_buffer_resource(
   void* buffer,

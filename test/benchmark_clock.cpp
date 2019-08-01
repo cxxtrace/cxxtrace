@@ -4,25 +4,25 @@
 #include <cxxtrace/clock.h>
 #include <cxxtrace/clock_extra.h>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace {
 auto
 perform_alu_work() noexcept -> void;
 
 template<class Clock>
-class clock_benchmark : public cxxtrace::benchmark_fixture
+class clock_benchmark : public benchmark_fixture
 {
 public:
   using clock_type = Clock;
 };
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(clock_benchmark,
-                                        apple_absolute_time_clock,
-                                        apple_approximate_time_clock,
-                                        fake_clock,
-                                        posix_gettimeofday_clock,
-                                        std_high_resolution_clock,
-                                        std_steady_clock,
-                                        std_system_clock);
+                                        cxxtrace::apple_absolute_time_clock,
+                                        cxxtrace::apple_approximate_time_clock,
+                                        cxxtrace::fake_clock,
+                                        cxxtrace::posix_gettimeofday_clock,
+                                        cxxtrace::std_high_resolution_clock,
+                                        cxxtrace::std_steady_clock,
+                                        cxxtrace::std_system_clock);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(clock_benchmark, query)
 (benchmark::State& bench)

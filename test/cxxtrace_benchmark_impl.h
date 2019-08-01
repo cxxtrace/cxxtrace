@@ -17,7 +17,7 @@
 #include <mutex>
 #include <optional>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace detail {
 template<class Benchmark>
 auto

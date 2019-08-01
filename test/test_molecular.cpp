@@ -70,7 +70,7 @@ static_assert(
 #error "Unsupported platform"
 #endif
 
-namespace {
+namespace cxxtrace_test {
 template<class T>
 class test_molecular_integral : public testing::Test
 {

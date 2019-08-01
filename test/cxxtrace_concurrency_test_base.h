@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 // Define this function in each test.
 auto
 register_concurrency_tests() -> void;

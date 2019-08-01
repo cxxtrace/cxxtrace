@@ -14,8 +14,6 @@
       this->get_cxxtrace_config(), "category", "name");                        \
   }
 
-using cxxtrace::stringify;
-
 namespace cxxtrace_test {
 template<class Storage>
 class test_snapshot : public test_span<Storage>

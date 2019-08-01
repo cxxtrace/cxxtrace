@@ -7,19 +7,17 @@
 #include <utility>
 #include <vector>
 
-using cxxtrace::stringify;
-
-namespace {
+namespace cxxtrace_test {
 TEST(test_exhaustive_rng, rng_is_exhaustive_with_no_calls)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   rng.lap();
   EXPECT_TRUE(rng.done());
 }
 
 TEST(test_exhaustive_rng, next_integer_0_1_is_in_its_own_lap)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   EXPECT_EQ(rng.next_integer_0(1), 0);
   rng.lap();
   EXPECT_TRUE(rng.done());
@@ -41,7 +39,7 @@ TEST_P(test_exhaustive_rng_n, exhaust_with_one_next_n_call_per_lap)
   expected_numbers.resize(number_count);
   std::iota(expected_numbers.begin(), expected_numbers.end(), 0);
 
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < number_count) {
     SCOPED_TRACE(stringify("lap ", lap_count));
@@ -67,7 +65,7 @@ TEST(test_exhaustive_rng, exhaust_with_two_next_256_calls_per_lap)
     }
   }
 
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < 256 * 256) {
     SCOPED_TRACE(stringify("lap ", lap_count));
@@ -91,7 +89,7 @@ TEST(test_exhaustive_rng, exhaust_with_two_next_256_calls_per_lap)
 
 TEST(test_exhaustive_rng, first_few_laps_with_one_or_two_next256_calls_per_lap)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
 
   EXPECT_EQ(rng.next_integer_0(256), 0);
   EXPECT_EQ(rng.next_integer_0(256), 0);
@@ -127,7 +125,7 @@ TEST(test_exhaustive_rng, first_few_laps_with_one_or_two_next256_calls_per_lap)
 TEST(test_exhaustive_rng,
      first_few_laps_with_one_next16_call_and_maybe_one_next256_call_per_lap)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
 
   EXPECT_EQ(rng.next_integer_0(16), 0);
   rng.lap();
@@ -176,7 +174,7 @@ TEST(test_exhaustive_rng, exhaust_with_one_or_two_next256_calls_per_lap)
     }
   }
 
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   auto lap_count = std::size_t{ 0 };
   while (lap_count < expected_numbers.size()) {
     SCOPED_TRACE(stringify("lap ", lap_count));
@@ -200,7 +198,7 @@ TEST(test_exhaustive_rng, exhaust_with_one_or_two_next256_calls_per_lap)
 
 TEST(test_exhaustive_rng, first_few_laps_with_three_next256_calls_per_lap)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
 
   EXPECT_EQ(rng.next_integer_0(256), 0);
   EXPECT_EQ(rng.next_integer_0(256), 0);
@@ -238,7 +236,7 @@ TEST(test_exhaustive_rng, exhaust_with_three_next32_calls_per_lap)
     return std::tuple{ (lap >> 10) & 0x1f, (lap >> 5) & 0x1f, lap & 0x1f };
   };
   auto expected_laps = 32 * 32 * 32;
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < expected_laps) {
     SCOPED_TRACE(stringify("lap ", lap_count));

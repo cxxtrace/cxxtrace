@@ -18,9 +18,9 @@
 #include <stdexcept>
 #endif
 
-namespace {
 using namespace std::literals::chrono_literals;
 
+namespace {
 #if defined(__APPLE__) && defined(__MACH__)
 template<class Func>
 auto
@@ -32,7 +32,9 @@ poll_until(std::chrono::time_point<Clock> deadline, Func&& predicate) -> void;
 auto
 get_mach_port_type(mach_port_t port) -> mach_port_type_t;
 #endif
+}
 
+namespace cxxtrace_test {
 #if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 {
@@ -198,7 +200,7 @@ TEST(test_thread_name, names_of_other_live_threads_match_pthread_setname_np)
   auto threads = std::array<test_thread, thread_count>{};
   for (auto thread_index = 0; thread_index < thread_count; ++thread_index) {
     auto& thread = threads[thread_index];
-    thread.name = cxxtrace::stringify("thread ", thread_index, "name");
+    thread.name = stringify("thread ", thread_index, "name");
     thread.thread = std::thread{ [&, thread_index] {
       auto& thread = threads[thread_index];
 
@@ -345,7 +347,9 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
        "before we queried its name)";
 }
 #endif
+}
 
+namespace {
 #if defined(__APPLE__) && defined(__MACH__)
 template<class Func>
 auto

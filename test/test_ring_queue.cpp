@@ -18,7 +18,6 @@
 
 #define RING_QUEUE typename TestFixture::template ring_queue
 
-using cxxtrace::stringify;
 using testing::ContainerEq;
 using testing::ElementsAre;
 using testing::IsEmpty;
@@ -45,7 +44,7 @@ template class spsc_ring_queue<point, 1024, std::size_t>;
 }
 }
 
-namespace {
+namespace cxxtrace_test {
 template<class RingQueueFactory>
 class test_ring_queue : public testing::Test
 {
@@ -67,9 +66,11 @@ using test_ring_queue_types =
                    ring_queue_factory<cxxtrace::detail::spsc_ring_queue>>;
 TYPED_TEST_CASE(test_ring_queue, test_ring_queue_types, );
 
+namespace {
 template<class RingQueue>
 auto
 pop_all(RingQueue&) -> std::vector<typename RingQueue::value_type>;
+}
 
 TYPED_TEST(test_ring_queue, new_queue_is_empty)
 {
@@ -206,7 +207,7 @@ protected:
 
   auto pop_all_and_check(int max_size) -> void
   {
-    auto popped = ::pop_all(this->queue);
+    auto popped = pop_all(this->queue);
     auto reference_popped = this->reference_queue.pop_n_and_reset(max_size);
     EXPECT_THAT(popped, ContainerEq(reference_popped));
   }
@@ -225,7 +226,7 @@ TYPED_TEST_CASE(test_ring_queue_against_reference,
 TYPED_TEST(test_ring_queue_against_reference,
            overflow_causes_pop_to_return_only_newest_data_exhaustive)
 {
-  auto rng = cxxtrace::exhaustive_rng{};
+  auto rng = exhaustive_rng{};
   while (!rng.done() && !this->HasFailure()) {
     auto reader_offset = rng.next_integer_0(this->capacity * 5);
     SCOPED_TRACE(stringify("reader_offset = ", reader_offset));
@@ -258,6 +259,7 @@ TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
               "Writer overflowed size_type");
 }
 
+namespace {
 template<class RingQueue>
 auto
 pop_all(RingQueue& queue) -> std::vector<typename RingQueue::value_type>
@@ -265,5 +267,6 @@ pop_all(RingQueue& queue) -> std::vector<typename RingQueue::value_type>
   auto data = std::vector<typename RingQueue::value_type>{};
   queue.pop_all_into(data);
   return data;
+}
 }
 }

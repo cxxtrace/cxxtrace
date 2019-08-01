@@ -1,7 +1,7 @@
 #include "exhaustive_rng.h"
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 exhaustive_rng::exhaustive_rng() noexcept = default;
 
 exhaustive_rng::~exhaustive_rng() = default;

@@ -46,7 +46,7 @@
 #define CXXTRACE_ASSERT(...) RL_ASSERT((__VA_ARGS__))
 #endif
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 template<class Test, class... Args>
 auto
 register_concurrency_test(int thread_count,
@@ -114,7 +114,7 @@ public:
   explicit cdschecker_backoff();
   ~cdschecker_backoff();
 
-  auto yield(detail::debug_source_location) -> void;
+  auto yield(cxxtrace::detail::debug_source_location) -> void;
 };
 #endif
 
@@ -125,7 +125,7 @@ public:
   explicit relacy_backoff();
   ~relacy_backoff();
 
-  auto yield(detail::debug_source_location) -> void;
+  auto yield(cxxtrace::detail::debug_source_location) -> void;
 
 private:
   rl::linear_backoff backoff;

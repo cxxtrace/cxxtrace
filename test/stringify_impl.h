@@ -10,7 +10,7 @@
   "Include \"stringify.h\" instead of including \"stringify_impl.h\" directly."
 #endif
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 template<class... Args>
 auto
 stringify(Args&&... args) -> std::string

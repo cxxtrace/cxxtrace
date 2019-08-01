@@ -22,7 +22,6 @@
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
-using cxxtrace::stringify;
 using testing::AnyOf;
 using testing::Eq;
 
@@ -40,7 +39,9 @@ drop_metadata_events(const nlohmann::json& trace_events) -> nlohmann::json;
 
 auto
 get(const nlohmann::json& object, cxxtrace::czstring key) -> nlohmann::json;
+}
 
+namespace cxxtrace_test {
 class test_chrome_trace_event_format : public testing::Test
 {
 public:
@@ -446,7 +447,9 @@ TEST_F(test_chrome_trace_event_format,
     this->reset_storage();
   }
 }
+}
 
+namespace {
 auto
 drop_metadata_events(const nlohmann::json& trace_events) -> nlohmann::json
 {

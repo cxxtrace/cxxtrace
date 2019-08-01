@@ -10,12 +10,13 @@
 #include <vector>
 
 // Make CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F instantiate the given fixture
-// template (deriving from cxxtrace::benchmark_fixture) once per given type.
+// template (deriving from cxxtrace_test::benchmark_fixture) once per given
+// type.
 //
 // CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F must be used before using
 // CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F.
 #define CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(fixture_class_template, ...)   \
-  static ::cxxtrace::detail::benchmark_template_args<CXXTRACE_CPP_MAP(         \
+  static ::cxxtrace_test::detail::benchmark_template_args<CXXTRACE_CPP_MAP(    \
     CXXTRACE_BENCHMARK_GET_TYPE, __VA_ARGS__)>                                 \
     _cxxtrace_benchmark_template_args_##fixture_class_template(                \
       { CXXTRACE_CPP_STRING_LITERALS(__VA_ARGS__) })
@@ -41,19 +42,19 @@
 // CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F must be used before using
 // CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F.
 #define CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(fixture_class_template, name)   \
-  static ::cxxtrace::detail::benchmark_group*                                  \
+  static ::cxxtrace_test::detail::benchmark_group*                             \
     _cxxtrace_benchmark_registration_##fixture_class_template##_##name =       \
-      ::cxxtrace::detail::benchmark_register_template<                         \
+      ::cxxtrace_test::detail::benchmark_register_template<                    \
         _cxxtrace_benchmark_class_##fixture_class_template##_##name>(          \
         _cxxtrace_benchmark_template_args_##fixture_class_template,            \
         #fixture_class_template,                                               \
         #name)
 
 #define CXXTRACE_BENCHMARK_GET_TYPE(possibly_parenthesized_type)               \
-  typename ::cxxtrace::detail::parameter_type<void(                            \
+  typename ::cxxtrace_test::detail::parameter_type<void(                       \
     possibly_parenthesized_type)>::type
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 class benchmark_fixture
 {
 public:

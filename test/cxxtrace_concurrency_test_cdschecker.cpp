@@ -18,12 +18,12 @@ auto
 join_thread(::thrd_t thread) -> void;
 }
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 cdschecker_backoff::cdschecker_backoff() = default;
 
 cdschecker_backoff::~cdschecker_backoff() = default;
 
-auto cdschecker_backoff::yield(detail::debug_source_location) -> void
+auto cdschecker_backoff::yield(cxxtrace::detail::debug_source_location) -> void
 {
   ::thrd_yield();
 }

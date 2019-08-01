@@ -28,7 +28,6 @@
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
-using cxxtrace::stringify;
 using testing::AnyOf;
 using testing::ElementsAre;
 

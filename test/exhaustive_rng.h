@@ -3,7 +3,7 @@
 
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 class exhaustive_rng
 {
 public:

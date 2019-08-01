@@ -8,7 +8,9 @@
 namespace {
 auto
 assert_items_are_sequential(const std::vector<int>& items) -> void;
+}
 
+namespace cxxtrace_test {
 template<class RingQueue>
 class ring_queue_relacy_test_base
 {
@@ -157,7 +159,7 @@ public:
       auto found_last_item = false;
       while (!found_last_item) {
         auto items = std::vector<int>{};
-        auto backoff = cxxtrace::backoff{};
+        auto backoff = cxxtrace_test::backoff{};
         this->queue.pop_all_into(items);
         while (items.empty()) {
           backoff.yield(CXXTRACE_HERE);
@@ -216,7 +218,7 @@ public:
       auto items = std::vector<int>{};
       while (items.size() < static_cast<std::size_t>(this->total_push_size())) {
         auto old_size = items.size();
-        auto backoff = cxxtrace::backoff{};
+        auto backoff = cxxtrace_test::backoff{};
         this->queue.pop_all_into(items);
         while (items.size() == old_size) {
           backoff.yield(CXXTRACE_HERE);
@@ -241,15 +243,13 @@ private:
   size_type initial_push_size;
   size_type concurrent_push_size;
 };
-}
 
-namespace cxxtrace {
 auto
 register_concurrency_tests() -> void
 {
   using cxxtrace::detail::spsc_ring_queue;
 
-  cxxtrace::register_concurrency_test<
+  register_concurrency_test<
     ring_queue_push_one_pop_all_relacy_test<spsc_ring_queue<int, 64>>>(
     2, concurrency_test_depth::full);
 
@@ -257,7 +257,7 @@ register_concurrency_tests() -> void
                           ring_queue_push_kind::single_bulk_push }) {
     for (auto initial_overflow : { 0, 2, 5 }) {
       auto concurrent_overflow = 2;
-      cxxtrace::register_concurrency_test<
+      register_concurrency_test<
         ring_queue_overflow_drops_some_but_not_all_items_relacy_test<
           spsc_ring_queue<int, 4>>>(2,
                                     concurrency_test_depth::full,
@@ -269,7 +269,7 @@ register_concurrency_tests() -> void
 
   for (auto initial_push_size : { 0, 3 }) {
     for (auto concurrent_push_size : { 1, 2 }) {
-      cxxtrace::register_concurrency_test<
+      register_concurrency_test<
         ring_queue_pop_eventually_returns_last_item_relacy_test<
           spsc_ring_queue<int, 4>>>(2,
                                     concurrency_test_depth::shallow,
@@ -280,7 +280,7 @@ register_concurrency_tests() -> void
 
   for (auto [initial_push_size, concurrent_push_size] :
        { std::pair{ 0, 1 }, std::pair{ 3, 1 }, std::pair{ 0, 2 } }) {
-    cxxtrace::register_concurrency_test<
+    register_concurrency_test<
       ring_queue_pop_reads_all_items_relacy_test<spsc_ring_queue<int, 4>>>(
       2,
       concurrency_test_depth::shallow,

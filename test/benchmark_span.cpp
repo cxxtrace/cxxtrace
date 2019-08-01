@@ -19,7 +19,7 @@
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
-namespace {
+namespace cxxtrace_test {
 using clock = cxxtrace::apple_absolute_time_clock;
 using clock_sample = clock::sample;
 
@@ -46,6 +46,7 @@ private:
   cxxtrace::basic_config<Storage, clock_type> cxxtrace_config;
 };
 
+namespace {
 class cpu_data_cache_thrasher
 {
 public:
@@ -69,6 +70,7 @@ private:
   std::vector<index_type> indexes;
   std::vector<index_type> visit_counts;
 };
+}
 
 struct ring_queue_thread_local_benchmark_storage_tag
 {};
@@ -91,7 +93,7 @@ using spsc_ring_queue_thread_local_benchmark_storage =
 template<class Storage>
 class span_benchmark
   : public cxxtrace_benchmark_base<Storage>
-  , public cxxtrace::benchmark_fixture
+  , public benchmark_fixture
 {
 public:
   auto set_up(benchmark::State& bench) -> void override
@@ -185,7 +187,7 @@ CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(span_benchmark, thrash_memory)->Arg(400);
 template<class Storage>
 class concurrent_span_benchmark
   : public cxxtrace_benchmark_base<Storage>
-  , public cxxtrace::thread_shared_benchmark_fixture
+  , public thread_shared_benchmark_fixture
 {
 public:
   auto set_up_thread(benchmark::State& bench) -> void override
@@ -223,6 +225,7 @@ CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(concurrent_span_benchmark, enter_exit)
   ->UseRealTime()
   ->ThreadRange(1, 4);
 
+namespace {
 cpu_data_cache_thrasher::cpu_data_cache_thrasher()
 {
   this->indexes.resize(this->vector_size);
@@ -294,5 +297,6 @@ cpu_data_cache_thrasher::check_visit_counts() noexcept -> void
   benchmark::DoNotOptimize(encountered_problem);
   assert(total_visits == this->vector_size);
   benchmark::DoNotOptimize(total_visits);
+}
 }
 }

@@ -5,7 +5,7 @@
 #include <type_traits>
 #include <vector>
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 template<class Container, class BinaryOperation>
 auto
 zip_adjacent_to_vector(Container container, BinaryOperation op) -> std::vector<

@@ -10,7 +10,7 @@
 using namespace std::chrono_literals;
 using testing::ElementsAre;
 
-namespace cxxtrace {
+namespace cxxtrace_test {
 namespace {
 template<class Clock>
 auto
@@ -25,13 +25,14 @@ public:
   using clock_type = Clock;
 };
 
-using test_clock_types = ::testing::Types<apple_absolute_time_clock,
-                                          apple_approximate_time_clock,
-                                          fake_clock,
-                                          posix_gettimeofday_clock,
-                                          std_high_resolution_clock,
-                                          std_steady_clock,
-                                          std_system_clock>;
+using test_clock_types =
+  ::testing::Types<cxxtrace::apple_absolute_time_clock,
+                   cxxtrace::apple_approximate_time_clock,
+                   cxxtrace::fake_clock,
+                   cxxtrace::posix_gettimeofday_clock,
+                   cxxtrace::std_high_resolution_clock,
+                   cxxtrace::std_steady_clock,
+                   cxxtrace::std_system_clock>;
 TYPED_TEST_CASE(test_clock, test_clock_types, );
 
 TYPED_TEST(test_clock, clock_samples_are_comparable)
@@ -55,7 +56,7 @@ public:
 };
 
 using test_strictly_increasing_clock_types =
-  ::testing::Types<apple_absolute_time_clock, fake_clock>;
+  ::testing::Types<cxxtrace::apple_absolute_time_clock, cxxtrace::fake_clock>;
 TYPED_TEST_CASE(test_strictly_increasing_clock,
                 test_strictly_increasing_clock_types, );
 
@@ -91,10 +92,10 @@ public:
 };
 
 using test_non_decreasing_clock_types =
-  ::testing::Types<apple_absolute_time_clock,
-                   apple_approximate_time_clock,
-                   fake_clock,
-                   std_steady_clock>;
+  ::testing::Types<cxxtrace::apple_absolute_time_clock,
+                   cxxtrace::apple_approximate_time_clock,
+                   cxxtrace::fake_clock,
+                   cxxtrace::std_steady_clock>;
 TYPED_TEST_CASE(test_non_decreasing_clock, test_non_decreasing_clock_types, );
 
 TYPED_TEST(test_non_decreasing_clock, clock_is_non_decreasing)
@@ -128,12 +129,13 @@ public:
   using clock_type = Clock;
 };
 
-using test_real_clock_types = ::testing::Types<apple_absolute_time_clock,
-                                               apple_approximate_time_clock,
-                                               posix_gettimeofday_clock,
-                                               std_high_resolution_clock,
-                                               std_steady_clock,
-                                               std_system_clock>;
+using test_real_clock_types =
+  ::testing::Types<cxxtrace::apple_absolute_time_clock,
+                   cxxtrace::apple_approximate_time_clock,
+                   cxxtrace::posix_gettimeofday_clock,
+                   cxxtrace::std_high_resolution_clock,
+                   cxxtrace::std_steady_clock,
+                   cxxtrace::std_system_clock>;
 TYPED_TEST_CASE(test_real_clock, test_real_clock_types, );
 
 TYPED_TEST(test_real_clock, clock_advances_within_decisecond_of_system_clock)
@@ -186,7 +188,7 @@ TYPED_TEST(test_real_clock, clock_advances_within_decisecond_of_system_clock)
 TEST(test_fake_clock,
      querying_returns_sequence_of_time_points_1_nanosecond_apart)
 {
-  auto clock = fake_clock{};
+  auto clock = cxxtrace::fake_clock{};
   clock.set_next_time_point(4ns);
   auto samples = sample_clock_n(clock, 6);
   auto queried_times = std::vector<std::chrono::nanoseconds>{};
@@ -194,7 +196,7 @@ TEST(test_fake_clock,
     samples.begin(),
     samples.end(),
     std::back_inserter(queried_times),
-    [&](fake_clock::sample sample) {
+    [&](cxxtrace::fake_clock::sample sample) {
       return clock.make_time_point(sample).nanoseconds_since_reference();
     });
   EXPECT_THAT(queried_times, ElementsAre(4ns, 5ns, 6ns, 7ns, 8ns, 9ns));
@@ -203,7 +205,7 @@ TEST(test_fake_clock,
 TEST(test_fake_clock,
      querying_returns_sequence_of_time_points_configured_duration)
 {
-  auto clock = fake_clock{};
+  auto clock = cxxtrace::fake_clock{};
   clock.set_duration_between_samples(1098ns);
   clock.set_next_time_point(813ns);
   auto samples = sample_clock_n(clock, 3);
@@ -212,7 +214,7 @@ TEST(test_fake_clock,
     samples.begin(),
     samples.end(),
     std::back_inserter(queried_times),
-    [&](fake_clock::sample sample) {
+    [&](cxxtrace::fake_clock::sample sample) {
       return clock.make_time_point(sample).nanoseconds_since_reference();
     });
   EXPECT_THAT(queried_times,
