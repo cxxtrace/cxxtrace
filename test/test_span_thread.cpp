@@ -214,6 +214,17 @@ TYPED_TEST(test_span, resetting_storage_removes_samples_by_exited_threads)
   EXPECT_EQ(samples.size(), 0);
 }
 
+TYPED_TEST(test_span, taking_snapshot_removes_samples_by_exited_threads)
+{
+  auto thread = std::thread{ [&] {
+    auto thread_span = CXXTRACE_SPAN("category", "thread span");
+  } };
+  thread.join();
+  auto samples_1 = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  auto samples_2 = cxxtrace::samples_snapshot{ this->take_all_samples() };
+  EXPECT_EQ(samples_2.size(), 0);
+}
+
 TYPED_TEST(test_span_thread_safe,
            span_enter_and_exit_synchronize_across_threads)
 {

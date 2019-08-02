@@ -6,6 +6,7 @@
   "Include <cxxtrace/ring_queue_unsafe_storage.h> instead of including <cxxtrace/ring_queue_unsafe_storage_impl.h> directly."
 #endif
 
+#include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
@@ -61,10 +62,13 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
 {
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
 
-  auto samples = std::vector<sample>{};
-  // TODO(strager): Convert to detail::snapshot_sample directly in pop_all_into
-  // to avoid an intermediate std::vector.
-  this->samples.pop_all_into(samples);
+  auto samples = std::vector<detail::snapshot_sample>{};
+  auto make_sample = [&](const sample& sample) noexcept->detail::snapshot_sample
+  {
+    return detail::snapshot_sample{ sample, clock };
+  };
+  this->samples.pop_all_into(
+    detail::transform_vector_queue_sink{ samples, make_sample });
 
   auto named_threads = std::vector<thread_id>{};
   auto thread_names = std::move(this->remembered_thread_names);
@@ -77,9 +81,7 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
     }
   }
 
-  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
-                             samples.begin(), samples.end(), clock),
-                           std::move(thread_names) };
+  return samples_snapshot{ std::move(samples), std::move(thread_names) };
 }
 
 template<std::size_t Capacity, class ClockSample>

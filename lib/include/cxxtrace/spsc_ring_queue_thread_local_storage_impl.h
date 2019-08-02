@@ -47,11 +47,23 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
     -> void
   {
     auto thread_id = this->id;
-    // TODO(strager): Convert to detail::snapshot_sample instead.
     auto make_sample = [thread_id](
                          const sample& sample) noexcept->disowned_sample
     {
       return disowned_sample{ sample.site, thread_id, sample.time_point };
+    };
+    this->samples.pop_all_into(
+      detail::transform_vector_queue_sink{ output, make_sample });
+  }
+
+  template<class Clock>
+  auto pop_all_into(std::vector<detail::snapshot_sample>& output,
+                    Clock& clock) noexcept(false) -> void
+  {
+    auto make_sample = [&](
+                         const sample& sample) noexcept->detail::snapshot_sample
+    {
+      return detail::snapshot_sample{ sample, this->id, clock };
     };
     this->samples.pop_all_into(
       detail::transform_vector_queue_sink{ output, make_sample });
@@ -91,27 +103,29 @@ auto
 spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
-  auto samples = std::vector<disowned_sample>{};
+  auto reclaimed_samples = std::vector<disowned_sample>{};
+  auto samples = std::vector<detail::snapshot_sample>{};
   auto thread_names = detail::thread_name_set{};
   auto thread_ids = std::vector<thread_id>{};
   {
     auto global_lock = std::lock_guard{ global_mutex };
-    samples = std::move(disowned_samples);
+    reclaimed_samples = std::move(disowned_samples);
     thread_names = std::move(disowned_thread_names);
     thread_ids.reserve(thread_list.size());
     for (auto* data : thread_list) {
-      data->pop_all_into(samples);
+      data->pop_all_into(samples, clock);
       thread_ids.emplace_back(data->id);
     }
   }
+  detail::snapshot_sample::many_from_samples(
+    reclaimed_samples.begin(), reclaimed_samples.end(), clock, samples);
+  detail::reset_vector(reclaimed_samples);
 
   for (const auto& thread_id : thread_ids) {
     thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   }
 
-  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
-                             samples.begin(), samples.end(), clock),
-                           std::move(thread_names) };
+  return samples_snapshot{ std::move(samples), std::move(thread_names) };
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
