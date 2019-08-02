@@ -24,7 +24,7 @@ public:
   auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
-  using disowned_sample = detail::sample<ClockSample>;
+  using disowned_sample = detail::global_sample<ClockSample>;
   using thread_local_sample = detail::thread_local_sample<ClockSample>;
   struct thread_data;
 

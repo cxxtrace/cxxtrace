@@ -15,7 +15,7 @@ namespace detail {
 struct snapshot_sample
 {
   template<class Clock>
-  explicit snapshot_sample(const sample<typename Clock::sample>& sample,
+  explicit snapshot_sample(const global_sample<typename Clock::sample>& sample,
                            Clock& clock) noexcept
     : site{ sample.site }
     , thread_id{ sample.thread_id }
@@ -29,7 +29,7 @@ struct snapshot_sample
     -> std::vector<snapshot_sample>
   {
     static_assert(std::is_convertible_v<typename ForwardIt::reference,
-                                        sample<typename Clock::sample>>);
+                                        global_sample<typename Clock::sample>>);
 
     auto snapshot_samples = std::vector<detail::snapshot_sample>{};
     snapshot_samples.reserve(std::distance(begin, end));

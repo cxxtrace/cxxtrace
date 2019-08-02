@@ -15,7 +15,7 @@ struct sample_site_local_data
 };
 
 template<class ClockSample>
-struct sample
+struct global_sample
 {
   sample_site_local_data site;
   thread_id thread_id;
