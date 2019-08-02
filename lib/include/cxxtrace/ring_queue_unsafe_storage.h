@@ -37,7 +37,9 @@ public:
   auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
-  detail::ring_queue<detail::sample<ClockSample>, Capacity> samples;
+  using sample = detail::sample<ClockSample>;
+
+  detail::ring_queue<sample, Capacity> samples;
   detail::thread_name_set remembered_thread_names;
 };
 }

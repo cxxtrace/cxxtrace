@@ -40,7 +40,7 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::add_sample(
   thread_id thread_id) noexcept -> void
 {
   this->samples.push(1, [&](auto data) noexcept {
-    data.set(0, detail::sample<ClockSample>{ site, thread_id, time_point });
+    data.set(0, sample{ site, thread_id, time_point });
   });
 }
 
@@ -61,7 +61,7 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::take_all_samples(
 {
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
 
-  auto samples = std::vector<detail::sample<ClockSample>>{};
+  auto samples = std::vector<sample>{};
   // TODO(strager): Convert to detail::snapshot_sample directly in pop_all_into
   // to avoid an intermediate std::vector.
   this->samples.pop_all_into(samples);

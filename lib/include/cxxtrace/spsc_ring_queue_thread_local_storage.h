@@ -24,6 +24,7 @@ public:
   auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
+  using disowned_sample = detail::sample<ClockSample>;
   using thread_local_sample = detail::thread_local_sample<ClockSample>;
   struct thread_data;
 
@@ -34,7 +35,7 @@ private:
 
   inline static std::mutex global_mutex{};
   inline static std::vector<thread_data*> thread_list{};
-  inline static std::vector<detail::sample<ClockSample>> disowned_samples{};
+  inline static std::vector<disowned_sample> disowned_samples{};
   inline static detail::thread_name_set disowned_thread_names{};
 };
 }

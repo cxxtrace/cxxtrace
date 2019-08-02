@@ -53,15 +53,15 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   thread_data(thread_data&&) = delete;
   thread_data& operator=(thread_data&&) = delete;
 
-  auto pop_all_into(std::vector<detail::sample<ClockSample>>& output) noexcept(
-    false) -> void
+  auto pop_all_into(std::vector<disowned_sample>& output) noexcept(false)
+    -> void
   {
     auto thread_id = this->id;
     // TODO(strager): Convert to detail::snapshot_sample instead.
     auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
-                         ->detail::sample<ClockSample>
+                         ->disowned_sample
     {
-      return detail::sample<ClockSample>{
+      return disowned_sample{
         sample.site,
         thread_id,
         sample.time_point,
@@ -109,7 +109,7 @@ auto
 ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
-  auto samples = std::vector<detail::sample<ClockSample>>{};
+  auto samples = std::vector<disowned_sample>{};
   auto thread_names = detail::thread_name_set{};
   auto thread_ids = std::vector<thread_id>{};
   {

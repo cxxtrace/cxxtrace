@@ -39,7 +39,9 @@ public:
   auto remember_current_thread_name_for_next_snapshot() -> void;
 
 private:
-  std::vector<detail::sample<ClockSample>> samples;
+  using sample = detail::sample<ClockSample>;
+
+  std::vector<sample> samples;
   detail::thread_name_set remembered_thread_names;
 };
 }
