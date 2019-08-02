@@ -117,8 +117,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
       thread_ids.emplace_back(data->id);
     }
   }
-  detail::snapshot_sample::many_from_samples(
-    reclaimed_samples.begin(), reclaimed_samples.end(), clock, samples);
+  detail::snapshot_sample::many_from_samples(reclaimed_samples, clock, samples);
   detail::reset_vector(reclaimed_samples);
 
   for (const auto& thread_id : thread_ids) {

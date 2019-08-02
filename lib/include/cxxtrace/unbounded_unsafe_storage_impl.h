@@ -72,8 +72,8 @@ unbounded_unsafe_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(
     }
   }
 
-  return samples_snapshot{ detail::snapshot_sample::many_from_samples(
-                             samples.begin(), samples.end(), clock),
+  return samples_snapshot{ detail::snapshot_sample::many_from_samples(samples,
+                                                                      clock),
                            std::move(thread_names) };
 }
 

@@ -32,30 +32,28 @@ struct snapshot_sample
     , timestamp{ clock.make_time_point(sample.time_point) }
   {}
 
-  template<class ForwardIt, class Clock>
-  static auto many_from_samples(ForwardIt begin,
-                                ForwardIt end,
+  template<class Sample, class Clock>
+  static auto many_from_samples(const std::vector<Sample>& samples,
                                 Clock& clock) noexcept(false)
     -> std::vector<snapshot_sample>
   {
     auto snapshot_samples = std::vector<detail::snapshot_sample>{};
-    many_from_samples(begin, end, clock, snapshot_samples);
+    many_from_samples(samples, clock, snapshot_samples);
     return snapshot_samples;
   }
 
-  template<class ForwardIt, class Clock>
+  template<class Sample, class Clock>
   static auto many_from_samples(
-    ForwardIt begin,
-    ForwardIt end,
+    const std::vector<Sample>& samples,
     Clock& clock,
     std::vector<snapshot_sample>& out) noexcept(false) -> void
   {
-    static_assert(std::is_convertible_v<typename ForwardIt::reference,
-                                        global_sample<typename Clock::sample>>);
+    static_assert(
+      std::is_convertible_v<Sample, global_sample<typename Clock::sample>>);
 
-    out.reserve(out.size() + std::distance(begin, end));
-    std::transform(begin,
-                   end,
+    out.reserve(out.size() + samples.size());
+    std::transform(samples.begin(),
+                   samples.end(),
                    std::back_inserter(out),
                    [&](auto&& s) noexcept->detail::snapshot_sample {
                      return detail::snapshot_sample{ s, clock };
