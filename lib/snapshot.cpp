@@ -59,19 +59,19 @@ samples_snapshot::thread_ids() const noexcept(false) -> std::vector<thread_id>
 auto
 sample_ref::category() const noexcept -> czstring
 {
-  return this->sample->category;
+  return this->sample->site.category;
 }
 
 auto
 sample_ref::kind() const noexcept -> sample_kind
 {
-  return this->sample->kind;
+  return this->sample->site.kind;
 }
 
 auto
 sample_ref::name() const noexcept -> czstring
 {
-  return this->sample->name;
+  return this->sample->site.name;
 }
 
 auto

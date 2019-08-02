@@ -38,9 +38,7 @@ template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   thread_local_sample
 {
-  czstring category;
-  czstring name;
-  sample_kind kind;
+  detail::sample_site_local_data site;
   ClockSample time_point;
 };
 
@@ -72,7 +70,9 @@ struct ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
                          ->detail::sample<ClockSample>
     {
       return detail::sample<ClockSample>{
-        sample.category, sample.name, sample.kind, thread_id, sample.time_point,
+        sample.site,
+        thread_id,
+        sample.time_point,
       };
     };
     this->samples.pop_all_into(
@@ -109,7 +109,7 @@ ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   auto& thread_data = get_thread_data();
   auto thread_lock = std::lock_guard{ thread_data.mutex };
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, thread_local_sample{ category, name, kind, time_point });
+    data.set(0, thread_local_sample{ { category, name, kind }, time_point });
   });
 }
 

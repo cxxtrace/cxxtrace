@@ -44,7 +44,7 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::add_sample(
   this->samples.push(1, [&](auto data) noexcept {
     data.set(0,
              detail::sample<ClockSample>{
-               category, name, kind, thread_id, time_point });
+               { category, name, kind }, thread_id, time_point });
   });
 }
 

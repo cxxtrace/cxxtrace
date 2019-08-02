@@ -43,8 +43,8 @@ unbounded_unsafe_storage<ClockSample>::add_sample(
   ClockSample time_point,
   thread_id thread_id) noexcept(false) -> void
 {
-  this->samples.emplace_back(
-    detail::sample<ClockSample>{ category, name, kind, thread_id, time_point });
+  this->samples.emplace_back(detail::sample<ClockSample>{
+    { category, name, kind }, thread_id, time_point });
 }
 
 template<class ClockSample>

@@ -7,12 +7,17 @@
 
 namespace cxxtrace {
 namespace detail {
-template<class ClockSample>
-struct sample
+struct sample_site_local_data
 {
   czstring category;
   czstring name;
   sample_kind kind;
+};
+
+template<class ClockSample>
+struct sample
+{
+  sample_site_local_data site;
   thread_id thread_id;
   ClockSample time_point;
 };

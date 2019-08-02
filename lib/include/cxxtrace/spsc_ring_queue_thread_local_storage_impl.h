@@ -28,9 +28,7 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
                                             Tag,
                                             ClockSample>::thread_local_sample
 {
-  czstring category;
-  czstring name;
-  sample_kind kind;
+  detail::sample_site_local_data site;
   ClockSample time_point;
 };
 
@@ -62,9 +60,9 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
     auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
                          ->detail::sample<ClockSample>
     {
-      return detail::sample<ClockSample>{
-        sample.category, sample.name, sample.kind, thread_id, sample.time_point
-      };
+      return detail::sample<ClockSample>{ sample.site,
+                                          thread_id,
+                                          sample.time_point };
     };
     this->samples.pop_all_into(
       detail::transform_vector_queue_sink{ output, make_sample });
@@ -96,7 +94,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 {
   auto& thread_data = get_thread_data();
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, thread_local_sample{ category, name, kind, time_point });
+    data.set(0, thread_local_sample{ { category, name, kind }, time_point });
   });
 }
 
