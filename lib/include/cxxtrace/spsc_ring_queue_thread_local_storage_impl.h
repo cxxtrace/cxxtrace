@@ -48,8 +48,8 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
   {
     auto thread_id = this->id;
     // TODO(strager): Convert to detail::snapshot_sample instead.
-    auto make_sample = [thread_id](const thread_local_sample& sample) noexcept
-                         ->disowned_sample
+    auto make_sample = [thread_id](
+                         const sample& sample) noexcept->disowned_sample
     {
       return disowned_sample{ sample.site, thread_id, sample.time_point };
     };
@@ -58,7 +58,7 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
   }
 
   cxxtrace::thread_id id{ cxxtrace::get_current_thread_id() };
-  detail::spsc_ring_queue<thread_local_sample, CapacityPerThread> samples{};
+  detail::spsc_ring_queue<sample, CapacityPerThread> samples{};
 };
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
@@ -81,7 +81,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 {
   auto& thread_data = get_thread_data();
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, thread_local_sample{ site, time_point });
+    data.set(0, sample{ site, time_point });
   });
 }
 

@@ -27,7 +27,7 @@ public:
 
 private:
   using disowned_sample = detail::global_sample<ClockSample>;
-  using thread_local_sample = detail::thread_local_sample<ClockSample>;
+  using sample = detail::thread_local_sample<ClockSample>;
   struct thread_data;
 
   static auto get_thread_data() -> thread_data&;
