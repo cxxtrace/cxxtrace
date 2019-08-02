@@ -31,26 +31,22 @@ unbounded_storage<ClockSample>::reset() noexcept -> void
 
 template<class ClockSample>
 auto
-unbounded_storage<ClockSample>::add_sample(czstring category,
-                                           czstring name,
-                                           sample_kind kind,
+unbounded_storage<ClockSample>::add_sample(detail::sample_site_local_data site,
                                            ClockSample time_point,
                                            thread_id thread_id) noexcept(false)
   -> void
 {
   auto lock = std::unique_lock{ this->mutex };
-  this->storage.add_sample(category, name, kind, time_point, thread_id);
+  this->storage.add_sample(site, time_point, thread_id);
 }
 
 template<class ClockSample>
 auto
 unbounded_storage<ClockSample>::add_sample(
-  czstring category,
-  czstring name,
-  sample_kind kind,
+  detail::sample_site_local_data site,
   ClockSample time_point) noexcept(false) -> void
 {
-  this->add_sample(category, name, kind, time_point, get_current_thread_id());
+  this->add_sample(site, time_point, get_current_thread_id());
 }
 
 template<class ClockSample>

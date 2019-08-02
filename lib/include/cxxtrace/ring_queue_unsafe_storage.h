@@ -27,14 +27,10 @@ public:
 
   auto reset() noexcept -> void;
 
-  auto add_sample(czstring category,
-                  czstring name,
-                  sample_kind,
+  auto add_sample(detail::sample_site_local_data,
                   ClockSample time_point,
                   thread_id) noexcept -> void;
-  auto add_sample(czstring category,
-                  czstring name,
-                  sample_kind,
+  auto add_sample(detail::sample_site_local_data,
                   ClockSample time_point) noexcept -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;

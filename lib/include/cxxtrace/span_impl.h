@@ -29,7 +29,8 @@ span_guard<Storage, Clock>::enter(Storage& storage,
                                   czstring name) noexcept(false) -> span_guard
 {
   auto begin_timestamp = clock.query();
-  storage.add_sample(category, name, sample_kind::enter_span, begin_timestamp);
+  storage.add_sample({ category, name, sample_kind::enter_span },
+                     begin_timestamp);
   return span_guard{ storage, clock, category, name };
 }
 
@@ -50,7 +51,7 @@ span_guard<Storage, Clock>::exit() noexcept(false) -> void
 {
   auto end_timestamp = clock.query();
   this->storage.add_sample(
-    this->category, this->name, sample_kind::exit_span, end_timestamp);
+    { this->category, this->name, sample_kind::exit_span }, end_timestamp);
 }
 }
 }

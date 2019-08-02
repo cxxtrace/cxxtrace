@@ -17,9 +17,7 @@ class spsc_ring_queue_thread_local_storage
 public:
   static auto reset() noexcept -> void;
 
-  static auto add_sample(czstring category,
-                         czstring name,
-                         sample_kind,
+  static auto add_sample(detail::sample_site_local_data,
                          ClockSample time_point) noexcept -> void;
   template<class Clock>
   auto take_all_samples(Clock&) noexcept(false) -> samples_snapshot;

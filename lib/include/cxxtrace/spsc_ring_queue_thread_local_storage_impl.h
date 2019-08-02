@@ -87,14 +87,12 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
 spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
-  add_sample(czstring category,
-             czstring name,
-             sample_kind kind,
+  add_sample(detail::sample_site_local_data site,
              ClockSample time_point) noexcept -> void
 {
   auto& thread_data = get_thread_data();
   thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, thread_local_sample{ { category, name, kind }, time_point });
+    data.set(0, thread_local_sample{ site, time_point });
   });
 }
 
