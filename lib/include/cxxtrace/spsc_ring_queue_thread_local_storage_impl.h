@@ -26,15 +26,6 @@ namespace cxxtrace {
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
                                             Tag,
-                                            ClockSample>::thread_local_sample
-{
-  detail::sample_site_local_data site;
-  ClockSample time_point;
-};
-
-template<std::size_t CapacityPerThread, class Tag, class ClockSample>
-struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
-                                            Tag,
                                             ClockSample>::thread_data
 {
   explicit thread_data() noexcept(false)

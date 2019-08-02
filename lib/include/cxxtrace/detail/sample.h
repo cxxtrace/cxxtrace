@@ -21,6 +21,13 @@ struct sample
   thread_id thread_id;
   ClockSample time_point;
 };
+
+template<class ClockSample>
+struct thread_local_sample
+{
+  sample_site_local_data site;
+  ClockSample time_point;
+};
 }
 }
 
