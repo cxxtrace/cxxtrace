@@ -7,6 +7,7 @@
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -14,6 +15,7 @@
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
+#include <mach/mach_vm.h>
 #include <pthread.h>
 #include <stdexcept>
 #endif
@@ -22,15 +24,62 @@ using namespace std::literals::chrono_literals;
 
 namespace {
 #if defined(__APPLE__) && defined(__MACH__)
-template<class Func>
-auto
-poll_for(std::chrono::milliseconds timeout, Func&& predicate) -> void;
-template<class Clock, class Func>
-auto
-poll_until(std::chrono::time_point<Clock> deadline, Func&& predicate) -> void;
+template<class T>
+class mach_array
+{
+public:
+  explicit mach_array() noexcept
+    : data{ nullptr }
+    , size{ 0 }
+  {}
+
+  explicit mach_array(T* data, ::mach_msg_type_number_t size) noexcept
+    : data{ data }
+    , size{ size }
+  {}
+
+  mach_array(mach_array&& other) noexcept
+    : data{ std::exchange(other.data, nullptr) }
+    , size{ std::exchange(other.size, 0) }
+  {}
+
+  mach_array& operator=(const mach_array&) = delete;
+
+  ~mach_array() { this->reset(); }
+
+  auto begin() noexcept -> T* { return this->data; }
+
+  auto end() noexcept -> T* { return this->data + this->size; }
+
+  auto reset() noexcept -> void
+  {
+    if (!this->data) {
+      return;
+    }
+
+    auto task = ::mach_task_self();
+    auto rc =
+      ::mach_vm_deallocate(task,
+                           reinterpret_cast<::mach_vm_address_t>(this->data),
+                           this->size * sizeof(T));
+    if (rc != KERN_SUCCESS) {
+      ::mach_error("error: could not deallocate array", rc);
+    }
+    this->data = nullptr;
+  }
+
+  T* data;
+  ::mach_msg_type_number_t size;
+};
+
+struct mach_task_ports
+{
+  mach_array<::mach_port_name_t> names;
+  mach_array<::mach_port_type_t> types;
+};
 
 auto
-get_mach_port_type(mach_port_t port) -> mach_port_type_t;
+get_mach_task_ports() -> mach_task_ports;
 #endif
 }
 
@@ -52,23 +101,94 @@ TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 TEST(test_thread_mach_thread_id,
      getting_current_thread_id_does_not_leak_thread_port)
 {
-  auto thread_port = mach_port_t{};
+  auto thread_port = ::mach_port_t{};
   std::thread{ [&thread_port] {
-    thread_port = mach_thread_self();
-    auto type = get_mach_port_type(thread_port);
-    EXPECT_TRUE(type & MACH_PORT_TYPE_SEND);
-    EXPECT_FALSE(type & MACH_PORT_TYPE_DEAD_NAME);
+    thread_port = ::mach_thread_self();
+    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+    ASSERT_EQ(rc, KERN_SUCCESS);
 
     cxxtrace::get_current_thread_mach_thread_id();
   } }
     .join();
 
-  auto thread_port_is_dead = [&thread_port]() -> bool {
-    auto type = get_mach_port_type(thread_port);
-    return type & MACH_PORT_TYPE_DEAD_NAME;
-  };
-  poll_for(500ms, thread_port_is_dead);
-  EXPECT_TRUE(thread_port_is_dead());
+  auto ports = get_mach_task_ports();
+  EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
+}
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+TEST(test_thread, getting_current_thread_name_by_id_does_not_leak_thread_port)
+{
+  auto thread_port = ::mach_port_t{};
+  std::thread{ [&thread_port] {
+    thread_port = ::mach_thread_self();
+    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+    ASSERT_EQ(rc, KERN_SUCCESS);
+
+    auto thread_names = cxxtrace::detail::thread_name_set{};
+    thread_names.fetch_and_remember_name_of_current_thread_mach(
+      cxxtrace::get_current_thread_id());
+  } }
+    .join();
+
+  auto ports = get_mach_task_ports();
+  EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
+}
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+TEST(test_thread, task_ports_includes_port_of_live_thread)
+{
+  auto test_done_event = event{};
+
+  auto thread_port = mach_port_t{};
+  auto thread_ready_event = event{};
+  auto thread = std::thread{ [&] {
+    thread_port = ::mach_thread_self();
+
+    thread_ready_event.set();
+    test_done_event.wait();
+
+    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+    ASSERT_EQ(rc, KERN_SUCCESS);
+  } };
+  thread_ready_event.wait();
+
+  auto ports = get_mach_task_ports();
+  EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 1);
+
+  test_done_event.set();
+  thread.join();
+}
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+TEST(test_get_mach_task_ports, excludes_port_of_dead_thread)
+{
+  auto thread_port = ::mach_port_t{};
+  std::thread{ [&thread_port] {
+    thread_port = ::mach_thread_self();
+    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+    ASSERT_EQ(rc, KERN_SUCCESS);
+  } }
+    .join();
+
+  auto ports = get_mach_task_ports();
+  EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
+}
+#endif
+
+#if defined(__APPLE__) && defined(__MACH__)
+TEST(test_get_mach_task_ports, includes_port_of_dead_referenced_thread)
+{
+  auto thread_port = mach_port_t{};
+  std::thread{ [&] { thread_port = ::mach_thread_self(); } }.join();
+
+  auto ports = get_mach_task_ports();
+  EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 1);
+
+  auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+  ASSERT_EQ(rc, KERN_SUCCESS);
 }
 #endif
 
@@ -351,40 +471,20 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
 
 namespace {
 #if defined(__APPLE__) && defined(__MACH__)
-template<class Func>
 auto
-poll_for(std::chrono::milliseconds timeout, Func&& predicate) -> void
+get_mach_task_ports() -> mach_task_ports
 {
-  poll_until(std::chrono::steady_clock::now() + timeout,
-             std::forward<Func>(predicate));
-}
-
-template<class Clock, class Func>
-auto
-poll_until(std::chrono::time_point<Clock> deadline, Func&& predicate) -> void
-{
-  auto past_deadline = [&]() { return Clock::now() >= deadline; };
-  for (;;) {
-    if (predicate()) {
-      return;
-    }
-    if (past_deadline()) {
-      throw std::runtime_error("Timeout expired");
-    }
-    std::this_thread::sleep_for(1ms);
-  }
-}
-
-auto
-get_mach_port_type(mach_port_t port) -> mach_port_type_t
-{
-  auto type = mach_port_type_t{};
-  auto rc = mach_port_type(mach_task_self(), port, &type);
+  ::mach_task_ports ports;
+  auto rc = ::mach_port_names(::mach_task_self(),
+                              &ports.names.data,
+                              &ports.names.size,
+                              &ports.types.data,
+                              &ports.types.size);
   if (rc != KERN_SUCCESS) {
-    mach_error("error: could not determine type of port:", rc);
-    throw std::runtime_error("mach_port_type failed");
+    ::mach_error("error: could not query ports", rc);
+    throw std::runtime_error("mach_port_names failed");
   }
-  return type;
+  return ports;
 }
 #endif
 }

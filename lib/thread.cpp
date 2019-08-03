@@ -46,6 +46,37 @@ get_thread_extended_info(thread_act_t,
 auto
 get_thread_extended_info_or_terminate(thread_act_t thread_port) noexcept
   -> thread_extended_info;
+
+class mach_port
+{
+public:
+  explicit mach_port(::mach_port_t port) noexcept
+    : port{ port }
+  {}
+
+  mach_port(mach_port&& other) noexcept
+    : port{ std::exchange(other.port, MACH_PORT_NULL) }
+  {}
+
+  mach_port& operator=(mach_port&&) noexcept = delete;
+
+  ~mach_port() { this->release(); }
+
+  auto release() noexcept -> void
+  {
+    if (this->port == MACH_PORT_NULL) {
+      return;
+    }
+    auto rc = ::mach_port_deallocate(::mach_task_self(), this->port);
+    if (rc != KERN_SUCCESS) {
+      ::mach_error("fatal: could not deallocate mach port", rc);
+      std::terminate();
+    }
+    this->port = MACH_PORT_NULL;
+  }
+
+  ::mach_port_name_t port{ MACH_PORT_NULL };
+};
 #endif
 }
 
@@ -63,12 +94,9 @@ get_current_thread_id() noexcept -> thread_id
 auto
 get_current_thread_mach_thread_id() noexcept -> std::uint64_t
 {
-  auto thread_port = mach_thread_self();
-  auto info = get_thread_identifier_info_or_terminate(thread_port);
+  auto thread_port = mach_port{ ::mach_thread_self() };
+  auto info = get_thread_identifier_info_or_terminate(thread_port.port);
   return thread_id{ info.thread_id };
-
-  // Intentionally leak thread_port. Holding a reference does not prevent the
-  // thread from being cleaned up.
 }
 
 auto
@@ -192,8 +220,8 @@ thread_name_set::fetch_and_remember_name_of_current_thread_mach(
 {
   assert(current_thread_id == get_current_thread_id());
 
-  auto thread_port = ::mach_thread_self();
-  auto info = get_thread_extended_info_or_terminate(thread_port);
+  auto thread_port = mach_port{ ::mach_thread_self() };
+  auto info = get_thread_extended_info_or_terminate(thread_port.port);
   auto thread_name_length = ::strnlen(info.pth_name, sizeof(info.pth_name));
 
   auto [it, inserted] = this->names.try_emplace(
@@ -201,9 +229,6 @@ thread_name_set::fetch_and_remember_name_of_current_thread_mach(
   if (!inserted) {
     it->second.assign(info.pth_name, thread_name_length);
   }
-
-  // Intentionally leak thread_port. Holding a reference does not prevent the
-  // thread from being cleaned up.
 }
 
 auto
