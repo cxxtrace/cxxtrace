@@ -79,6 +79,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   reset() noexcept -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
+#pragma clang loop unroll_count(1)
   for (auto* data : thread_list) {
     data->samples.reset();
   }
