@@ -356,6 +356,10 @@ TEST(test_thread_name, dead_threads_have_no_name)
   auto thread_id = cxxtrace::thread_id{};
   std::thread{ [&] { thread_id = cxxtrace::get_current_thread_id(); } }.join();
 
+  // HACK(strager): Work around flakiness caused by std::thread::join not
+  // waiting for kernel resources to be released (with Clang 8 on macOS 10.12).
+  std::this_thread::sleep_for(10ms);
+
   auto thread_names = cxxtrace::detail::thread_name_set{};
   thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_FALSE(thread_names.name_of_thread_by_id(thread_id));
@@ -460,6 +464,9 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
 
   kill_thread.set();
   thread.join();
+  // HACK(strager): Work around flakiness caused by std::thread::join not
+  // waiting for kernel resources to be released (with Clang 8 on macOS 10.12).
+  std::this_thread::sleep_for(10ms);
 
   names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original thread name")
