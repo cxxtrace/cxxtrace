@@ -1,3 +1,4 @@
+#include "cxxtrace_benchmark.h"
 #include <benchmark/benchmark.h>
 #include <cerrno>
 #include <cstddef>
@@ -39,6 +40,7 @@ private:
 };
 
 auto set_current_thread_name(cxxtrace::czstring) -> void;
+}
 
 namespace cxxtrace_test {
 auto
@@ -188,8 +190,67 @@ benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc(
 BENCHMARK(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc);
 #endif
+
+template<cxxtrace::detail::processor_id (*Func)() noexcept>
+struct processor_id_func
+{};
+
+template<class ProcessorIDFunc>
+class get_current_processor_id_benchmark;
+
+template<cxxtrace::detail::processor_id (*ProcessorIDFunc)() noexcept>
+class get_current_processor_id_benchmark<processor_id_func<ProcessorIDFunc>>
+  : public benchmark_fixture
+{
+public:
+  auto tear_down(benchmark::State& bench) -> void override
+  {
+    bench.counters["samples per iteration"] = this->samples_per_iteration;
+    auto total_samples = bench.iterations() * this->samples_per_iteration;
+    bench.counters["throughput"] = { static_cast<double>(total_samples),
+                                     benchmark::Counter::kIsRate };
+    bench.counters["total samples"] = total_samples;
+  }
+
+  [[gnu::always_inline]] static auto get_current_processor_id() noexcept
+  {
+    return ProcessorIDFunc();
+  }
+
+protected:
+  static constexpr auto samples_per_iteration{ 100 };
+};
+
+// TODO(strager): Figure out how to avoid namespace pollution while keeping the
+// benchmark names short.
+using namespace cxxtrace::detail;
+template<auto F>
+using f = processor_id_func<F>;
+CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
+  get_current_processor_id_benchmark,
+  f<get_current_processor_id>,
+  f<get_current_processor_id_x86_cpuid_commpage_preempt_cached>,
+  f<get_current_processor_id_x86_cpuid_01h>,
+  f<get_current_processor_id_x86_cpuid_0bh>,
+  f<get_current_processor_id_x86_cpuid_1fh>);
+
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
+                                     busy_loop_unrolled)
+(benchmark::State& bench)
+{
+  for (auto _ : bench) {
+#pragma clang loop unroll(full)
+    for (auto i = 0; i < this->samples_per_iteration; ++i) {
+      benchmark::DoNotOptimize(this->get_current_processor_id());
+    }
+  }
+}
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(get_current_processor_id_benchmark,
+                                       busy_loop_unrolled)
+  ->DenseThreadRange(1, benchmark::CPUInfo::Get().num_cpus * 2);
 }
 
+namespace {
 monotonic_buffer_resource::monotonic_buffer_resource(
   void* buffer,
   std::size_t buffer_size) noexcept

@@ -5,8 +5,6 @@
 #include <algorithm>
 #include <array>
 #include <condition_variable>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 #include <iterator>
 #include <random>
 #include <sys/time.h>
@@ -16,4 +14,11 @@
 
 #if defined(__APPLE__)
 #include <mach/mach_time.h>
+#endif
+
+#if __has_include(<gmock/gmock.h>)
+#include <gmock/gmock.h>
+#endif
+#if __has_include(<gtest/gtest.h>)
+#include <gtest/gtest.h>
 #endif

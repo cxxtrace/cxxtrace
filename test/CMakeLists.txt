@@ -3,6 +3,7 @@ enable_language(ASM)
 
 include(cxxtrace_cotire)
 
+add_subdirectory(test_processor_id_manual)
 add_subdirectory(test_ring_queue)
 
 add_executable(

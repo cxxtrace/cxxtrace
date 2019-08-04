@@ -2,6 +2,7 @@
 #define CXXTRACE_THREAD_DETAIL_H
 
 #include <cstddef>
+#include <cstdint>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <experimental/memory_resource>
@@ -47,6 +48,26 @@ struct thread_name_set
 
   std::experimental::pmr::unordered_map<thread_id, std::string> names;
 };
+
+using processor_id = std::uint32_t;
+
+auto
+get_current_processor_id() noexcept -> processor_id;
+
+#if defined(__x86_64__)
+auto
+get_current_processor_id_x86_cpuid_01h() noexcept -> processor_id;
+auto
+get_current_processor_id_x86_cpuid_0bh() noexcept -> processor_id;
+auto
+get_current_processor_id_x86_cpuid_1fh() noexcept -> processor_id;
+#endif
+
+#if defined(__x86_64__) && defined(__APPLE__)
+auto
+get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
+  -> processor_id;
+#endif
 }
 }
 
