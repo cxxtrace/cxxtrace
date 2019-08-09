@@ -22,6 +22,11 @@
 #include <unistd.h>
 #include <vector>
 
+#if defined(__APPLE__) && !defined(_LIBCPP_HAS_QUICK_EXIT)
+// libc++ 8.0 does not define std::quick_exit on Apple platforms.
+#define CXXTRACE_WORK_AROUND_QUICK_EXIT 1
+#endif
+
 namespace {
 cxxtrace_test::detail::concurrency_test* test_to_run{};
 
@@ -183,7 +188,21 @@ run_single_cdschecker_test(cxxtrace_test::detail::concurrency_test* test,
   test_to_run = test;
   auto exit_code =
     cdschecker_main(test_argv.size(), const_cast<char**>(test_argv.data()));
-  std::exit(exit_code);
+  // HACK(strager): If CDSChecker detects a redundant execution, it aborts the
+  // test thread. If this happens, concurrency_test::tear_down is not called, so
+  // concurrency_test::test_object still holds data. If we call std::exit and
+  // let test_object's destructor execute, and test_object's destructor
+  // allocates memory or executes a CDSChecker assertion, CDSChecker explodes
+  // (because cdschecker_main returned).
+  //
+  // Avoid calling the destructor of any possibly-abandoned
+  // concurrency_test::test_object objects by using std::quick_exit instead of
+  // std::exit.
+#if CXXTRACE_WORK_AROUND_QUICK_EXIT
+  std::_Exit(exit_code);
+#else
+  std::quick_exit(exit_code);
+#endif
 }
 
 auto

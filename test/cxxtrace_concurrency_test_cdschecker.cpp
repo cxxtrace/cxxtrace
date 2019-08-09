@@ -3,6 +3,7 @@
 #endif
 
 #include "cxxtrace_concurrency_test.h"
+#include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <memory>
 #include <stdexcept>
@@ -22,6 +23,10 @@ namespace cxxtrace_test {
 cdschecker_backoff::cdschecker_backoff() = default;
 
 cdschecker_backoff::~cdschecker_backoff() = default;
+
+auto
+cdschecker_backoff::reset() -> void
+{}
 
 auto cdschecker_backoff::yield(cxxtrace::detail::debug_source_location) -> void
 {
@@ -97,5 +102,47 @@ join_thread(::thrd_t thread) -> void
     throw std::runtime_error{ "thrd_join failed" };
   }
 #endif
+}
+}
+
+namespace cxxtrace {
+namespace detail {
+// NOTE(strager): In this translation unit, std::mutex refers to CDSChecker's
+// mutex, not the standard library's mutex.
+using cdschecker_mutex_impl = std::mutex;
+
+static_assert(alignof(std::mutex_state) == alignof(cdschecker_mutex_impl));
+static_assert(sizeof(std::mutex_state) == sizeof(cdschecker_mutex_impl));
+
+cdschecker_mutex::cdschecker_mutex()
+{
+  new (&this->get()) cdschecker_mutex_impl{};
+}
+
+cdschecker_mutex::~cdschecker_mutex()
+{
+  this->get().~mutex();
+}
+
+auto cdschecker_mutex::lock(debug_source_location) noexcept -> void
+{
+  this->get().lock();
+}
+
+auto cdschecker_mutex::unlock(debug_source_location) noexcept -> void
+{
+  this->get().unlock();
+}
+
+inline auto
+cdschecker_mutex::get() noexcept -> cdschecker_mutex_impl&
+{
+  static_assert(alignof(decltype(this->storage_)) ==
+                alignof(cdschecker_mutex_impl));
+  static_assert(sizeof(decltype(this->storage_)) ==
+                sizeof(cdschecker_mutex_impl));
+
+  return *reinterpret_cast<cdschecker_mutex_impl*>(&this->storage_);
+}
 }
 }

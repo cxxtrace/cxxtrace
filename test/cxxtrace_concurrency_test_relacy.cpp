@@ -31,11 +31,18 @@ run_concurrency_test_with_relacy_with_threads(concurrency_test* test) -> void;
 auto
 run_concurrency_test_with_relacy(concurrency_test* test) -> void
 {
-  if (test->thread_count() == 2) {
-    run_concurrency_test_with_relacy_with_threads<2>(test);
-  } else {
-    assert(false && "Unsupport thread count");
+#define CASE(thread_count)                                                     \
+  case (thread_count):                                                         \
+    run_concurrency_test_with_relacy_with_threads<(thread_count)>(test);       \
+    break;
+  switch (test->thread_count()) {
+    CASE(2)
+    CASE(3)
+    default:
+      assert(false && "Unsupport thread count");
+      break;
   }
+#undef CASE
 }
 
 namespace {
@@ -82,6 +89,11 @@ class concurrency_test_relacy_wrapper
 public:
   inline static concurrency_test* test{ nullptr };
 
+  // FIXME(strager): If a test fails, rl::simulate might call this->before a
+  // second time without calling this->after (to run the test again with history
+  // tracing). This breaks preconditions of concurrency_test::set_up, causing
+  // its assertion to fail.
+
   auto before() -> void
   {
     assert(this->test);
@@ -112,6 +124,12 @@ public:
 relacy_backoff::relacy_backoff() = default;
 
 relacy_backoff::~relacy_backoff() = default;
+
+auto
+relacy_backoff::reset() -> void
+{
+  this->backoff = rl::linear_backoff{};
+}
 
 auto
 relacy_backoff::yield(cxxtrace::detail::debug_source_location caller) -> void

@@ -1,5 +1,7 @@
 #include "cxxtrace_concurrency_test.h"
+#include <algorithm>
 #include <cstdlib>
+#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <type_traits>
 #include <utility>
@@ -244,6 +246,102 @@ private:
   size_type concurrent_push_size;
 };
 
+template<class RingQueue>
+class ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test
+  : public ring_queue_relacy_test_base<RingQueue>
+{
+public:
+  using size_type = typename RingQueue::size_type;
+
+  explicit ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test(
+    size_type initial_push_size,
+    size_type concurrent_push_size,
+    int thread_count) noexcept
+    : initial_push_size{ initial_push_size }
+    , concurrent_push_size{ concurrent_push_size }
+  {
+    this->push_range(0, this->initial_push_size);
+    assert(this->total_push_size() <= RingQueue::capacity);
+
+    this->items_popped_per_thread.resize(thread_count);
+  }
+
+  ~ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test()
+  {
+    this->check_postconditions();
+  }
+
+  auto run_thread(int thread_index) -> void
+  {
+    if (thread_index == 0) {
+      this->push_range(this->initial_push_size, this->total_push_size());
+    } else {
+      auto thread_items = std::vector<int>{};
+      auto backoff = cxxtrace_test::backoff{};
+      while (this->popped_item_count.load(CXXTRACE_HERE) <
+             this->total_push_size()) {
+        auto old_size = thread_items.size();
+        this->queue.pop_all_into(thread_items);
+        auto just_popped_item_count = thread_items.size() - old_size;
+        if (just_popped_item_count == 0) {
+          backoff.yield(CXXTRACE_HERE);
+        } else {
+          this->popped_item_count.fetch_add(just_popped_item_count,
+                                            CXXTRACE_HERE);
+          backoff.reset();
+        }
+      }
+      this->items_popped_per_thread[thread_index] = std::move(thread_items);
+    }
+  }
+
+  auto check_postconditions() -> void
+  {
+    auto expected_items = this->expected_items();
+    assert(std::is_sorted(expected_items.begin(), expected_items.end()));
+
+    auto all_popped_items = std::vector<int>{};
+    for (const auto& thread_items : this->items_popped_per_thread) {
+      CXXTRACE_ASSERT(std::is_sorted(thread_items.begin(), thread_items.end()));
+      all_popped_items.insert(
+        all_popped_items.end(), thread_items.begin(), thread_items.end());
+    }
+    std::sort(all_popped_items.begin(), all_popped_items.end());
+    CXXTRACE_ASSERT(all_popped_items == expected_items);
+  }
+
+private:
+  auto total_push_size() const noexcept -> size_type
+  {
+    return this->initial_push_size + this->concurrent_push_size;
+  }
+
+  auto expected_items() const -> std::vector<int>
+  {
+    return this->items_for_range(0, this->total_push_size());
+  }
+
+  // HACK(strager): Model checkers want to think that popped_item_count
+  // is an atomic variable under test. This isn't true, and if we do nothing,
+  // execution time suffers. Try to hide popped_item_count from the checkers.
+#if CXXTRACE_ENABLE_CDSCHECKER
+  // HACK(strager): CDSChecker shadows std::atomic anyway, so use our wrapper.
+  // (Our wrapper works around bugs in CDSChecker's implementation of
+  // std::atomic.)
+  template<class T>
+  using atomic = cxxtrace::detail::cdschecker_atomic<T>;
+#else
+  template<class T>
+  using atomic = cxxtrace::detail::real_atomic<T>;
+#endif
+
+  size_type initial_push_size;
+  size_type concurrent_push_size;
+
+  atomic<int> popped_item_count{ 0 };
+  std::vector<std::vector<int>> items_popped_per_thread;
+};
+
 auto
 register_concurrency_tests() -> void
 {
@@ -286,6 +384,23 @@ register_concurrency_tests() -> void
       concurrency_test_depth::shallow,
       initial_push_size,
       concurrent_push_size);
+  }
+
+  // FIXME(strager): This test takes too long with the address sanitizer
+  // enabled.
+  for (auto [initial_push_size, concurrent_push_size] : { std::pair{ 1, 0 },
+                                                          std::pair{ 2, 0 },
+                                                          std::pair{ 0, 1 },
+                                                          std::pair{ 3, 1 } }) {
+    auto thread_count = 3;
+    // TODO(strager): Optimize this test and check with concurrent_push_size>=2.
+    register_concurrency_test<
+      ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test<
+        spsc_ring_queue<int, 4>>>(thread_count,
+                                  concurrency_test_depth::shallow,
+                                  initial_push_size,
+                                  concurrent_push_size,
+                                  thread_count);
   }
 }
 }

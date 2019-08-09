@@ -114,6 +114,7 @@ public:
   explicit cdschecker_backoff();
   ~cdschecker_backoff();
 
+  auto reset() -> void;
   auto yield(cxxtrace::detail::debug_source_location) -> void;
 };
 #endif
@@ -125,6 +126,7 @@ public:
   explicit relacy_backoff();
   ~relacy_backoff();
 
+  auto reset() -> void;
   auto yield(cxxtrace::detail::debug_source_location) -> void;
 
 private:

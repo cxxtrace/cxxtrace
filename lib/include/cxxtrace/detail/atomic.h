@@ -2,6 +2,7 @@
 #define CXXTRACE_DETAIL_ATOMIC_H
 
 #include <atomic>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <utility>
 
@@ -31,16 +32,6 @@
 
 namespace cxxtrace {
 namespace detail {
-#if CXXTRACE_ENABLE_RELACY
-using debug_source_location = rl::debug_info;
-#define CXXTRACE_HERE (RL_INFO)
-#else
-class stub_debug_source_location
-{};
-using debug_source_location = stub_debug_source_location;
-#define CXXTRACE_HERE (::cxxtrace::detail::debug_source_location{})
-#endif
-
 template<class T, class Class>
 class atomic_base
 {
@@ -53,6 +44,12 @@ public:
   atomic_base& operator=(const atomic_base&) = delete;
   atomic_base(atomic_base&&) = delete;
   atomic_base& operator=(atomic_base&&) = delete;
+
+  auto fetch_add(T addend, debug_source_location caller) noexcept -> T
+  {
+    return static_cast<Class&>(*this).fetch_add(
+      addend, std::memory_order_seq_cst, caller);
+  }
 
   auto load(debug_source_location caller) const noexcept -> T
   {
@@ -73,6 +70,7 @@ private:
   using base = atomic_base<T, real_atomic<T>>;
 
 public:
+  using base::fetch_add;
   using base::load;
   using base::store;
 
@@ -81,6 +79,13 @@ public:
   explicit real_atomic(T value) noexcept
     : data{ value }
   {}
+
+  auto fetch_add(T addend,
+                 std::memory_order memory_order,
+                 debug_source_location) noexcept -> T
+  {
+    return this->data.fetch_add(addend, memory_order);
+  }
 
   auto load(std::memory_order memory_order, debug_source_location) const
     noexcept -> T
@@ -151,6 +156,7 @@ private:
   using base = atomic_base<T, cdschecker_atomic<T>>;
 
 public:
+  using base::fetch_add;
   using base::load;
   using base::store;
 
@@ -161,6 +167,16 @@ public:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
     _ATOMIC_INIT_(&this->data, value);
+#pragma clang diagnostic pop
+  }
+
+  auto fetch_add(T addend,
+                 std::memory_order memory_order,
+                 debug_source_location) noexcept -> T
+  {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+    return _ATOMIC_MODIFY_(&this->data, +=, addend, memory_order);
 #pragma clang diagnostic pop
   }
 
@@ -327,6 +343,7 @@ private:
   using base = atomic_base<T, relacy_atomic<T>>;
 
 public:
+  using base::fetch_add;
   using base::load;
   using base::store;
 
@@ -335,6 +352,13 @@ public:
   explicit relacy_atomic(T value) noexcept
     : data{ value }
   {}
+
+  auto fetch_add(T addend,
+                 std::memory_order memory_order,
+                 debug_source_location caller) noexcept -> T
+  {
+    return this->data.fetch_add(addend, relacy_cast(memory_order), caller);
+  }
 
   auto load(std::memory_order memory_order, debug_source_location caller) const
     noexcept -> T
