@@ -309,8 +309,6 @@ get_current_processor_id_x86_cpuid_01h() noexcept -> processor_id
 auto
 get_current_processor_id_x86_cpuid_0bh() noexcept -> processor_id
 {
-  // TODO(strager):
-
   std::uint32_t edx;
   asm volatile("cpuid" : "=d"(edx) : "a"(0x0b) : "ebx", "ecx");
   // From Volume 2A:
