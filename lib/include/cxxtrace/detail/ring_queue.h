@@ -30,7 +30,7 @@ namespace detail {
 //
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
-// @see spsc_ring_queue
+// @see spmc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
 class ring_queue
 {

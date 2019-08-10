@@ -7,7 +7,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cxxtrace/detail/ring_queue.h>
-#include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/spmc_ring_queue.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <iterator>
@@ -38,9 +38,9 @@ template class ring_queue<int, 1, int>;
 template class ring_queue<char, 1, signed char>;
 template class ring_queue<point, 1024, std::size_t>;
 
-template class spsc_ring_queue<int, 1, int>;
-template class spsc_ring_queue<char, 1, signed char>;
-template class spsc_ring_queue<point, 1024, std::size_t>;
+template class spmc_ring_queue<int, 1, int>;
+template class spmc_ring_queue<char, 1, signed char>;
+template class spmc_ring_queue<point, 1024, std::size_t>;
 }
 }
 
@@ -63,7 +63,7 @@ struct ring_queue_factory
 
 using test_ring_queue_types =
   ::testing::Types<ring_queue_factory<cxxtrace::detail::ring_queue>,
-                   ring_queue_factory<cxxtrace::detail::spsc_ring_queue>>;
+                   ring_queue_factory<cxxtrace::detail::spmc_ring_queue>>;
 TYPED_TEST_CASE(test_ring_queue, test_ring_queue_types, );
 
 namespace {
@@ -219,7 +219,7 @@ protected:
 
 using test_ring_queue_against_reference_types =
   ::testing::Types<cxxtrace::detail::ring_queue<int, 8, int>,
-                   cxxtrace::detail::spsc_ring_queue<int, 8, int>>;
+                   cxxtrace::detail::spmc_ring_queue<int, 8, int>>;
 TYPED_TEST_CASE(test_ring_queue_against_reference,
                 test_ring_queue_against_reference_types, );
 

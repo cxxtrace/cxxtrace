@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cxxtrace/detail/atomic.h>
-#include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/spmc_ring_queue.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
 #include <type_traits>
@@ -398,10 +398,10 @@ private:
 auto
 register_concurrency_tests() -> void
 {
-  using cxxtrace::detail::spsc_ring_queue;
+  using cxxtrace::detail::spmc_ring_queue;
 
   register_concurrency_test<
-    ring_queue_push_one_pop_all_relacy_test<spsc_ring_queue<int, 64>>>(
+    ring_queue_push_one_pop_all_relacy_test<spmc_ring_queue<int, 64>>>(
     2, concurrency_test_depth::full);
 
   for (auto push_kind : { ring_queue_push_kind::one_push_per_item,
@@ -410,7 +410,7 @@ register_concurrency_tests() -> void
       auto concurrent_overflow = 2;
       register_concurrency_test<
         ring_queue_overflow_drops_some_but_not_all_items_relacy_test<
-          spsc_ring_queue<int, 4>>>(2,
+          spmc_ring_queue<int, 4>>>(2,
                                     concurrency_test_depth::full,
                                     initial_overflow,
                                     concurrent_overflow,
@@ -422,7 +422,7 @@ register_concurrency_tests() -> void
     for (auto concurrent_push_size : { 1, 2 }) {
       register_concurrency_test<
         ring_queue_pop_eventually_returns_last_item_relacy_test<
-          spsc_ring_queue<int, 4>>>(2,
+          spmc_ring_queue<int, 4>>>(2,
                                     concurrency_test_depth::shallow,
                                     initial_push_size,
                                     concurrent_push_size);
@@ -432,7 +432,7 @@ register_concurrency_tests() -> void
   for (auto [initial_push_size, concurrent_push_size] :
        { std::pair{ 0, 1 }, std::pair{ 3, 1 }, std::pair{ 0, 2 } }) {
     register_concurrency_test<
-      ring_queue_pop_reads_all_items_relacy_test<spsc_ring_queue<int, 4>>>(
+      ring_queue_pop_reads_all_items_relacy_test<spmc_ring_queue<int, 4>>>(
       2,
       concurrency_test_depth::shallow,
       initial_push_size,
@@ -447,7 +447,7 @@ register_concurrency_tests() -> void
     // TODO(strager): Optimize this test and check with concurrent_push_size>=2.
     register_concurrency_test<
       ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test<
-        spsc_ring_queue<int, 4>>>(thread_count,
+        spmc_ring_queue<int, 4>>>(thread_count,
                                   concurrency_test_depth::shallow,
                                   initial_push_size,
                                   concurrent_push_size,

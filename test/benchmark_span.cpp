@@ -9,7 +9,7 @@
 #include <cxxtrace/ring_queue_thread_local_storage.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/span.h>
-#include <cxxtrace/spsc_ring_queue_thread_local_storage.h>
+#include <cxxtrace/spmc_ring_queue_thread_local_storage.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <iostream>
@@ -81,13 +81,13 @@ using ring_queue_thread_local_benchmark_storage =
     ring_queue_thread_local_benchmark_storage_tag,
     ClockSample>;
 
-struct spsc_ring_queue_thread_local_benchmark_storage_tag
+struct spmc_ring_queue_thread_local_benchmark_storage_tag
 {};
 template<std::size_t CapacityPerThread, class ClockSample>
-using spsc_ring_queue_thread_local_benchmark_storage =
-  cxxtrace::spsc_ring_queue_thread_local_storage<
+using spmc_ring_queue_thread_local_benchmark_storage =
+  cxxtrace::spmc_ring_queue_thread_local_storage<
     CapacityPerThread,
-    spsc_ring_queue_thread_local_benchmark_storage_tag,
+    spmc_ring_queue_thread_local_benchmark_storage_tag,
     ClockSample>;
 
 template<class Storage>
@@ -126,7 +126,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   cxxtrace::unbounded_storage<clock_sample>,
   cxxtrace::unbounded_unsafe_storage<clock_sample>,
   (ring_queue_thread_local_benchmark_storage<1024, clock_sample>),
-  (spsc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
+  (spmc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(span_benchmark, enter_exit)
 (benchmark::State& bench)
@@ -212,7 +212,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   concurrent_span_benchmark,
   (cxxtrace::ring_queue_storage<1024, clock_sample>),
   (ring_queue_thread_local_benchmark_storage<1024, clock_sample>),
-  (spsc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
+  (spmc_ring_queue_thread_local_benchmark_storage<1024, clock_sample>));
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(concurrent_span_benchmark, enter_exit)
 (benchmark::State& bench)

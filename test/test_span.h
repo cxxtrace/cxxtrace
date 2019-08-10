@@ -8,7 +8,7 @@
 #include <cxxtrace/ring_queue_thread_local_storage.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
-#include <cxxtrace/spsc_ring_queue_thread_local_storage.h>
+#include <cxxtrace/spmc_ring_queue_thread_local_storage.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 
@@ -22,13 +22,13 @@ using ring_queue_thread_local_test_storage =
     ring_queue_thread_local_test_storage_tag,
     ClockSample>;
 
-struct spsc_ring_queue_thread_local_test_storage_tag
+struct spmc_ring_queue_thread_local_test_storage_tag
 {};
 template<std::size_t CapacityPerThread, class ClockSample>
-using spsc_ring_queue_thread_local_test_storage =
-  cxxtrace::spsc_ring_queue_thread_local_storage<
+using spmc_ring_queue_thread_local_test_storage =
+  cxxtrace::spmc_ring_queue_thread_local_storage<
     CapacityPerThread,
-    spsc_ring_queue_thread_local_test_storage_tag,
+    spmc_ring_queue_thread_local_test_storage_tag,
     ClockSample>;
 
 using clock = cxxtrace::fake_clock;
@@ -75,7 +75,7 @@ using test_span_types = ::testing::Types<
   cxxtrace::unbounded_storage<clock_sample>,
   cxxtrace::unbounded_unsafe_storage<clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
-  spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
+  spmc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
 
 template<class Storage>
@@ -86,7 +86,7 @@ using test_span_thread_safe_types = ::testing::Types<
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
-  spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
+  spmc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );
 }
 

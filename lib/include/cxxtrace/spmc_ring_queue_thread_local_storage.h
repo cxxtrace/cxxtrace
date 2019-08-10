@@ -1,9 +1,9 @@
-#ifndef CXXTRACE_SPSC_RING_QUEUE_THREAD_LOCAL_STORAGE_H
-#define CXXTRACE_SPSC_RING_QUEUE_THREAD_LOCAL_STORAGE_H
+#ifndef CXXTRACE_SPMC_RING_QUEUE_THREAD_LOCAL_STORAGE_H
+#define CXXTRACE_SPMC_RING_QUEUE_THREAD_LOCAL_STORAGE_H
 
 #include <cstddef>
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <mutex>
 #include <vector>
@@ -12,7 +12,7 @@ namespace cxxtrace {
 class samples_snapshot;
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
-class spsc_ring_queue_thread_local_storage
+class spmc_ring_queue_thread_local_storage
 {
 public:
   static auto reset() noexcept -> void;
@@ -40,6 +40,6 @@ private:
 };
 }
 
-#include <cxxtrace/spsc_ring_queue_thread_local_storage_impl.h>
+#include <cxxtrace/spmc_ring_queue_thread_local_storage_impl.h>
 
 #endif

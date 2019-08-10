@@ -1,9 +1,9 @@
-#ifndef CXXTRACE_SPSC_RING_QUEUE_THREAD_LOCAL_STORAGE_IMPL_H
-#define CXXTRACE_SPSC_RING_QUEUE_THREAD_LOCAL_STORAGE_IMPL_H
+#ifndef CXXTRACE_SPMC_RING_QUEUE_THREAD_LOCAL_STORAGE_IMPL_H
+#define CXXTRACE_SPMC_RING_QUEUE_THREAD_LOCAL_STORAGE_IMPL_H
 
-#if !defined(CXXTRACE_SPSC_RING_QUEUE_THREAD_LOCAL_STORAGE_H)
+#if !defined(CXXTRACE_SPMC_RING_QUEUE_THREAD_LOCAL_STORAGE_H)
 #error                                                                         \
-  "Include <cxxtrace/spsc_ring_queue_thread_local_storage.h> instead of including <cxxtrace/spsc_ring_queue_thread_local_storage_impl.h> directly."
+  "Include <cxxtrace/spmc_ring_queue_thread_local_storage.h> instead of including <cxxtrace/spmc_ring_queue_thread_local_storage_impl.h> directly."
 #endif
 
 #include <algorithm>
@@ -13,7 +13,7 @@
 #include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
-#include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
@@ -24,18 +24,18 @@
 
 namespace cxxtrace {
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
-struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
+struct spmc_ring_queue_thread_local_storage<CapacityPerThread,
                                             Tag,
                                             ClockSample>::thread_data
 {
   explicit thread_data() noexcept(false)
   {
-    spsc_ring_queue_thread_local_storage::add_to_thread_list(this);
+    spmc_ring_queue_thread_local_storage::add_to_thread_list(this);
   }
 
   ~thread_data() noexcept
   {
-    spsc_ring_queue_thread_local_storage::remove_from_thread_list(this);
+    spmc_ring_queue_thread_local_storage::remove_from_thread_list(this);
   }
 
   thread_data(const thread_data&) = delete;
@@ -70,12 +70,12 @@ struct spsc_ring_queue_thread_local_storage<CapacityPerThread,
   }
 
   cxxtrace::thread_id id{ cxxtrace::get_current_thread_id() };
-  detail::spsc_ring_queue<sample, CapacityPerThread> samples{};
+  detail::spmc_ring_queue<sample, CapacityPerThread> samples{};
 };
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   reset() noexcept -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
@@ -88,7 +88,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   add_sample(detail::sample_site_local_data site,
              ClockSample time_point) noexcept -> void
 {
@@ -101,7 +101,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 template<class Clock>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
   auto reclaimed_samples = std::vector<disowned_sample>{};
@@ -130,7 +130,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   get_thread_data() -> thread_data&
 {
 #if CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS
@@ -149,7 +149,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   add_to_thread_list(thread_data* data) noexcept(false) -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
@@ -158,7 +158,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   remove_from_thread_list(thread_data* data) noexcept -> void
 {
   auto global_lock = std::lock_guard{ global_mutex };
@@ -173,7 +173,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 auto
-spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
+spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   remember_current_thread_name_for_next_snapshot() -> void
 {
   // Do nothing. remove_from_thread_list will remember this thread's name.

@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
-#define CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
+#ifndef CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
+#define CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
 
 #include <algorithm>
 #include <array>
@@ -34,11 +34,9 @@ namespace detail {
 //
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
-// TODO(strager): Rename to spmc_ring_queue.
-//
 // @see ring_queue
 template<class T, std::size_t Capacity, class Index = int>
-class spsc_ring_queue
+class spmc_ring_queue
 {
 public:
   static_assert(Capacity > 0);
@@ -150,7 +148,7 @@ private:
     std::array<molecular<value_type>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
-    friend class spsc_ring_queue;
+    friend class spmc_ring_queue;
   };
 
   auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>
