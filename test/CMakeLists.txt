@@ -9,8 +9,8 @@ add_subdirectory(test_ring_queue)
 add_executable(
   test_cxxtrace
   $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
-  exhaustive_rng.cpp
   event.cpp
+  exhaustive_rng.cpp
   test_add.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp
@@ -39,6 +39,7 @@ set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_CXX_PREFIX_H
 cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
+target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_memory_resource)
 
 if (CXXTRACE_CDSCHECKER)
   add_library(
@@ -112,4 +113,13 @@ add_executable(
   benchmark_thread.cpp
   cxxtrace_benchmark.cpp
 )
-target_link_libraries(benchmark_cxxtrace PRIVATE benchmark benchmark_main cxxtrace)
+target_link_libraries(
+  benchmark_cxxtrace
+  PRIVATE
+  benchmark
+  benchmark_main
+  cxxtrace
+  cxxtrace_memory_resource
+)
+
+add_library(cxxtrace_memory_resource memory_resource.cpp)

@@ -1,8 +1,11 @@
 #include "cxxtrace_concurrency_test.h"
+#include "memory_resource.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
+#include <experimental/memory_resource>
+#include <experimental/vector>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -48,6 +51,19 @@ protected:
   auto items_for_range(size_type begin, size_type end) const -> std::vector<int>
   {
     auto items = std::vector<int>{};
+    items.reserve(end - begin);
+    for (auto i = begin; i < end; ++i) {
+      items.emplace_back(this->item_at_index(i));
+    }
+    return items;
+  }
+
+  auto items_for_range(size_type begin,
+                       size_type end,
+                       std::experimental::pmr::memory_resource* memory) const
+    -> std::experimental::pmr::vector<int>
+  {
+    auto items = std::experimental::pmr::vector<int>{ memory };
     items.reserve(end - begin);
     for (auto i = begin; i < end; ++i) {
       items.emplace_back(this->item_at_index(i));
@@ -259,11 +275,17 @@ public:
     int thread_count) noexcept
     : initial_push_size{ initial_push_size }
     , concurrent_push_size{ concurrent_push_size }
+    , items_popped_per_thread{ &this->memory }
   {
     this->push_range(0, this->initial_push_size);
     assert(this->total_push_size() <= RingQueue::capacity);
 
-    this->items_popped_per_thread.resize(thread_count);
+    this->items_popped_per_thread.reserve(thread_count);
+    for (auto i = 0; i < thread_count; ++i) {
+      auto& thread_items = this->items_popped_per_thread.emplace_back(
+        std::experimental::pmr::vector<int>{ &this->memory });
+      thread_items.reserve(this->total_push_size());
+    }
   }
 
   ~ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test()
@@ -276,7 +298,10 @@ public:
     if (thread_index == 0) {
       this->push_range(this->initial_push_size, this->total_push_size());
     } else {
-      auto thread_items = std::vector<int>{};
+      char buffer[1024];
+      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+      auto thread_items = std::experimental::pmr::vector<int>{ &memory };
       auto backoff = cxxtrace_test::backoff{};
       while (this->popped_item_count.load(CXXTRACE_HERE) <
              this->total_push_size()) {
@@ -291,16 +316,31 @@ public:
           backoff.reset();
         }
       }
-      this->items_popped_per_thread[thread_index] = std::move(thread_items);
+      CXXTRACE_ASSERT(thread_items.size() <=
+                      static_cast<std::size_t>(this->total_push_size()));
+      if (thread_items.size() <=
+          static_cast<std::size_t>(this->total_push_size())) {
+        // N.B. Avoid allocating when moving into this->items_popped_per_thread.
+        // Its allocator is not thread-safe.
+        auto& shared_thread_items = this->items_popped_per_thread[thread_index];
+        assert(shared_thread_items.empty());
+        assert(shared_thread_items.capacity() >= thread_items.size());
+        shared_thread_items.insert(
+          shared_thread_items.end(), thread_items.begin(), thread_items.end());
+      }
     }
   }
 
   auto check_postconditions() -> void
   {
-    auto expected_items = this->expected_items();
+    char buffer[1024];
+    auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+    auto expected_items = this->expected_items(&memory);
     assert(std::is_sorted(expected_items.begin(), expected_items.end()));
 
-    auto all_popped_items = std::vector<int>{};
+    auto all_popped_items = std::experimental::pmr::vector<int>{ &memory };
+    all_popped_items.reserve(expected_items.size());
     for (const auto& thread_items : this->items_popped_per_thread) {
       CXXTRACE_ASSERT(std::is_sorted(thread_items.begin(), thread_items.end()));
       all_popped_items.insert(
@@ -316,9 +356,10 @@ private:
     return this->initial_push_size + this->concurrent_push_size;
   }
 
-  auto expected_items() const -> std::vector<int>
+  auto expected_items(std::experimental::pmr::memory_resource* memory) const
+    -> std::experimental::pmr::vector<int>
   {
-    return this->items_for_range(0, this->total_push_size());
+    return this->items_for_range(0, this->total_push_size(), memory);
   }
 
   // HACK(strager): Model checkers want to think that popped_item_count
@@ -339,7 +380,11 @@ private:
   size_type concurrent_push_size;
 
   atomic<int> popped_item_count{ 0 };
-  std::vector<std::vector<int>> items_popped_per_thread;
+
+  char buffer[1024];
+  monotonic_buffer_resource memory{ this->buffer, sizeof(this->buffer) };
+  std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
+    items_popped_per_thread;
 };
 
 auto
@@ -386,8 +431,6 @@ register_concurrency_tests() -> void
       concurrent_push_size);
   }
 
-  // FIXME(strager): This test takes too long with the address sanitizer
-  // enabled.
   for (auto [initial_push_size, concurrent_push_size] : { std::pair{ 1, 0 },
                                                           std::pair{ 2, 0 },
                                                           std::pair{ 0, 1 },

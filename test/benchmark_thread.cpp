@@ -1,4 +1,5 @@
 #include "cxxtrace_benchmark.h"
+#include "memory_resource.h"
 #include <benchmark/benchmark.h>
 #include <cerrno>
 #include <cstddef>
@@ -13,32 +14,6 @@
 #include <pthread.h>
 
 namespace {
-// TODO(strager): Use the standard library's monotonic_buffer_resource
-// implementation instead.
-class monotonic_buffer_resource : public std::experimental::pmr::memory_resource
-{
-public:
-  monotonic_buffer_resource(void* buffer, std::size_t buffer_size) noexcept;
-
-  ~monotonic_buffer_resource() override;
-
-  monotonic_buffer_resource(const monotonic_buffer_resource&) = delete;
-  monotonic_buffer_resource& operator=(const monotonic_buffer_resource&) =
-    delete;
-
-protected:
-  auto do_allocate(std::size_t size, std::size_t alignment) -> void* override;
-  auto do_deallocate(void*, std::size_t size, std::size_t alignment)
-    -> void override;
-  auto do_is_equal(const std::experimental::pmr::memory_resource&) const
-    noexcept -> bool override;
-
-private:
-  void* buffer;
-  std::size_t buffer_size;
-  void* free_space;
-};
-
 auto set_current_thread_name(cxxtrace::czstring) -> void;
 }
 
@@ -251,46 +226,6 @@ CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(get_current_processor_id_benchmark,
 }
 
 namespace {
-monotonic_buffer_resource::monotonic_buffer_resource(
-  void* buffer,
-  std::size_t buffer_size) noexcept
-  : buffer{ buffer }
-  , buffer_size{ buffer_size }
-  , free_space{ buffer }
-{}
-
-monotonic_buffer_resource::~monotonic_buffer_resource() = default;
-
-auto
-monotonic_buffer_resource::do_allocate(std::size_t size, std::size_t alignment)
-  -> void*
-{
-  auto free_space_size =
-    this->buffer_size -
-    (static_cast<std::byte*>(free_space) - static_cast<std::byte*>(buffer));
-  auto* p = this->free_space;
-  p = std::align(alignment, size, p, free_space_size);
-  if (!p) {
-    throw std::bad_alloc{};
-  }
-  this->free_space = static_cast<std::byte*>(p) + size;
-  return p;
-}
-
-auto
-monotonic_buffer_resource::do_deallocate(void*, std::size_t, std::size_t)
-  -> void
-{
-  // Do nothing.
-}
-
-auto
-monotonic_buffer_resource::do_is_equal(
-  const std::experimental::pmr::memory_resource& other) const noexcept -> bool
-{
-  return this == &other;
-}
-
 auto
 set_current_thread_name(cxxtrace::czstring name) -> void
 {

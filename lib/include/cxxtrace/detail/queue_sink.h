@@ -2,16 +2,17 @@
 #define CXXTRACE_DETAIL_QUEUE_SINK_H
 
 #include <cassert>
+#include <memory>
 #include <utility>
 #include <vector>
 
 namespace cxxtrace {
 namespace detail {
-template<class T, class Func>
+template<class T, class Func, class Allocator = std::allocator<T>>
 class transform_vector_queue_sink
 {
 public:
-  using container = std::vector<T>;
+  using container = std::vector<T, Allocator>;
   using size_type = typename container::size_type;
   using value_type = T;
 
@@ -45,11 +46,11 @@ private:
   Func func;
 };
 
-template<class T>
+template<class T, class Allocator = std::allocator<T>>
 class vector_queue_sink
 {
 public:
-  using container = std::vector<T>;
+  using container = std::vector<T, Allocator>;
   using size_type = typename container::size_type;
   using value_type = T;
 
@@ -78,7 +79,7 @@ private:
     auto operator()(T x) const noexcept -> T { return std::move(x); }
   };
 
-  transform_vector_queue_sink<T, identity_functor> sink;
+  transform_vector_queue_sink<T, identity_functor, Allocator> sink;
 };
 }
 }

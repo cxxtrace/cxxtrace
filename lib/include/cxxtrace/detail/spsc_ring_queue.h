@@ -68,9 +68,10 @@ public:
     this->end_push(end_vindex);
   }
 
-  auto pop_all_into(std::vector<T>& output) -> void
+  template<class Allocator>
+  auto pop_all_into(std::vector<T, Allocator>& output) -> void
   {
-    this->pop_all_into(vector_queue_sink<T>{ output });
+    this->pop_all_into(vector_queue_sink<T, Allocator>{ output });
   }
 
   template<class Sink>
