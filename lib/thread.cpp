@@ -271,20 +271,6 @@ thread_name_set::remember_name_of_thread(
 }
 
 #if defined(__x86_64__)
-namespace {
-// TODO(strager): Replace this function with an alias to a processor_id_lookup
-// class.
-auto
-get_current_processor_id_x86_cpuid_uncached() noexcept -> processor_id
-{
-  // FIXME(strager): We should detect what is supported by the CPU.
-  // TODO(strager): Use CPUID 1FH if supported, as recommended by Intel.
-  return processor_id_lookup_x86_cpuid_0bh{}.get_current_processor_id();
-}
-}
-#endif
-
-#if defined(__x86_64__)
 auto
 processor_id_lookup_x86_cpuid_01h::get_current_processor_id() noexcept
   -> processor_id
@@ -320,6 +306,17 @@ processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
   // From Volume 2A:
   // 1FH: EDX: Bits 31-00: x2APIC ID the current logical processor.
   return edx;
+}
+#endif
+
+#if defined(__x86_64__)
+auto
+processor_id_lookup_x86_cpuid_uncached ::get_current_processor_id() const
+  noexcept -> processor_id
+{
+  // FIXME(strager): We should detect what is supported by the CPU.
+  // TODO(strager): Use CPUID 1FH if supported, as recommended by Intel.
+  return this->lookup.get_current_processor_id();
 }
 #endif
 
@@ -370,7 +367,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
 
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   if (!this->commpage_supported) {
-    return get_current_processor_id_x86_cpuid_uncached();
+    return this->uncached_lookup.get_current_processor_id();
   }
 #endif
 
@@ -400,7 +397,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
     // thread was rescheduled onto a different processor, or another thread on
     // the system was scheduled onto a different processor. Our cached processor
     // ID is possibly invalid.
-    c.id = get_current_processor_id_x86_cpuid_uncached();
+    c.id = this->uncached_lookup.get_current_processor_id();
     c.scheduler_generation_and_initialized = scheduler_generation;
     // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
     // disagrees with our scheduler_generation automatic variable), ideally we

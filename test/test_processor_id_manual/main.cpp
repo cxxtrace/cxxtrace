@@ -161,6 +161,7 @@ INSTANTIATE_TEST_CASE_P(
     PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
     PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
     PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_uncached),
     PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_commpage_preempt_cached)),
   [](const auto& param) { return param.param->name; });
 #undef PROCESSOR_ID_LOOKUP

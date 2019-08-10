@@ -199,6 +199,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   processor_id_lookup_x86_cpuid_01h,
   processor_id_lookup_x86_cpuid_0bh,
   processor_id_lookup_x86_cpuid_1fh,
+  processor_id_lookup_x86_cpuid_uncached,
   processor_id_lookup_x86_cpuid_commpage_preempt_cached);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,

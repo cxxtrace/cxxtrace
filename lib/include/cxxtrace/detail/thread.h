@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cxxtrace/detail/attribute.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <experimental/memory_resource>
@@ -78,6 +79,17 @@ public:
 #endif
 
 #if defined(__x86_64__) && defined(__APPLE__)
+class processor_id_lookup_x86_cpuid_uncached
+{
+public:
+  auto get_current_processor_id() const noexcept -> processor_id;
+
+private:
+  CXXTRACE_NO_UNIQUE_ADDRESS processor_id_lookup_x86_cpuid_0bh lookup;
+};
+#endif
+
+#if defined(__x86_64__) && defined(__APPLE__)
 class processor_id_lookup_x86_cpuid_commpage_preempt_cached
 {
 public:
@@ -108,6 +120,8 @@ private:
 
   static thread_local cache thread_local_cache;
 
+  CXXTRACE_NO_UNIQUE_ADDRESS processor_id_lookup_x86_cpuid_uncached
+    uncached_lookup;
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   bool commpage_supported;
 #endif
