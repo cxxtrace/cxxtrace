@@ -166,16 +166,6 @@ BENCHMARK(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc);
 #endif
 
-template<cxxtrace::detail::processor_id (*Func)() noexcept>
-class processor_id_func_lookup
-{
-public:
-  auto get_current_processor_id() noexcept -> cxxtrace::detail::processor_id
-  {
-    return Func();
-  }
-};
-
 template<class ProcessorIDLookup>
 class get_current_processor_id_benchmark : public benchmark_fixture
 {
@@ -203,17 +193,13 @@ protected:
 // TODO(strager): Figure out how to avoid namespace pollution while keeping the
 // benchmark names short.
 using namespace cxxtrace::detail;
-template<auto F>
-using f = processor_id_func_lookup<F>;
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   get_current_processor_id_benchmark,
   processor_id_lookup,
-  processor_id_lookup_x86_cpuid_commpage_preempt_cached,
-  f<get_current_processor_id>,
-  f<get_current_processor_id_x86_cpuid_commpage_preempt_cached>,
-  f<get_current_processor_id_x86_cpuid_01h>,
-  f<get_current_processor_id_x86_cpuid_0bh>,
-  f<get_current_processor_id_x86_cpuid_1fh>);
+  processor_id_lookup_x86_cpuid_01h,
+  processor_id_lookup_x86_cpuid_0bh,
+  processor_id_lookup_x86_cpuid_1fh,
+  processor_id_lookup_x86_cpuid_commpage_preempt_cached);
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
                                      busy_loop_unrolled)

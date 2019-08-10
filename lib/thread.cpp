@@ -270,31 +270,24 @@ thread_name_set::remember_name_of_thread(
   }
 }
 
-auto
-get_current_processor_id() noexcept -> processor_id
-{
-#if defined(__x86_64__) && defined(__APPLE__)
-  return get_current_processor_id_x86_cpuid_commpage_preempt_cached();
-#else
-#error "Unknown platform"
-#endif
-}
-
 #if defined(__x86_64__)
 namespace {
+// TODO(strager): Replace this function with an alias to a processor_id_lookup
+// class.
 auto
 get_current_processor_id_x86_cpuid_uncached() noexcept -> processor_id
 {
   // FIXME(strager): We should detect what is supported by the CPU.
   // TODO(strager): Use CPUID 1FH if supported, as recommended by Intel.
-  return get_current_processor_id_x86_cpuid_0bh();
+  return processor_id_lookup_x86_cpuid_0bh{}.get_current_processor_id();
 }
 }
 #endif
 
 #if defined(__x86_64__)
 auto
-get_current_processor_id_x86_cpuid_01h() noexcept -> processor_id
+processor_id_lookup_x86_cpuid_01h::get_current_processor_id() noexcept
+  -> processor_id
 {
   std::uint32_t ebx;
   asm volatile("cpuid" : "=b"(ebx) : "a"(0x01) : "ecx", "edx");
@@ -306,7 +299,8 @@ get_current_processor_id_x86_cpuid_01h() noexcept -> processor_id
 
 #if defined(__x86_64__)
 auto
-get_current_processor_id_x86_cpuid_0bh() noexcept -> processor_id
+processor_id_lookup_x86_cpuid_0bh::get_current_processor_id() noexcept
+  -> processor_id
 {
   std::uint32_t edx;
   asm volatile("cpuid" : "=d"(edx) : "a"(0x0b) : "ebx", "ecx");
@@ -318,114 +312,14 @@ get_current_processor_id_x86_cpuid_0bh() noexcept -> processor_id
 
 #if defined(__x86_64__)
 auto
-get_current_processor_id_x86_cpuid_1fh() noexcept -> processor_id
+processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
+  -> processor_id
 {
   std::uint32_t edx;
   asm volatile("cpuid" : "=d"(edx) : "a"(0x1f) : "ebx", "ecx");
   // From Volume 2A:
   // 1FH: EDX: Bits 31-00: x2APIC ID the current logical processor.
   return edx;
-}
-#endif
-
-#if defined(__x86_64__) && defined(__APPLE__)
-auto
-get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
-  -> processor_id
-{
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-  static constexpr char expected_signature[] = "commpage 64-bit\0";
-  static_assert(
-    sizeof(expected_signature) - 1 == apple_commpage::signature_size,
-    "expected_signature should fit exactly in commpage_signature field");
-
-  // Version 1 introduced _COMM_PAGE_SIGNATURE and _COMM_PAGE_VERSION.
-  // Version 7 introduced _COMM_PAGE_SCHED_GEN.
-  static constexpr auto minimum_required_commpage_version = std::uint16_t{ 7 };
-#endif
-
-  enum class cache_state : std::int8_t
-  {
-    uninitialized = 0,
-    initialized,
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-    commpage_unsupported,
-#endif
-  };
-
-  struct cache
-  {
-    processor_id id;
-
-    // HACK(strager): If we explicitly initialize the loaded member variable,
-    // Clang 8.0.0 on macOS 10.12 will synthesize a guard variable for
-    // initializing thread_local_cache. Since thread_local variables are
-    // zero-initialized anyway, avoid the explicit member initializer to avoid
-    // the guard variable.
-    cache_state state /*{cache_state::uninitialized}*/;
-    static_assert(static_cast<cache_state>(0) == cache_state::uninitialized);
-
-    std::uint32_t scheduler_generation;
-
-    [[gnu::noinline]] auto initialize() noexcept -> processor_id
-    {
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-      if (std::memcmp(apple_commpage::signature,
-                      expected_signature,
-                      apple_commpage::signature_size) != 0) {
-        this->state = cache_state::commpage_unsupported;
-        return get_current_processor_id_x86_cpuid_uncached();
-      }
-      if (*apple_commpage::version < minimum_required_commpage_version) {
-        this->state = cache_state::commpage_unsupported;
-        return get_current_processor_id_x86_cpuid_uncached();
-      }
-#endif
-
-      this->id = get_current_processor_id_x86_cpuid_uncached();
-      this->scheduler_generation =
-        apple_commpage::sched_gen->load(std::memory_order_seq_cst);
-      this->state = cache_state::initialized;
-      return this->id;
-    }
-  };
-  thread_local cache thread_local_cache;
-
-  auto* c_ptr = &thread_local_cache;
-#if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
-  asm volatile("" : "+r"(c_ptr));
-#endif
-  auto& c = *c_ptr;
-
-  auto state = c.state;
-  if (__builtin_expect(state == cache_state::uninitialized, false)) {
-    return c.initialize();
-  }
-  if (state == cache_state::initialized) {
-    auto scheduler_generation =
-      apple_commpage::sched_gen->load(std::memory_order_seq_cst);
-    if (scheduler_generation == c.scheduler_generation) {
-      // This thread was not rescheduled onto a different processor. Our cached
-      // processor ID is valid.
-    } else {
-      // This thread was possibly rescheduled onto a different processor. Our
-      // cached processor ID is possibly invalid.
-      c.id = get_current_processor_id_x86_cpuid_uncached();
-      c.scheduler_generation = scheduler_generation;
-      // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
-      // disagrees with our scheduler_generation automatic variable), ideally we
-      // would query the processor ID again. However, this function is a hint
-      // anyway; there's no point in getting the "right" answer when it'll be
-      // possibly invalid after returning anyway.
-    }
-    return c.id;
-  }
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-  if (state == cache_state::commpage_unsupported) {
-    return get_current_processor_id_x86_cpuid_uncached();
-  }
-#endif
-  __builtin_unreachable();
 }
 #endif
 
@@ -440,8 +334,6 @@ auto
 processor_id_lookup_x86_cpuid_commpage_preempt_cached::initialize() noexcept
   -> void
 {
-  // TODO(strager): Deduplicate with
-  // get_current_processor_id_x86_cpuid_commpage_preempt_cached.
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   static constexpr char expected_signature[] = "commpage 64-bit\0";
   static_assert(
@@ -470,8 +362,6 @@ auto
 processor_id_lookup_x86_cpuid_commpage_preempt_cached::
   get_current_processor_id() const noexcept -> processor_id
 {
-  // TODO(strager): Deduplicate with
-  // get_current_processor_id_x86_cpuid_commpage_preempt_cached.
   auto* c_ptr = &this->thread_local_cache;
 #if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
   asm volatile("" : "+r"(c_ptr));

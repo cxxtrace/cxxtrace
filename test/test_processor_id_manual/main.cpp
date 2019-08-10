@@ -130,23 +130,6 @@ TEST_P(test_processor_id_manual,
   }
 }
 
-template<processor_id (*Func)()>
-struct processor_id_func_lookup : public any_processor_id_lookup
-{
-  using any_processor_id_lookup::any_processor_id_lookup;
-
-  virtual auto get_current_processor_id() const noexcept -> processor_id
-  {
-    return Func();
-  }
-
-  static auto instance(cxxtrace::czstring name) -> processor_id_func_lookup&
-  {
-    static auto instance = processor_id_func_lookup{ name };
-    return instance;
-  }
-};
-
 template<class ProcessorIDLookup, int /*Counter*/>
 struct type_erased_processor_id_lookup : public any_processor_id_lookup
 {
@@ -167,8 +150,6 @@ struct type_erased_processor_id_lookup : public any_processor_id_lookup
   ProcessorIDLookup lookup{};
 };
 
-#define PROCESSOR_ID_FUNC_LOOKUP(func)                                         \
-  (&processor_id_func_lookup<::cxxtrace::detail::func>::instance(#func))
 #define PROCESSOR_ID_LOOKUP(lookup)                                            \
   (&type_erased_processor_id_lookup<::cxxtrace::detail::lookup,                \
                                     __COUNTER__>::instance(#lookup))
@@ -176,16 +157,12 @@ INSTANTIATE_TEST_CASE_P(
   ,
   test_processor_id_manual,
   testing::Values(
-    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id),
-    PROCESSOR_ID_FUNC_LOOKUP(
-      get_current_processor_id_x86_cpuid_commpage_preempt_cached),
-    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_01h),
-    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_0bh),
-    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_1fh),
     PROCESSOR_ID_LOOKUP(processor_id_lookup),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
     PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_commpage_preempt_cached)),
   [](const auto& param) { return param.param->name; });
-#undef PROCESSOR_ID_FUNC_LOOKUP
 #undef PROCESSOR_ID_LOOKUP
 
 template<class ProcessorIDFunc>
