@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_THREAD_DETAIL_H
-#define CXXTRACE_THREAD_DETAIL_H
+#ifndef CXXTRACE_DETAIL_THREAD_H
+#define CXXTRACE_DETAIL_THREAD_H
 
 #include <cstddef>
 #include <cstdint>
