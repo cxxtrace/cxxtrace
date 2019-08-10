@@ -8,11 +8,11 @@
 #include <experimental/vector>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 namespace {
 auto
-assert_items_are_sequential(const std::vector<int>& items) -> void;
+assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
+  -> void;
 }
 
 namespace cxxtrace_test {
@@ -48,16 +48,6 @@ protected:
     });
   }
 
-  auto items_for_range(size_type begin, size_type end) const -> std::vector<int>
-  {
-    auto items = std::vector<int>{};
-    items.reserve(end - begin);
-    for (auto i = begin; i < end; ++i) {
-      items.emplace_back(this->item_at_index(i));
-    }
-    return items;
-  }
-
   auto items_for_range(size_type begin,
                        size_type end,
                        std::experimental::pmr::memory_resource* memory) const
@@ -89,7 +79,10 @@ public:
     if (thread_index == 0) {
       this->queue.push(1, [](auto data) noexcept { data.set(0, 42); });
     } else {
-      auto items = std::vector<int>{};
+      char buffer[1024];
+      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+      auto items = std::experimental::pmr::vector<int>{ &memory };
       this->queue.pop_all_into(items);
       CXXTRACE_ASSERT(items.size() == 0 || items.size() == 1);
       if (items.size() == 1) {
@@ -137,7 +130,10 @@ public:
           break;
       }
     } else {
-      auto items = std::vector<int>{};
+      char buffer[1024];
+      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+      auto items = std::experimental::pmr::vector<int>{ &memory };
       this->queue.pop_all_into(items);
       CXXTRACE_ASSERT(static_cast<size_type>(items.size()) <= this->capacity);
       CXXTRACE_ASSERT(static_cast<size_type>(items.size()) >=
@@ -176,7 +172,10 @@ public:
     } else {
       auto found_last_item = false;
       while (!found_last_item) {
-        auto items = std::vector<int>{};
+        char buffer[1024];
+        auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+        auto items = std::experimental::pmr::vector<int>{ &memory };
         auto backoff = cxxtrace_test::backoff{};
         this->queue.pop_all_into(items);
         while (items.empty()) {
@@ -189,9 +188,14 @@ public:
         }
       }
 
-      auto items = std::vector<int>{};
-      this->queue.pop_all_into(items);
-      CXXTRACE_ASSERT(items.empty());
+      {
+        char buffer[1024];
+        auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+        auto items = std::experimental::pmr::vector<int>{};
+        this->queue.pop_all_into(items);
+        CXXTRACE_ASSERT(items.empty());
+      }
     }
   }
 
@@ -233,7 +237,10 @@ public:
     if (thread_index == 0) {
       this->push_range(this->initial_push_size, this->total_push_size());
     } else {
-      auto items = std::vector<int>{};
+      char buffer[1024];
+      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+      auto items = std::experimental::pmr::vector<int>{ &memory };
       while (items.size() < static_cast<std::size_t>(this->total_push_size())) {
         auto old_size = items.size();
         auto backoff = cxxtrace_test::backoff{};
@@ -243,7 +250,7 @@ public:
           this->queue.pop_all_into(items);
         }
       }
-      CXXTRACE_ASSERT(items == this->expected_items());
+      CXXTRACE_ASSERT(items == this->expected_items(&memory));
     }
   }
 
@@ -253,9 +260,10 @@ private:
     return this->initial_push_size + this->concurrent_push_size;
   }
 
-  auto expected_items() const -> std::vector<int>
+  auto expected_items(std::experimental::pmr::memory_resource* memory) const
+    -> std::experimental::pmr::vector<int>
   {
-    return this->items_for_range(0, this->total_push_size());
+    return this->items_for_range(0, this->total_push_size(), memory);
   }
 
   size_type initial_push_size;
@@ -450,7 +458,8 @@ register_concurrency_tests() -> void
 
 namespace {
 auto
-assert_items_are_sequential(const std::vector<int>& items) -> void
+assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
+  -> void
 {
   if (!items.empty()) {
     for (auto i = 1; i < int(items.size()); ++i) {
