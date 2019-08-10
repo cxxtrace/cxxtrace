@@ -13,6 +13,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <cxxtrace/detail/apple_commpage.h>
 #include <exception>
 #include <libproc.h>
 #include <mach/kern_return.h>
@@ -334,26 +335,10 @@ auto
 get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
   -> processor_id
 {
-  // See darwin-xnu/osfmk/i386/cpu_capabilities.h:
-  // https://github.com/apple/darwin-xnu/blob/a449c6a3b8014d9406c2ddbdc81795da24aa7443/osfmk/i386/cpu_capabilities.h#L176
-  static constexpr auto commpage_base = std::uintptr_t{ 0x00007fffffe00000ULL };
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-  static const auto* commpage_signature =
-    reinterpret_cast<const std::byte*>(commpage_base + 0x000);
-  static constexpr auto commpage_signature_size = std::size_t{ 0x10 };
-  static const auto* commpage_version =
-    reinterpret_cast<const std::uint16_t*>(commpage_base + 0x01e);
-#endif
-  static const volatile auto* commpage_sched_gen =
-    reinterpret_cast<const std::atomic<std::uint32_t>*>(commpage_base + 0x028);
-  static_assert(
-    std::decay_t<decltype(*commpage_sched_gen)>::is_always_lock_free);
-  static_assert(sizeof(*commpage_sched_gen) == 4);
-
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   static constexpr char expected_signature[] = "commpage 64-bit\0";
   static_assert(
-    sizeof(expected_signature) - 1 == commpage_signature_size,
+    sizeof(expected_signature) - 1 == apple_commpage::signature_size,
     "expected_signature should fit exactly in commpage_signature field");
 
   // Version 1 introduced _COMM_PAGE_SIGNATURE and _COMM_PAGE_VERSION.
@@ -387,13 +372,13 @@ get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
     [[gnu::noinline]] auto initialize() noexcept -> processor_id
     {
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-      if (std::memcmp(commpage_signature,
+      if (std::memcmp(apple_commpage::signature,
                       expected_signature,
-                      commpage_signature_size) != 0) {
+                      apple_commpage::signature_size) != 0) {
         this->state = cache_state::commpage_unsupported;
         return get_current_processor_id_x86_cpuid_uncached();
       }
-      if (*commpage_version < minimum_required_commpage_version) {
+      if (*apple_commpage::version < minimum_required_commpage_version) {
         this->state = cache_state::commpage_unsupported;
         return get_current_processor_id_x86_cpuid_uncached();
       }
@@ -401,7 +386,7 @@ get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
 
       this->id = get_current_processor_id_x86_cpuid_uncached();
       this->scheduler_generation =
-        commpage_sched_gen->load(std::memory_order_seq_cst);
+        apple_commpage::sched_gen->load(std::memory_order_seq_cst);
       this->state = cache_state::initialized;
       return this->id;
     }
@@ -420,7 +405,7 @@ get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
   }
   if (state == cache_state::initialized) {
     auto scheduler_generation =
-      commpage_sched_gen->load(std::memory_order_seq_cst);
+      apple_commpage::sched_gen->load(std::memory_order_seq_cst);
     if (scheduler_generation == c.scheduler_generation) {
       // This thread was not rescheduled onto a different processor. Our cached
       // processor ID is valid.
@@ -429,9 +414,9 @@ get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
       // cached processor ID is possibly invalid.
       c.id = get_current_processor_id_x86_cpuid_uncached();
       c.scheduler_generation = scheduler_generation;
-      // NOTE(strager): If *commpage_sched_gen changes again (i.e. disagrees
-      // with our scheduler_generation automatic variable), ideally we would
-      // query the processor ID again. However, this function is a hint
+      // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
+      // disagrees with our scheduler_generation automatic variable), ideally we
+      // would query the processor ID again. However, this function is a hint
       // anyway; there's no point in getting the "right" answer when it'll be
       // possibly invalid after returning anyway.
     }
