@@ -167,15 +167,17 @@ BENCHMARK(
 #endif
 
 template<cxxtrace::detail::processor_id (*Func)() noexcept>
-struct processor_id_func
-{};
+class processor_id_func_lookup
+{
+public:
+  auto get_current_processor_id() noexcept -> cxxtrace::detail::processor_id
+  {
+    return Func();
+  }
+};
 
-template<class ProcessorIDFunc>
-class get_current_processor_id_benchmark;
-
-template<cxxtrace::detail::processor_id (*ProcessorIDFunc)() noexcept>
-class get_current_processor_id_benchmark<processor_id_func<ProcessorIDFunc>>
-  : public benchmark_fixture
+template<class ProcessorIDLookup>
+class get_current_processor_id_benchmark : public benchmark_fixture
 {
 public:
   auto tear_down(benchmark::State& bench) -> void override
@@ -187,22 +189,26 @@ public:
     bench.counters["total samples"] = total_samples;
   }
 
-  [[gnu::always_inline]] static auto get_current_processor_id() noexcept
+  [[gnu::always_inline]] auto get_current_processor_id() noexcept
   {
-    return ProcessorIDFunc();
+    return this->processor_id_lookup.get_current_processor_id();
   }
 
 protected:
   static constexpr auto samples_per_iteration{ 100 };
+
+  ProcessorIDLookup processor_id_lookup;
 };
 
 // TODO(strager): Figure out how to avoid namespace pollution while keeping the
 // benchmark names short.
 using namespace cxxtrace::detail;
 template<auto F>
-using f = processor_id_func<F>;
+using f = processor_id_func_lookup<F>;
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   get_current_processor_id_benchmark,
+  processor_id_lookup,
+  processor_id_lookup_x86_cpuid_commpage_preempt_cached,
   f<get_current_processor_id>,
   f<get_current_processor_id_x86_cpuid_commpage_preempt_cached>,
   f<get_current_processor_id_x86_cpuid_01h>,

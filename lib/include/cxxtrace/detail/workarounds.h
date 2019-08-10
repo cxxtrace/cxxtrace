@@ -1,6 +1,12 @@
 #ifndef CXXTRACE_DETAIL_WORKAROUNDS_H
 #define CXXTRACE_DETAIL_WORKAROUNDS_H
 
+#if __has_include(<version>)
+#include <version>
+#else
+#include <ciso646>
+#endif
+
 #if defined(__clang__) && (__clang_major__ == 7 || __clang_major__ == 8) &&    \
   defined(__APPLE__)
 // Clang 7.0 and Clang 8.0.0 with -O2 targeting macOS 10.11 or macOS 10.12
@@ -16,6 +22,11 @@
 // lazy_thread_local<> class instead which performs better than vanilla
 // thread_local.
 #define CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS 1
+#endif
+
+#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 8000
+// libc++ 8.0.0 does not declare std::atomic<T>::value_type.
+#define CXXTRACE_WORK_AROUND_ATOMIC_VALUE_TYPE 1
 #endif
 
 #if CXXTRACE_ENABLE_CDSCHECKER

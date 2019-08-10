@@ -9,6 +9,8 @@
 #include <experimental/unordered_map>
 #include <string>
 
+#define CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION 1
+
 namespace cxxtrace {
 namespace detail {
 struct thread_name_set
@@ -51,6 +53,8 @@ struct thread_name_set
 
 using processor_id = std::uint32_t;
 
+// TODO(strager): Refactor all get_current_processor_id functions into
+// processor_id_lookup classes.
 auto
 get_current_processor_id() noexcept -> processor_id;
 
@@ -67,6 +71,50 @@ get_current_processor_id_x86_cpuid_1fh() noexcept -> processor_id;
 auto
 get_current_processor_id_x86_cpuid_commpage_preempt_cached() noexcept
   -> processor_id;
+#endif
+
+#if defined(__x86_64__) && defined(__APPLE__)
+class processor_id_lookup_x86_cpuid_commpage_preempt_cached
+{
+public:
+  explicit processor_id_lookup_x86_cpuid_commpage_preempt_cached() noexcept;
+
+  auto get_current_processor_id() const noexcept -> processor_id;
+
+private:
+  struct cache
+  {
+    // A signal bit indicating that this cache has been initialized.
+    //
+    // If this bit didn't exist, the first calls to get_current_processor_id on
+    // a thread will return 0 if *apple_commpage::sched_gen happened to equal 0.
+    // (Returning 0 is possibly wrong.)
+    //
+    // TODO(strager): Because get_current_processor_id is advisory anyway,
+    // should we drop this bit and live with being wrong with a probability of
+    // 1-in-4-billion?
+    static constexpr auto initialized = std::uint64_t{ 1ULL << 63 };
+
+    processor_id id;
+    // Either 0, or *apple_commpage::sched_gen bitwise-or cache::initialized.
+    std::uint64_t scheduler_generation_and_initialized;
+  };
+
+  auto initialize() noexcept -> void;
+
+  static thread_local cache thread_local_cache;
+
+#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
+  bool commpage_supported;
+#endif
+};
+#endif
+
+#if defined(__x86_64__) && defined(__APPLE__)
+using processor_id_lookup =
+  processor_id_lookup_x86_cpuid_commpage_preempt_cached;
+#else
+#error "Unknown platform"
 #endif
 }
 }

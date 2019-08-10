@@ -45,7 +45,9 @@ namespace {
 std::chrono::milliseconds g_test_duration = 20ms;
 int g_thread_count = 4;
 
-auto sample_processor_id_on_threads(processor_id (*get_current_processor_id)())
+template<class ProcessorIDFunc>
+auto
+sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
   -> std::vector<processor_id_samples>;
 
 auto
@@ -56,14 +58,22 @@ massage_processor_id_samples(
 auto
 create_world_readable_temporary_file() -> std::string;
 
-struct processor_id_func
+class any_processor_id_lookup
 {
-  processor_id (*func)();
+public:
+  constexpr explicit any_processor_id_lookup(cxxtrace::czstring name) noexcept
+    : name{ name }
+  {}
+
+  virtual ~any_processor_id_lookup() = default;
+
+  virtual auto get_current_processor_id() const noexcept -> processor_id = 0;
+
   cxxtrace::czstring name;
 };
 
 class test_processor_id_manual
-  : public testing::TestWithParam<processor_id_func>
+  : public testing::TestWithParam<any_processor_id_lookup*>
 {};
 
 TEST_P(test_processor_id_manual,
@@ -77,8 +87,8 @@ TEST_P(test_processor_id_manual,
   dtrace.start();
 
   auto begin_timestamp = clock.query();
-  auto processor_id_samples_by_thread =
-    sample_processor_id_on_threads(this->GetParam().func);
+  auto processor_id_samples_by_thread = sample_processor_id_on_threads(
+    [this]() { return this->GetParam()->get_current_processor_id(); });
   auto end_timestamp = clock.query();
 
   dtrace.stop();
@@ -120,21 +130,67 @@ TEST_P(test_processor_id_manual,
   }
 }
 
-#define PROCESSOR_ID_FUNC(func)                                                \
-  (processor_id_func{ ::cxxtrace::detail::func, #func })
+template<processor_id (*Func)()>
+struct processor_id_func_lookup : public any_processor_id_lookup
+{
+  using any_processor_id_lookup::any_processor_id_lookup;
+
+  virtual auto get_current_processor_id() const noexcept -> processor_id
+  {
+    return Func();
+  }
+
+  static auto instance(cxxtrace::czstring name) -> processor_id_func_lookup&
+  {
+    static auto instance = processor_id_func_lookup{ name };
+    return instance;
+  }
+};
+
+template<class ProcessorIDLookup, int /*Counter*/>
+struct type_erased_processor_id_lookup : public any_processor_id_lookup
+{
+  using any_processor_id_lookup::any_processor_id_lookup;
+
+  virtual auto get_current_processor_id() const noexcept -> processor_id
+  {
+    return lookup.get_current_processor_id();
+  }
+
+  static auto instance(cxxtrace::czstring name)
+    -> type_erased_processor_id_lookup&
+  {
+    static auto instance = type_erased_processor_id_lookup{ name };
+    return instance;
+  }
+
+  ProcessorIDLookup lookup{};
+};
+
+#define PROCESSOR_ID_FUNC_LOOKUP(func)                                         \
+  (&processor_id_func_lookup<::cxxtrace::detail::func>::instance(#func))
+#define PROCESSOR_ID_LOOKUP(lookup)                                            \
+  (&type_erased_processor_id_lookup<::cxxtrace::detail::lookup,                \
+                                    __COUNTER__>::instance(#lookup))
 INSTANTIATE_TEST_CASE_P(
   ,
   test_processor_id_manual,
-  testing::Values(PROCESSOR_ID_FUNC(get_current_processor_id),
-                  PROCESSOR_ID_FUNC(
-                    get_current_processor_id_x86_cpuid_commpage_preempt_cached),
-                  PROCESSOR_ID_FUNC(get_current_processor_id_x86_cpuid_01h),
-                  PROCESSOR_ID_FUNC(get_current_processor_id_x86_cpuid_0bh),
-                  PROCESSOR_ID_FUNC(get_current_processor_id_x86_cpuid_1fh)),
-  [](const auto& param) { return param.param.name; });
-#undef PROCESSOR_ID_FUNC
+  testing::Values(
+    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id),
+    PROCESSOR_ID_FUNC_LOOKUP(
+      get_current_processor_id_x86_cpuid_commpage_preempt_cached),
+    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_01h),
+    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_0bh),
+    PROCESSOR_ID_FUNC_LOOKUP(get_current_processor_id_x86_cpuid_1fh),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup),
+    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_commpage_preempt_cached)),
+  [](const auto& param) { return param.param->name; });
+#undef PROCESSOR_ID_FUNC_LOOKUP
+#undef PROCESSOR_ID_LOOKUP
 
-auto sample_processor_id_on_threads(processor_id (*get_current_processor_id)())
+template<class ProcessorIDFunc>
+auto
+sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
   -> std::vector<processor_id_samples>
 {
   // NOTE(strager): On my machine, a single thread can sample about 2.5 million
@@ -153,7 +209,7 @@ auto sample_processor_id_on_threads(processor_id (*get_current_processor_id)())
 
   auto stop = std::atomic<bool>{ false };
   auto thread_routine =
-    [get_current_processor_id, &samples_by_thread, &stop](int thread_index) {
+    [&get_current_processor_id, &samples_by_thread, &stop](int thread_index) {
       auto clock = dtrace_clock{};
       auto thread_id = cxxtrace::get_current_thread_id();
 
