@@ -109,6 +109,7 @@ set_tests_properties(
 add_executable(
   benchmark_cxxtrace
   benchmark_clock.cpp
+  benchmark_ring_queue.cpp
   benchmark_span.cpp
   benchmark_thread.cpp
   cxxtrace_benchmark.cpp
