@@ -83,6 +83,7 @@ register_concurrency_test(int thread_count,
     auto tear_down() -> void override
     {
       assert(this->test_object.has_value());
+      this->test_object->tear_down();
       this->test_object.reset();
     }
 

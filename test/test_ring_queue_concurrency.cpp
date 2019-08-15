@@ -90,6 +90,8 @@ public:
       }
     }
   }
+
+  auto tear_down() -> void {}
 };
 
 enum class ring_queue_push_kind
@@ -141,6 +143,8 @@ public:
       assert_items_are_sequential(items);
     }
   }
+
+  auto tear_down() -> void {}
 
 private:
   size_type initial_overflow;
@@ -199,6 +203,8 @@ public:
     }
   }
 
+  auto tear_down() -> void {}
+
 private:
   auto total_push_size() const noexcept -> size_type
   {
@@ -254,6 +260,8 @@ public:
     }
   }
 
+  auto tear_down() -> void {}
+
 private:
   auto total_push_size() const noexcept -> size_type
   {
@@ -296,11 +304,6 @@ public:
     }
   }
 
-  ~ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test()
-  {
-    this->check_postconditions();
-  }
-
   auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
@@ -339,7 +342,7 @@ public:
     }
   }
 
-  auto check_postconditions() -> void
+  auto tear_down() -> void
   {
     char buffer[1024];
     auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
