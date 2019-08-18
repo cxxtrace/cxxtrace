@@ -114,6 +114,12 @@ if (CXXTRACE_CDSCHECKER)
 endif ()
 
 cxxtrace_add_concurrency_tests(
+  cxxtrace_test_fickle_lock_concurrency
+  test_fickle_lock_concurrency.cpp
+)
+target_link_libraries(cxxtrace_test_fickle_lock_concurrency INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
   cxxtrace_test_ring_queue_concurrency
   test_ring_queue_concurrency.cpp
 )
@@ -123,6 +129,7 @@ add_executable(
   benchmark_cxxtrace
   benchmark_black_hole.cpp
   benchmark_clock.cpp
+  benchmark_mutex.cpp
   benchmark_ring_queue.cpp
   benchmark_span.cpp
   benchmark_thread.cpp

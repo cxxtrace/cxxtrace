@@ -14,6 +14,17 @@ using thread_id =
 #endif
   ;
 
+namespace {
+constexpr auto invalid_thread_id = thread_id
+{
+#if defined(__APPLE__) && defined(__MACH__)
+  ~0ULL // @nocommit is this right?
+#else
+#error "Unsupported platform"
+#endif
+};
+}
+
 auto
 get_current_thread_id() noexcept -> thread_id;
 

@@ -36,6 +36,7 @@ run_concurrency_test_with_relacy(concurrency_test* test) -> void
     run_concurrency_test_with_relacy_with_threads<(thread_count)>(test);       \
     break;
   switch (test->thread_count()) {
+    CASE(1)
     CASE(2)
     CASE(3)
     default:
