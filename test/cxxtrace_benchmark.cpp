@@ -17,6 +17,15 @@ benchmark_group::Arg(std::int64_t arg) -> benchmark_group*
 }
 
 auto
+benchmark_group::ArgName(cxxtrace::czstring name) -> benchmark_group*
+{
+  for (auto* benchmark : this->benchmarks) {
+    benchmark->ArgName(name);
+  }
+  return this;
+}
+
+auto
 benchmark_group::DenseThreadRange(int min, int max) -> benchmark_group*
 {
   for (auto* benchmark : this->benchmarks) {

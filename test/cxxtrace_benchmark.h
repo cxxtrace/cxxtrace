@@ -5,6 +5,7 @@
 #include <benchmark/benchmark.h>
 #include <cstddef>
 #include <cstdint>
+#include <cxxtrace/string.h>
 #include <string>
 #include <utility>
 #include <vector>
@@ -83,6 +84,7 @@ public:
     std::vector<benchmark::internal::Benchmark*> benchmarks);
 
   auto Arg(std::int64_t) -> benchmark_group*;
+  auto ArgName(cxxtrace::czstring) -> benchmark_group*;
   auto DenseThreadRange(int min, int max) -> benchmark_group*;
   auto ThreadRange(int min, int max) -> benchmark_group*;
   auto UseRealTime() -> benchmark_group*;

@@ -121,6 +121,7 @@ target_link_libraries(cxxtrace_test_ring_queue_concurrency INTERFACE cxxtrace)
 
 add_executable(
   benchmark_cxxtrace
+  benchmark_black_hole.cpp
   benchmark_clock.cpp
   benchmark_ring_queue.cpp
   benchmark_span.cpp

@@ -1,14 +1,11 @@
+#include "black_hole.h"
 #include "cxxtrace_benchmark.h"
 #include <benchmark/benchmark.h>
-#include <cmath>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/clock_extra.h>
 
 namespace cxxtrace_test {
 namespace {
-auto
-perform_alu_work() noexcept -> void;
-
 template<class Clock>
 class clock_benchmark : public benchmark_fixture
 {
@@ -42,36 +39,22 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(clock_benchmark, query_with_alu_workload)
 {
   using clock_type = typename fixture_type::clock_type;
 
+  auto alu_multiplier = bench.range(0);
+  auto abyss = black_hole{};
   auto clock = clock_type{};
   for (auto _ : bench) {
-    perform_alu_work();
+    abyss.alu(alu_multiplier);
     auto sample = clock.query();
     benchmark::DoNotOptimize(sample);
   }
 }
-CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(clock_benchmark,
-                                       query_with_alu_workload);
-
-auto
-clock_benchmark_alu_workload_baseline(benchmark::State& bench) -> void
-{
-  for (auto _ : bench) {
-    perform_alu_work();
-  }
-}
-BENCHMARK(clock_benchmark_alu_workload_baseline);
-
-auto
-perform_alu_work() noexcept -> void
-{
-  auto iterations = 3;
-  auto theta = 0.42f;
-  for (auto i = 0; i < iterations; ++i) {
-    benchmark::DoNotOptimize(theta);
-    theta += 0.13f;
-    auto result = std::sinf(theta);
-    benchmark::DoNotOptimize(result);
-  }
-}
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(clock_benchmark, query_with_alu_workload)
+  ->ArgName("ALU workload multiplier")
+  ->Arg(1 << 0)
+  ->Arg(1 << 1)
+  ->Arg(1 << 2)
+  ->Arg(1 << 3)
+  ->Arg(1 << 4)
+  ->Arg(1 << 5);
 }
 }
