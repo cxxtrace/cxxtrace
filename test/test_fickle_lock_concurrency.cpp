@@ -358,10 +358,101 @@ public:
 // @nocommit test: on mass contention (including leader), at least one thread
 // succeeds?
 
+class nocommit
+{
+public:
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    if (thread_index == 0) {
+      {
+        auto a = this->atomic_a.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        CXXTRACE_ASSERT(a == -1);
+        this->mutex_e.lock(CXXTRACE_HERE);
+cxxtrace::detail::atomic_thread_fence(std::memory_order_acquire, CXXTRACE_HERE);
+        this->atomic_b.store(0, std::memory_order_release, CXXTRACE_HERE);
+        auto c = this->atomic_c.load(std::memory_order_acquire, CXXTRACE_HERE);
+        CXXTRACE_ASSERT(c == 0);
+        this->atomic_a.store(0, std::memory_order_relaxed, CXXTRACE_HERE);
+        this->atomic_c.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+        auto d = this->var_d.load(CXXTRACE_HERE);
+        CXXTRACE_ASSERT(d == 0);
+        this->var_d.store(d + 1, CXXTRACE_HERE);
+        this->atomic_c.store(1, std::memory_order_release, CXXTRACE_HERE);
+cxxtrace::detail::atomic_thread_fence(std::memory_order_release, CXXTRACE_HERE);
+        this->mutex_e.unlock(CXXTRACE_HERE);
+      }
+      {
+        auto a = this->atomic_a.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        CXXTRACE_ASSERT(a == 0);
+        this->atomic_c.store(1, std::memory_order_release, CXXTRACE_HERE);
+        auto b = this->atomic_b.load(std::memory_order_acquire, CXXTRACE_HERE);
+        if (b != 0) return;
+        auto d = this->var_d.load(CXXTRACE_HERE);
+        CXXTRACE_ASSERT(d == 1);
+        this->var_d.store(d + 1, CXXTRACE_HERE);
+
+        // (thread 1 executes now)
+
+        this->atomic_c.store(0, std::memory_order_release, CXXTRACE_HERE);
+        thread_0_cleared_c_29 = true;
+
+        if (thread_1_loaded_c_28) {
+          //CXXTRACE_ASSERT(0);
+        }
+      }
+    } else if (thread_index == 1) {
+      {
+        auto a = this->atomic_a.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        if (a != 0) return;
+        this->mutex_e.lock(CXXTRACE_HERE);
+cxxtrace::detail::atomic_thread_fence(std::memory_order_acquire, CXXTRACE_HERE);
+        this->atomic_b.store(1, std::memory_order_release, CXXTRACE_HERE);
+        // SKETCHY LOAD HERE
+        auto c = this->atomic_c.load(std::memory_order_acquire, CXXTRACE_HERE);
+        if (thread_0_cleared_c_29) {
+          this->mutex_e.unlock(CXXTRACE_HERE);
+          return;
+        }
+        thread_1_loaded_c_28 = true;
+        if (c != 0) {
+          this->mutex_e.unlock(CXXTRACE_HERE);
+          return;
+        }
+
+        // (thread 0 resumes now)
+        this->atomic_a.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+        this->atomic_c.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+        auto d = this->var_d.load(CXXTRACE_HERE);
+        CXXTRACE_ASSERT(d == 2);
+        this->var_d.store(d + 2, CXXTRACE_HERE);
+
+cxxtrace::detail::atomic_thread_fence(std::memory_order_release, CXXTRACE_HERE);
+        this->mutex_e.unlock(CXXTRACE_HERE);
+        CXXTRACE_ASSERT(0);
+      }
+    }
+  }
+
+  auto tear_down() -> void {}
+
+  cxxtrace::detail::atomic<int> atomic_a{-1};
+  cxxtrace::detail::atomic<int> atomic_b{-1};
+  cxxtrace::detail::atomic<int> atomic_c{0};
+  cxxtrace::detail::nonatomic<int> var_d{0};
+  cxxtrace::detail::mutex mutex_e;
+  bool thread_0_cleared_c_29{false};
+  bool thread_1_loaded_c_28{false};
+};
+
 auto
 register_concurrency_tests() -> void
 {
+  //register_concurrency_test<nocommit>(2, concurrency_test_depth::full);
+
+#define SLOW 0
 #if SLOW
+  // @nocommit DATA RACE DETECTED. Relacy bug with mutexes not implying a
+  // barrier?
   register_concurrency_test<lock_allows_at_most_one_thread_concurrently_2>(
     3, concurrency_test_depth::full);
 #endif

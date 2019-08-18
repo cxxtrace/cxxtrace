@@ -42,8 +42,16 @@ fickle_lock::try_take_leadership_and_lock(thread_id current_thread_id,
                                           debug_source_location) noexcept
   -> bool
 {
+  // @nocommit bug:
+  // Store to new_leader might be reordered to after load of
+  // lock_heald_by_leader. A thread executing try_with_lock_as_leader would fail
+  // to signal that it acquired the lock, and would mistakenly think we haven't
+  // told it that we want the lock.
+  //
+  // See also bug comment in try_with_lock_as_leader.
   this->new_leader.store(
-    current_thread_id, std::memory_order_release, CXXTRACE_HERE);
+    current_thread_id, std::memory_order_seq_cst/*@nocommit release?*/, CXXTRACE_HERE);
+//atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE); // @nocommit
   if (this->lock_held_by_leader.load(std::memory_order_acquire,
                                      CXXTRACE_HERE)) {
     // The old leader won the race and entered the critical section.

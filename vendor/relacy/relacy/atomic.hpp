@@ -452,6 +452,7 @@ private:
             }
             T const v = history_[index];
 
+            //printf("load: index=%u last_index=%u\n", index, last_index_);
             RL_HIST(atomic_load_event<T>) {this, v, mo, last_index_ != index} RL_HIST_END();
 
             return v;

@@ -21,7 +21,7 @@ typedef int thread_id_t;
 typedef size_t timestamp_t;
 typedef uint64_t iteration_t;
 
-size_t const atomic_history_size = 3;
+size_t const atomic_history_size = 8;
 iteration_t const progress_probe_period = 4 * 1024;
 
 size_t const alignment = 16;
