@@ -41,6 +41,65 @@ cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
 target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_memory_resource)
 
+function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
+  cmake_parse_arguments("" "" "" "" ${ARGN})
+  set(SOURCES ${_UNPARSED_ARGUMENTS})
+
+  add_library(${BASE_NAME} INTERFACE)
+
+  if (CXXTRACE_CDSCHECKER)
+    add_executable(
+      ${BASE_NAME}_cdschecker
+      # TODO(strager): Put cxxtrace_concurrency_test_cdschecker.cpp into its own
+      # library.
+      cxxtrace_concurrency_test_cdschecker.cpp
+      ${SOURCES}
+      $<TARGET_OBJECTS:cxxtrace_test_concurrency_cdschecker_main>
+    )
+    target_compile_definitions(
+      ${BASE_NAME}_cdschecker
+      PRIVATE
+      CXXTRACE_ENABLE_CDSCHECKER=1
+    )
+    target_link_libraries(
+      ${BASE_NAME}_cdschecker
+      PRIVATE
+      ${BASE_NAME}
+      CDSChecker_model
+      cxxtrace_concurrency_test
+    )
+    add_test(NAME ${BASE_NAME}_cdschecker COMMAND ${BASE_NAME}_cdschecker)
+  endif ()
+
+  add_executable(
+    ${BASE_NAME}_relacy
+    # TODO(strager): Put cxxtrace_concurrency_test_relacy.cpp and
+    # cxxtrace_concurrency_test_main_relacy.cpp into their own library.
+    cxxtrace_concurrency_test_main_relacy.cpp
+    cxxtrace_concurrency_test_relacy.cpp
+    ${SOURCES}
+  )
+  target_compile_definitions(
+    ${BASE_NAME}_relacy
+    PRIVATE
+    CXXTRACE_ENABLE_RELACY=1
+  )
+  target_link_libraries(
+    ${BASE_NAME}_relacy
+    PRIVATE
+    ${BASE_NAME}
+    cxxtrace_concurrency_test
+    relacy
+  )
+  add_test(NAME ${BASE_NAME}_relacy COMMAND ${BASE_NAME}_relacy)
+  set_tests_properties(
+    ${BASE_NAME}_relacy
+    PROPERTIES
+    # HACK(strager): Work around ASAN internal crashes.
+    ENVIRONMENT ASAN_OPTIONS=detect_container_overflow=0
+  )
+endfunction ()
+
 if (CXXTRACE_CDSCHECKER)
   add_library(
     cxxtrace_test_concurrency_cdschecker_main
@@ -52,59 +111,13 @@ if (CXXTRACE_CDSCHECKER)
     PRIVATE
     $<TARGET_PROPERTY:cxxtrace,INTERFACE_INCLUDE_DIRECTORIES>
   )
-
-  add_executable(
-    cxxtrace_test_ring_queue_concurrency_cdschecker
-    cxxtrace_concurrency_test_cdschecker.cpp
-    test_ring_queue_concurrency.cpp
-    $<TARGET_OBJECTS:cxxtrace_test_concurrency_cdschecker_main>
-  )
-  target_compile_definitions(
-    cxxtrace_test_ring_queue_concurrency_cdschecker
-    PRIVATE
-    CXXTRACE_ENABLE_CDSCHECKER=1
-  )
-  target_link_libraries(
-    cxxtrace_test_ring_queue_concurrency_cdschecker
-    PRIVATE
-    CDSChecker_model
-    cxxtrace
-    cxxtrace_concurrency_test
-  )
-  add_test(
-    NAME cxxtrace_test_ring_queue_concurrency_cdschecker
-    COMMAND cxxtrace_test_ring_queue_concurrency_cdschecker
-  )
 endif ()
 
-add_executable(
-  cxxtrace_test_ring_queue_concurrency_relacy
-  cxxtrace_concurrency_test_main_relacy.cpp
-  cxxtrace_concurrency_test_relacy.cpp
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_ring_queue_concurrency
   test_ring_queue_concurrency.cpp
 )
-target_compile_definitions(
-  cxxtrace_test_ring_queue_concurrency_relacy
-  PRIVATE
-  CXXTRACE_ENABLE_RELACY=1
-)
-target_link_libraries(
-  cxxtrace_test_ring_queue_concurrency_relacy
-  PRIVATE
-  cxxtrace
-  cxxtrace_concurrency_test
-  relacy
-)
-add_test(
-  NAME cxxtrace_test_ring_queue_concurrency_relacy
-  COMMAND cxxtrace_test_ring_queue_concurrency_relacy
-)
-set_tests_properties(
-  cxxtrace_test_ring_queue_concurrency_relacy
-  PROPERTIES
-  # HACK(strager): Work around ASAN internal crashes.
-  ENVIRONMENT ASAN_OPTIONS=detect_container_overflow=0
-)
+target_link_libraries(cxxtrace_test_ring_queue_concurrency INTERFACE cxxtrace)
 
 add_executable(
   benchmark_cxxtrace
