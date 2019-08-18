@@ -64,27 +64,43 @@ register_concurrency_test(int thread_count,
       , depth_{ depth }
     {}
 
-    ~test() = default;
+    ~test()
+    {
+      // this->test_object.~Test();
+    }
 
     auto set_up() -> void override
     {
-      assert(!this->test_object.has_value());
+#if 0
+      //assert(!this->test_object.has_value());
       std::apply(
         [this](const Args&... args) { this->test_object.emplace(args...); },
         this->args);
+#else
+      std::apply(
+        [this](const Args&... args) { new (&this->test_object) Test(args...); },
+        this->args);
+#endif
     }
 
     auto run_thread(int thread_index) -> void override
     {
+#if 0
       assert(this->test_object.has_value());
-      this->test_object->run_thread(thread_index);
+#endif
+      this->test_object.run_thread(thread_index);
     }
 
     auto tear_down() -> void override
     {
+#if 0
       assert(this->test_object.has_value());
       this->test_object->tear_down();
       this->test_object.reset();
+#else
+      this->test_object.tear_down();
+      this->test_object.~Test();
+#endif
     }
 
     auto test_depth() const noexcept -> concurrency_test_depth override
@@ -101,7 +117,11 @@ register_concurrency_test(int thread_count,
     std::tuple<Args...> args;
     int thread_count_;
     concurrency_test_depth depth_;
-    std::optional<Test> test_object{};
+    // std::optional<Test> test_object{};
+    union
+    {
+      Test test_object;
+    };
   };
 
   detail::register_concurrency_test(
