@@ -13,7 +13,7 @@ This strategy is implemented by [Skia's ChromeTracingTracer][skia-ctt].
 
 ### Thread-local
 
-This strategy is implemented by [Chromium's TraceLog][skia-ctt] and by
+This strategy is implemented by [Chromium's TraceLog][chromium-trace] and by
 [easy_profiler][easy_profiler].
 
 + Parallel threads cause no contention
@@ -88,7 +88,7 @@ This strategy is implemented by [Phosphor][phosphor].
 
 ### Ring queue of byte arrays
 
-This strategy is implemented by [Chromium's TraceLog][skia-ctt] and by
+This strategy is implemented by [Chromium's TraceLog][chromium-trace] and by
 [LTTng-UST][lttng-ust].
 
     struct block_pointer {
