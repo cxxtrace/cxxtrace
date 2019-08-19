@@ -120,7 +120,6 @@ public:
 }
 }
 
-#if CXXTRACE_ENABLE_RELACY
 relacy_backoff::relacy_backoff() = default;
 
 relacy_backoff::~relacy_backoff() = default;
@@ -136,5 +135,4 @@ relacy_backoff::yield(cxxtrace::detail::debug_source_location caller) -> void
 {
   this->backoff.yield(caller);
 }
-#endif
 }
