@@ -3,9 +3,16 @@
 #endif
 
 #include "cxxtrace_concurrency_test.h"
+#include "memory_resource.h"
+#include <array>
 #include <cassert>
+#include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <experimental/memory_resource>
+#include <experimental/string>
+#include <sstream>
+#include <utility>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -134,5 +141,31 @@ auto
 relacy_backoff::yield(cxxtrace::detail::debug_source_location caller) -> void
 {
   this->backoff.yield(caller);
+}
+
+auto
+concurrency_log(void (*make_message)(std::ostream&, void* opaque),
+                void* opaque,
+                cxxtrace::detail::debug_source_location caller) -> void
+{
+  auto& relacy_context = rl::ctx();
+  if (!relacy_context.collecting_history()) {
+    return;
+  }
+
+  using pmr_ostringstream = std::basic_ostringstream<
+    char,
+    std::char_traits<char>,
+    std::experimental::pmr::polymorphic_allocator<char>>;
+
+  auto buffer = std::array<std::byte, 1024>{};
+  auto memory = monotonic_buffer_resource{ buffer.data(), buffer.size() };
+  auto message_stream =
+    pmr_ostringstream{ std::experimental::pmr::string{ &memory } };
+  make_message(message_stream, opaque);
+  auto message_string = std::move(message_stream).str();
+  relacy_context.exec_log(
+    caller,
+    rl::user_msg_event{ { message_string.begin(), message_string.end() } });
 }
 }

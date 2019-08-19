@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cxxtrace/detail/atomic.h>
 #include <exception>
+#include <iosfwd>
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -142,6 +143,34 @@ using backoff = relacy_backoff;
 #else
 #error "Unknown configuration"
 #endif
+
+auto
+concurrency_log(void (*)(std::ostream&, void* opaque),
+                void* opaque,
+                cxxtrace::detail::debug_source_location) -> void;
+
+template<class Func>
+auto
+concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
+  -> void
+{
+  concurrency_log(
+    [](std::ostream& out, void* opaque) {
+      auto func = static_cast<Func*>(opaque);
+      std::forward<Func> (*func)(out);
+    },
+    &func,
+    caller);
 }
+}
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+// HACK(strager): Work around CDSChecker not defining std::once_flag in <mutex>,
+// breaking inclusion of libc++'s <ostream>.
+namespace std {
+struct once_flag
+{};
+}
+#endif
 
 #endif

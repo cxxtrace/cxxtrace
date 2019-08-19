@@ -5,6 +5,7 @@
 #include "cxxtrace_concurrency_test.h"
 #include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/workarounds.h>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <threads.h>
@@ -50,6 +51,16 @@ run_concurrency_test_from_cdschecker(detail::concurrency_test* test) -> void
 
   test->tear_down();
 }
+}
+
+auto
+concurrency_log(void (*make_message)(std::ostream&, void* opaque),
+                void* opaque,
+                cxxtrace::detail::debug_source_location) -> void
+{
+  auto& out = std::cout;
+  make_message(out, opaque);
+  out << '\n';
 }
 }
 

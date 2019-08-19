@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
-#define CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
+#ifndef CXXTRACE_DETAIL_MPMC_RING_QUEUE_H
+#define CXXTRACE_DETAIL_MPMC_RING_QUEUE_H
 
 #include <algorithm>
 #include <array>
@@ -12,32 +12,40 @@
 #include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/queue_sink.h>
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <vector>
 
 namespace cxxtrace {
 namespace detail {
-// A special-purpose, lossy, bounded, SPMC FIFO container optimized for writes.
+enum class mpmc_ring_queue_push_result : bool
+{
+  not_pushed_due_to_contention = false,
+  pushed = true,
+};
+
+// A special-purpose, lossy, bounded, MPMC FIFO container optimized for
+// uncontended writes.
 //
-// Special-purpose: Items in a spmc_ring_queue must be trivial. Constructors and
-// destructors are not called on a spmc_ring_queue's items.
+// Special-purpose: Items in a mpmc_ring_queue must be trivial. Constructors and
+// destructors are not called on a mpmc_ring_queue's items.
 //
 // Lossy: If a writer pushes too many items, older items are discarded.
 //
-// Bounded: The maximum number of items allowed in a spmc_ring_queue is fixed.
-// Operations on a spmc_ring_queue will never allocate memory.
+// Bounded: The maximum number of items allowed in a mpmc_ring_queue is fixed.
+// Operations on a mpmc_ring_queue will never allocate memory.
 //
-// SPMC: A single thread can push items ("Single Producer"), and zero or more
-// threads can concurrently pop items ("Multiple Consumer").
+// MPMC: Zero or more threads can push items ("Multiple Producer"), and zero or
+// more threads can concurrently pop items ("Multiple Consumer").
 //
 // FIFO: Items are read First In, First Out.
 //
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
 // @see ring_queue
-// @see mpmc_ring_queue
+// @see spmc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
-class spmc_ring_queue
+class mpmc_ring_queue
 {
 public:
   static_assert(Capacity > 0);
@@ -49,6 +57,7 @@ public:
 
   using size_type = Index;
   using value_type = T;
+  using push_result = mpmc_ring_queue_push_result;
 
   static inline constexpr const auto capacity = size_type{ Capacity };
 
@@ -60,11 +69,16 @@ public:
   }
 
   template<class WriterFunction>
-  auto push(size_type count, WriterFunction&& write) noexcept -> void
+  auto try_push(size_type count, WriterFunction&& write) noexcept -> push_result
   {
-    auto [begin_vindex, end_vindex] = this->begin_push(count);
+    auto vindexes = this->begin_push(count);
+    if (!vindexes.has_value()) {
+      return push_result::not_pushed_due_to_contention;
+    }
+    auto [begin_vindex, end_vindex] = *vindexes;
     write(push_handle{ this->storage, begin_vindex });
     this->end_push(end_vindex);
+    return push_result::pushed;
   }
 
   template<class Allocator>
@@ -76,7 +90,8 @@ public:
   template<class Sink>
   auto pop_all_into(Sink&& output) -> void
   {
-    // TODO(strager): Consolidate duplication with mpmc_ring_queue.
+    // TODO(strager): Consolidate duplication with spmc_ring_queue.
+    // TODO(strager): Relax memory ordering as appropriate.
     auto guard = lock_guard<mutex>{ this->consumer_mutex, CXXTRACE_HERE };
 
     auto read_vindex = this->read_vindex.load(CXXTRACE_HERE);
@@ -96,9 +111,8 @@ public:
     auto end_vindex = size_type{};
     {
       const auto write_begin_vindex =
-        this->write_begin_vindex.load(std::memory_order_acquire, CXXTRACE_HERE);
-      const auto write_end_vindex =
-        this->write_end_vindex.load(std::memory_order_acquire, CXXTRACE_HERE);
+        this->write_begin_vindex.load(CXXTRACE_HERE);
+      const auto write_end_vindex = this->write_end_vindex.load(CXXTRACE_HERE);
       assert(read_vindex <= write_end_vindex);
       assert(write_begin_vindex <= write_end_vindex);
 
@@ -111,11 +125,15 @@ public:
     }
     auto output_item_count = end_vindex - begin_vindex;
 
-    atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
+    // FIXME(strager): This fence (and the fence in begin_push) should be
+    // redundant. Why does
+    // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
+    // CDSChecker without this fence? Doesn't the implicitly-seq_cst
+    // compare_exchange_strong enforce acq_rel ordering already?
+    atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     {
-      const auto write_end_vindex =
-        this->write_end_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+      const auto write_end_vindex = this->write_end_vindex.load(CXXTRACE_HERE);
       if (write_end_vindex != end_vindex) {
         // push was called concurrently. Undo potentially-corrupted reads in the
         // output.
@@ -150,25 +168,34 @@ private:
     std::array<molecular<value_type>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
-    friend class spmc_ring_queue;
+    friend class mpmc_ring_queue;
   };
 
-  auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>
+  auto begin_push(size_type count) noexcept
+    -> std::optional<std::pair<size_type, size_type>>
   {
     assert(count > 0);
     assert(count < this->capacity);
 
     auto write_begin_vindex =
-      this->write_begin_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+      this->write_begin_vindex.load(std::memory_order_seq_cst, CXXTRACE_HERE);
     auto maybe_new_write_end_vindex = add(write_begin_vindex, count);
     if (!maybe_new_write_end_vindex.has_value()) {
       this->abort_due_to_overflow();
     }
-    this->write_end_vindex.store(
-      *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
+    if (!this->write_end_vindex.compare_exchange_strong(
+          write_begin_vindex, *maybe_new_write_end_vindex, CXXTRACE_HERE)) {
+      return std::nullopt;
+    }
+
+    // FIXME(strager): This fence (and the fence in pop_all_into) should be
+    // redundant. Why does
+    // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
+    // CDSChecker without this fence? Doesn't the implicitly-seq_cst
+    // compare_exchange_strong enforce acq_rel ordering already?
     atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
-    return { write_begin_vindex, *maybe_new_write_end_vindex };
+    return std::pair{ write_begin_vindex, *maybe_new_write_end_vindex };
   }
 
   auto end_push(size_type write_end_vindex) noexcept -> void

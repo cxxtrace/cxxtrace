@@ -1,5 +1,7 @@
 #include "cxxtrace_benchmark.h"
+#include "ring_queue.h"
 #include <benchmark/benchmark.h>
+#include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
 
@@ -29,6 +31,7 @@ protected:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   ring_queue_benchmark,
+  (cxxtrace::detail::mpmc_ring_queue<int, 1024>),
   (cxxtrace::detail::ring_queue<int, 1024>),
   (cxxtrace::detail::spmc_ring_queue<int, 1024>));
 
@@ -38,7 +41,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(ring_queue_benchmark, individual_pushes)
   for (auto _ : bench) {
     this->queue.reset();
     for (auto i = 0; i < this->items_per_iteration; ++i) {
-      this->queue.push(1, [i](auto data) noexcept { data.set(0, i); });
+      push(this->queue, 1, [i](auto data) noexcept { data.set(0, i); });
     }
     benchmark::DoNotOptimize(this->queue);
   }

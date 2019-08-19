@@ -45,6 +45,18 @@ public:
   atomic_base(atomic_base&&) = delete;
   atomic_base& operator=(atomic_base&&) = delete;
 
+  auto compare_exchange_strong(T& expected,
+                               T desired,
+                               debug_source_location caller) noexcept -> bool
+  {
+    return static_cast<Class&>(*this).compare_exchange_strong(
+      expected,
+      desired,
+      std::memory_order_seq_cst,
+      std::memory_order_seq_cst,
+      caller);
+  }
+
   auto fetch_add(T addend, debug_source_location caller) noexcept -> T
   {
     return static_cast<Class&>(*this).fetch_add(
@@ -70,6 +82,7 @@ private:
   using base = atomic_base<T, real_atomic<T>>;
 
 public:
+  using base::compare_exchange_strong;
   using base::fetch_add;
   using base::load;
   using base::store;
@@ -79,6 +92,16 @@ public:
   explicit real_atomic(T value) noexcept
     : data{ value }
   {}
+
+  auto compare_exchange_strong(T& expected,
+                               T desired,
+                               std::memory_order success_order,
+                               std::memory_order failure_order,
+                               debug_source_location) noexcept -> bool
+  {
+    return this->data.compare_exchange_strong(
+      expected, desired, success_order, failure_order);
+  }
 
   auto fetch_add(T addend,
                  std::memory_order memory_order,
@@ -156,6 +179,7 @@ private:
   using base = atomic_base<T, cdschecker_atomic<T>>;
 
 public:
+  using base::compare_exchange_strong;
   using base::fetch_add;
   using base::load;
   using base::store;
@@ -167,6 +191,18 @@ public:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-statement-expression"
     _ATOMIC_INIT_(&this->data, value);
+#pragma clang diagnostic pop
+  }
+
+  auto compare_exchange_strong(T& expected,
+                               T desired,
+                               std::memory_order success_order,
+                               [[maybe_unused]] std::memory_order failure_order,
+                               debug_source_location) noexcept -> bool
+  {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+    return _ATOMIC_CMPSWP_(&this->data, &expected, desired, success_order);
 #pragma clang diagnostic pop
   }
 
@@ -343,6 +379,7 @@ private:
   using base = atomic_base<T, relacy_atomic<T>>;
 
 public:
+  using base::compare_exchange_strong;
   using base::fetch_add;
   using base::load;
   using base::store;
@@ -352,6 +389,20 @@ public:
   explicit relacy_atomic(T value) noexcept
     : data{ value }
   {}
+
+  auto compare_exchange_strong(T& expected,
+                               T desired,
+                               std::memory_order success_order,
+                               std::memory_order failure_order,
+                               debug_source_location caller) noexcept -> bool
+  {
+    return this->data.compare_exchange_strong(expected,
+                                              desired,
+                                              relacy_cast(success_order),
+                                              caller,
+                                              relacy_cast(failure_order),
+                                              caller);
+  }
 
   auto fetch_add(T addend,
                  std::memory_order memory_order,
