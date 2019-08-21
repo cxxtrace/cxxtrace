@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cxxtrace/detail/attribute.h>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <experimental/memory_resource>
@@ -134,6 +135,15 @@ using processor_id_lookup =
 #else
 #error "Unknown platform"
 #endif
+
+// TODO(strager): Merge with cxxtrace_test::backoff.
+class backoff
+{
+public:
+  explicit backoff();
+
+  auto yield(debug_source_location) -> void;
+};
 }
 }
 

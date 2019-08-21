@@ -411,6 +411,15 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
 thread_local processor_id_lookup_x86_cpuid_commpage_preempt_cached::cache
   processor_id_lookup_x86_cpuid_commpage_preempt_cached::thread_local_cache;
 #endif
+
+backoff::backoff() = default;
+
+auto backoff::yield(debug_source_location) -> void
+{
+  // TODO(strager): Call ::sched_yield or something.
+  // TODO(strager): Delete this function. Make callers use mutexes or condition
+  // variables or other synchronization primitives instead.
+}
 }
 
 namespace {
