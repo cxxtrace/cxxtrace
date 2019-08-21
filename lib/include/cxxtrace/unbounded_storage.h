@@ -1,11 +1,9 @@
 #ifndef CXXTRACE_UNBOUNDED_STORAGE_H
 #define CXXTRACE_UNBOUNDED_STORAGE_H
 
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <mutex>
-#include <vector>
 
 namespace cxxtrace {
 class samples_snapshot;

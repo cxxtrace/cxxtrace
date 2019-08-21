@@ -2,7 +2,6 @@
 #define CXXTRACE_UNBOUNDED_UNSAFE_STORAGE_H
 
 #include <cxxtrace/detail/thread.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <vector>
 

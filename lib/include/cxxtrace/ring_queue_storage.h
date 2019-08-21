@@ -5,10 +5,8 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
-#include <vector>
 
 namespace cxxtrace {
 class samples_snapshot;

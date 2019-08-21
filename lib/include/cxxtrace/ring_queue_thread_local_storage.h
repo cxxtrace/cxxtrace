@@ -5,7 +5,6 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <vector>
