@@ -55,6 +55,9 @@ struct thread_name_set
 
 using processor_id = std::uint32_t;
 
+auto
+get_maximum_processor_id() noexcept(false) -> processor_id;
+
 #if defined(__x86_64__)
 class processor_id_lookup_x86_cpuid_01h
 {

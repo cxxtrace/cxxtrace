@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
+#include <cxxtrace/mpmc_ring_queue_processor_local_storage.h>
 #include <cxxtrace/mpmc_ring_queue_storage.h>
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/ring_queue_thread_local_storage.h>
@@ -122,6 +123,7 @@ protected:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   span_benchmark,
+  (cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>),
   (cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>),
   (cxxtrace::ring_queue_storage<1024, clock_sample>),
   (cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>),
@@ -212,6 +214,7 @@ public:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   concurrent_span_benchmark,
+  (cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>),
   (cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>),
   (cxxtrace::ring_queue_storage<1024, clock_sample>),
   (ring_queue_thread_local_benchmark_storage<1024, clock_sample>),

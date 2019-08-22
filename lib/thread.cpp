@@ -24,8 +24,13 @@
 #include <mach/task.h>
 #include <mach/thread_act.h>
 #include <mach/thread_info.h>
+#include <mach/vm_types.h>
 #include <pthread.h>
+#include <stdexcept>
 #include <sys/proc_info.h>
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#include <system_error>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -268,6 +273,37 @@ thread_name_set::remember_name_of_thread(
     assert(it != this->names.end());
     it->second.assign(name, name_length);
   }
+}
+
+auto
+get_maximum_processor_id() noexcept(false) -> processor_id
+{
+#if defined(__APPLE__) && defined(__MACH__)
+  // TODO(strager): If available, use _COMM_PAGE_LOGICAL_CPUS instead of sysctl.
+  auto maximum_processor_count = ::integer_t{};
+  auto maximum_processor_count_size =
+    std::size_t{ sizeof(maximum_processor_count) };
+  auto rc = ::sysctlbyname("hw.logicalcpu_max",
+                           &maximum_processor_count,
+                           &maximum_processor_count_size,
+                           nullptr,
+                           0);
+  if (rc != 0) {
+    throw std::system_error{
+      errno,
+      std::generic_category(),
+      "Failed to get maximum processor ID from hw.logicalcpu_max sysctl"
+    };
+  }
+  if (maximum_processor_count_size != sizeof(maximum_processor_count)) {
+    throw std::runtime_error{
+      "sysctl(hw.logicalcpu_max) returned data with an unexpected size"
+    };
+  }
+  return maximum_processor_count - 1;
+#else
+#error "Unknown platform"
+#endif
 }
 
 #if defined(__x86_64__)

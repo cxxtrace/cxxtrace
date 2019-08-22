@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
+#include <cxxtrace/mpmc_ring_queue_processor_local_storage.h>
 #include <cxxtrace/mpmc_ring_queue_storage.h>
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/ring_queue_thread_local_storage.h>
@@ -71,6 +72,7 @@ private:
 };
 
 using test_span_types = ::testing::Types<
+  cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>,
   cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>,
@@ -85,6 +87,7 @@ class test_span_thread_safe : public test_span<Storage>
 {};
 
 using test_span_thread_safe_types = ::testing::Types<
+  cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>,
   cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
