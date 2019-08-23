@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_TEST_PROCESSOR_ID_H
 #define CXXTRACE_TEST_PROCESSOR_ID_H
 
-#include <cxxtrace/detail/thread.h>
+#include <cxxtrace/detail/processor.h>
 #include <cxxtrace/string.h>
 #include <gtest/gtest.h>
 

@@ -1,8 +1,6 @@
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <cxxtrace/detail/thread.h>
-#include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/thread.h>
 #include <string>
 #include <type_traits>
@@ -13,7 +11,6 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
-#include <cxxtrace/detail/apple_commpage.h>
 #include <exception>
 #include <libproc.h>
 #include <mach/kern_return.h>
@@ -24,13 +21,8 @@
 #include <mach/task.h>
 #include <mach/thread_act.h>
 #include <mach/thread_info.h>
-#include <mach/vm_types.h>
 #include <pthread.h>
-#include <stdexcept>
 #include <sys/proc_info.h>
-#include <sys/sysctl.h>
-#include <sys/types.h>
-#include <system_error>
 #include <unistd.h>
 #include <unordered_map>
 #include <vector>
@@ -274,179 +266,6 @@ thread_name_set::remember_name_of_thread(
     it->second.assign(name, name_length);
   }
 }
-
-auto
-get_maximum_processor_id() noexcept(false) -> processor_id
-{
-#if defined(__APPLE__) && defined(__MACH__)
-  // TODO(strager): If available, use _COMM_PAGE_LOGICAL_CPUS instead of sysctl.
-  auto maximum_processor_count = ::integer_t{};
-  auto maximum_processor_count_size =
-    std::size_t{ sizeof(maximum_processor_count) };
-  auto rc = ::sysctlbyname("hw.logicalcpu_max",
-                           &maximum_processor_count,
-                           &maximum_processor_count_size,
-                           nullptr,
-                           0);
-  if (rc != 0) {
-    throw std::system_error{
-      errno,
-      std::generic_category(),
-      "Failed to get maximum processor ID from hw.logicalcpu_max sysctl"
-    };
-  }
-  if (maximum_processor_count_size != sizeof(maximum_processor_count)) {
-    throw std::runtime_error{
-      "sysctl(hw.logicalcpu_max) returned data with an unexpected size"
-    };
-  }
-  return maximum_processor_count - 1;
-#else
-#error "Unknown platform"
-#endif
-}
-
-#if defined(__x86_64__)
-auto
-processor_id_lookup_x86_cpuid_01h::get_current_processor_id() noexcept
-  -> processor_id
-{
-  std::uint32_t ebx;
-  asm volatile("cpuid" : "=b"(ebx) : "a"(0x01) : "ecx", "edx");
-  // From Volume 2A:
-  // 01H: EBX: Bits 31-24: Initial APIC ID.
-  return ebx >> 24;
-}
-#endif
-
-#if defined(__x86_64__)
-auto
-processor_id_lookup_x86_cpuid_0bh::get_current_processor_id() noexcept
-  -> processor_id
-{
-  std::uint32_t edx;
-  asm volatile("cpuid" : "=d"(edx) : "a"(0x0b) : "ebx", "ecx");
-  // From Volume 2A:
-  // 0BH: EDX: Bits 31-00: x2APIC ID the current logical processor.
-  return edx;
-}
-#endif
-
-#if defined(__x86_64__)
-auto
-processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
-  -> processor_id
-{
-  std::uint32_t edx;
-  asm volatile("cpuid" : "=d"(edx) : "a"(0x1f) : "ebx", "ecx");
-  // From Volume 2A:
-  // 1FH: EDX: Bits 31-00: x2APIC ID the current logical processor.
-  return edx;
-}
-#endif
-
-#if defined(__x86_64__)
-auto
-processor_id_lookup_x86_cpuid_uncached ::get_current_processor_id() const
-  noexcept -> processor_id
-{
-  // FIXME(strager): We should detect what is supported by the CPU.
-  // TODO(strager): Use CPUID 1FH if supported, as recommended by Intel.
-  return this->lookup.get_current_processor_id();
-}
-#endif
-
-#if defined(__x86_64__) && defined(__APPLE__)
-processor_id_lookup_x86_cpuid_commpage_preempt_cached::
-  processor_id_lookup_x86_cpuid_commpage_preempt_cached() noexcept
-{
-  this->initialize();
-}
-
-auto
-processor_id_lookup_x86_cpuid_commpage_preempt_cached::initialize() noexcept
-  -> void
-{
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-  static constexpr char expected_signature[] = "commpage 64-bit\0";
-  static_assert(
-    sizeof(expected_signature) - 1 == apple_commpage::signature_size,
-    "expected_signature should fit exactly in commpage_signature field");
-
-  // Version 1 introduced _COMM_PAGE_SIGNATURE and _COMM_PAGE_VERSION.
-  // Version 7 introduced _COMM_PAGE_SCHED_GEN.
-  static constexpr auto minimum_required_commpage_version = std::uint16_t{ 7 };
-
-  if (std::memcmp(apple_commpage::signature,
-                  expected_signature,
-                  apple_commpage::signature_size) != 0) {
-    this->commpage_supported = false;
-    return;
-  }
-  if (*apple_commpage::version < minimum_required_commpage_version) {
-    this->commpage_supported = false;
-    return;
-  }
-  this->commpage_supported = true;
-#endif
-}
-
-auto
-processor_id_lookup_x86_cpuid_commpage_preempt_cached::
-  get_current_processor_id() const noexcept -> processor_id
-{
-  auto* c_ptr = &this->thread_local_cache;
-#if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
-  asm volatile("" : "+r"(c_ptr));
-#endif
-  auto& c = *c_ptr;
-
-#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
-  if (!this->commpage_supported) {
-    return this->uncached_lookup.get_current_processor_id();
-  }
-#endif
-
-#if CXXTRACE_WORK_AROUND_ATOMIC_VALUE_TYPE
-  using sched_gen_type = std::uint32_t;
-#else
-  using sched_gen_type =
-    std::decay_t<decltype(*apple_commpage::sched_gen)>::value_type;
-#endif
-  using scheduler_generation_type =
-    decltype(c.scheduler_generation_and_initialized);
-  static_assert(
-    (sched_gen_type{ ~0U } | cache::initialized) != sched_gen_type{ ~0U },
-    "cache::initialized must be disjoint from *apple_commpage::sched_gen");
-
-  auto scheduler_generation = scheduler_generation_type{
-    apple_commpage::sched_gen->load(std::memory_order_seq_cst)
-  };
-  // TODO(strager): Determine if a separate boolean check is faster than
-  // juggling the cache::initialized bit.
-  scheduler_generation |= cache::initialized;
-  if (scheduler_generation == c.scheduler_generation_and_initialized) {
-    // This thread was not rescheduled onto a different processor. Our cached
-    // processor ID is valid.
-  } else {
-    // Either this is the first time we're being called on this thread, or this
-    // thread was rescheduled onto a different processor, or another thread on
-    // the system was scheduled onto a different processor. Our cached processor
-    // ID is possibly invalid.
-    c.id = this->uncached_lookup.get_current_processor_id();
-    c.scheduler_generation_and_initialized = scheduler_generation;
-    // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
-    // disagrees with our scheduler_generation automatic variable), ideally we
-    // would query the processor ID again. However, this function is a hint
-    // anyway; there's no point in getting the "right" answer when it'll be
-    // possibly invalid after returning anyway.
-  }
-  return c.id;
-}
-
-thread_local processor_id_lookup_x86_cpuid_commpage_preempt_cached::cache
-  processor_id_lookup_x86_cpuid_commpage_preempt_cached::thread_local_cache;
-#endif
 
 backoff::backoff() = default;
 

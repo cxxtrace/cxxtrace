@@ -5,7 +5,8 @@
 #include <atomic>
 #include <cstdint>
 #include <cxxtrace/clock.h>
-#include <cxxtrace/detail/thread.h>
+#include <cxxtrace/detail/processor.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <deque>
 #include <dtrace.h>

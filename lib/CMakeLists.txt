@@ -6,6 +6,7 @@ add_library(
   chrome_trace_event_format.cpp
   clock.cpp
   clock_extra.cpp
+  processor.cpp
   snapshot.cpp
   thread.cpp
 )

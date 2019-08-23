@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>

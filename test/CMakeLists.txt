@@ -15,6 +15,7 @@ add_executable(
   test_clock.cpp
   test_exhaustive_rng.cpp
   test_molecular.cpp
+  test_processor_id.cpp
   test_ring_queue.cpp
   test_snapshot.cpp
   test_span.cpp
@@ -123,6 +124,7 @@ add_executable(
   benchmark_cxxtrace
   benchmark_black_hole.cpp
   benchmark_clock.cpp
+  benchmark_processor.cpp
   benchmark_ring_queue.cpp
   benchmark_span.cpp
   benchmark_thread.cpp

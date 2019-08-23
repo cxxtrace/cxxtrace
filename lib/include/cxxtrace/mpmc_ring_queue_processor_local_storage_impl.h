@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
