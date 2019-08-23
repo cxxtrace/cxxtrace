@@ -1,4 +1,5 @@
 #include "sample_checker.h"
+#include "test_processor_id.h"
 #include "test_processor_id_manual.h"
 #include <algorithm>
 #include <atomic>
@@ -58,22 +59,7 @@ massage_processor_id_samples(
 auto
 create_world_readable_temporary_file() -> std::string;
 
-class any_processor_id_lookup
-{
-public:
-  constexpr explicit any_processor_id_lookup(cxxtrace::czstring name) noexcept
-    : name{ name }
-  {}
-
-  virtual ~any_processor_id_lookup() = default;
-
-  virtual auto get_current_processor_id() const noexcept -> processor_id = 0;
-
-  cxxtrace::czstring name;
-};
-
-class test_processor_id_manual
-  : public testing::TestWithParam<any_processor_id_lookup*>
+class test_processor_id_manual : public test_processor_id
 {};
 
 TEST_P(test_processor_id_manual,
@@ -88,7 +74,7 @@ TEST_P(test_processor_id_manual,
 
   auto begin_timestamp = clock.query();
   auto processor_id_samples_by_thread = sample_processor_id_on_threads(
-    [this]() { return this->GetParam()->get_current_processor_id(); });
+    [this]() { return this->get_current_processor_id(); });
   auto end_timestamp = clock.query();
 
   dtrace.stop();
@@ -130,41 +116,10 @@ TEST_P(test_processor_id_manual,
   }
 }
 
-template<class ProcessorIDLookup, int /*Counter*/>
-struct type_erased_processor_id_lookup : public any_processor_id_lookup
-{
-  using any_processor_id_lookup::any_processor_id_lookup;
-
-  virtual auto get_current_processor_id() const noexcept -> processor_id
-  {
-    return lookup.get_current_processor_id();
-  }
-
-  static auto instance(cxxtrace::czstring name)
-    -> type_erased_processor_id_lookup&
-  {
-    static auto instance = type_erased_processor_id_lookup{ name };
-    return instance;
-  }
-
-  ProcessorIDLookup lookup{};
-};
-
-#define PROCESSOR_ID_LOOKUP(lookup)                                            \
-  (&type_erased_processor_id_lookup<::cxxtrace::detail::lookup,                \
-                                    __COUNTER__>::instance(#lookup))
-INSTANTIATE_TEST_CASE_P(
-  ,
-  test_processor_id_manual,
-  testing::Values(
-    PROCESSOR_ID_LOOKUP(processor_id_lookup),
-    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
-    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
-    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
-    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_uncached),
-    PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_commpage_preempt_cached)),
-  [](const auto& param) { return param.param->name; });
-#undef PROCESSOR_ID_LOOKUP
+INSTANTIATE_TEST_CASE_P(,
+                        test_processor_id_manual,
+                        test_processor_id_manual::param_values,
+                        test_processor_id_manual::param_name);
 
 template<class ProcessorIDFunc>
 auto
