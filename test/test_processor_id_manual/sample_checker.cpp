@@ -100,13 +100,12 @@ sample_checker::check_sample(const processor_id_samples::sample& sample)
         if (processor_id == sample.processor_id) {
           auto end_it = processor_timeline.upper_bound(sample.timestamp_after);
           assert(!found_matching_processor);
-          found_matching_processor =
-            std::find_if(
-              before_it,
-              end_it,
-              [&](const std::pair<const timestamp, thread_id>& entry) {
-                return entry.second == sample.thread_id;
-              }) != end_it;
+          found_matching_processor = std::any_of(
+            before_it,
+            end_it,
+            [&](const std::pair<const timestamp, thread_id>& entry) {
+              return entry.second == sample.thread_id;
+            });
         }
 
         if (!thread_was_scheduled_at_timestamp_before) {
