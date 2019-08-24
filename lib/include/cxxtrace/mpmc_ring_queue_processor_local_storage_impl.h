@@ -20,29 +20,29 @@
 #include <vector>
 
 namespace cxxtrace {
-template<std::size_t Capacity, class ClockSample>
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::
+template<std::size_t Capacity, class Tag, class ClockSample>
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::
   mpmc_ring_queue_processor_local_storage() noexcept(false)
   : samples_by_processor{ detail::get_maximum_processor_id() + 1 }
 {}
 
-template<std::size_t Capacity, class ClockSample>
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::
+template<std::size_t Capacity, class Tag, class ClockSample>
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::
   ~mpmc_ring_queue_processor_local_storage() noexcept = default;
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 auto
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::reset() noexcept
-  -> void
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::
+  reset() noexcept -> void
 {
   for (auto& samples : this->samples_by_processor) {
     samples.reset();
   }
 }
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 auto
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::add_sample(
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::add_sample(
   detail::sample_site_local_data site,
   ClockSample time_point,
   thread_id thread_id) noexcept -> void
@@ -71,19 +71,19 @@ retry:
   }
 }
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 auto
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::add_sample(
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::add_sample(
   detail::sample_site_local_data site,
   ClockSample time_point) noexcept -> void
 {
   this->add_sample(site, time_point, get_current_thread_id());
 }
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 template<class Clock>
 auto
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::
   take_all_samples(Clock& clock) noexcept(false) -> samples_snapshot
 {
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
@@ -125,9 +125,9 @@ mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::
   return samples_snapshot{ std::move(samples), std::move(thread_names) };
 }
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 auto
-mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::
+mpmc_ring_queue_processor_local_storage<Capacity, Tag, ClockSample>::
   remember_current_thread_name_for_next_snapshot() -> void
 {
   this->remembered_thread_names.fetch_and_remember_name_of_current_thread();

@@ -15,6 +15,15 @@
 #include <cxxtrace/unbounded_unsafe_storage.h>
 
 namespace cxxtrace_test {
+struct mpmc_ring_queue_processor_local_test_storage_tag
+{};
+template<std::size_t CapacityPerThread, class ClockSample>
+using mpmc_ring_queue_processor_local_test_storage =
+  cxxtrace::mpmc_ring_queue_processor_local_storage<
+    CapacityPerThread,
+    mpmc_ring_queue_processor_local_test_storage_tag,
+    ClockSample>;
+
 struct ring_queue_thread_local_test_storage_tag
 {};
 template<std::size_t CapacityPerThread, class ClockSample>
@@ -72,12 +81,12 @@ private:
 };
 
 using test_span_types = ::testing::Types<
-  cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>,
   cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
   cxxtrace::unbounded_unsafe_storage<clock_sample>,
+  mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
   spmc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span, test_span_types, );
@@ -87,10 +96,10 @@ class test_span_thread_safe : public test_span<Storage>
 {};
 
 using test_span_thread_safe_types = ::testing::Types<
-  cxxtrace::mpmc_ring_queue_processor_local_storage<1024, clock_sample>,
   cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
+  mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
   spmc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_span_thread_safe, test_span_thread_safe_types, );

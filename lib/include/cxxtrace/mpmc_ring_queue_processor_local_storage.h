@@ -13,7 +13,7 @@
 namespace cxxtrace {
 class samples_snapshot;
 
-template<std::size_t Capacity, class ClockSample>
+template<std::size_t Capacity, class Tag, class ClockSample>
 class mpmc_ring_queue_processor_local_storage
 {
 public:
