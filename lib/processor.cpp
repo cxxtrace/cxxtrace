@@ -88,7 +88,7 @@ processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
 
 #if defined(__x86_64__)
 auto
-processor_id_lookup_x86_cpuid_uncached ::get_current_processor_id() const
+processor_id_lookup_x86_cpuid_uncached::get_current_processor_id() const
   noexcept -> processor_id
 {
   // FIXME(strager): We should detect what is supported by the CPU.
@@ -133,15 +133,9 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::initialize() noexcept
 }
 
 auto
-processor_id_lookup_x86_cpuid_commpage_preempt_cached::
-  get_current_processor_id() const noexcept -> processor_id
+processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
+  thread_local_cache& c) const noexcept -> processor_id
 {
-  auto* c_ptr = &this->thread_local_cache;
-#if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
-  asm volatile("" : "+r"(c_ptr));
-#endif
-  auto& c = *c_ptr;
-
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   if (!this->commpage_supported) {
     return this->uncached_lookup.get_current_processor_id();
@@ -157,7 +151,8 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
   using scheduler_generation_type =
     decltype(c.scheduler_generation_and_initialized);
   static_assert(
-    (sched_gen_type{ ~0U } | cache::initialized) != sched_gen_type{ ~0U },
+    (sched_gen_type{ ~0U } | thread_local_cache::initialized) !=
+      sched_gen_type{ ~0U },
     "cache::initialized must be disjoint from *apple_commpage::sched_gen");
 
   auto scheduler_generation = scheduler_generation_type{
@@ -165,7 +160,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
   };
   // TODO(strager): Determine if a separate boolean check is faster than
   // juggling the cache::initialized bit.
-  scheduler_generation |= cache::initialized;
+  scheduler_generation |= thread_local_cache::initialized;
   if (scheduler_generation == c.scheduler_generation_and_initialized) {
     // This thread was not rescheduled onto a different processor. Our cached
     // processor ID is valid.
@@ -184,9 +179,6 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::
   }
   return c.id;
 }
-
-thread_local processor_id_lookup_x86_cpuid_commpage_preempt_cached::cache
-  processor_id_lookup_x86_cpuid_commpage_preempt_cached::thread_local_cache;
 #endif
 }
 }

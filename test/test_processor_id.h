@@ -30,7 +30,9 @@ struct type_erased_processor_id_lookup : public any_processor_id_lookup
   virtual auto get_current_processor_id() const noexcept
     -> cxxtrace::detail::processor_id
   {
-    return lookup.get_current_processor_id();
+    thread_local auto thread_local_cache =
+      typename ProcessorIDLookup::thread_local_cache{};
+    return lookup.get_current_processor_id(thread_local_cache);
   }
 
   static auto instance(cxxtrace::czstring name)

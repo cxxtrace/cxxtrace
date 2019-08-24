@@ -46,6 +46,11 @@ private:
   detail::processor_id_lookup processor_id_lookup;
   std::vector<processor_samples> samples_by_processor;
   detail::thread_name_set remembered_thread_names;
+
+  // TODO(strager): Only create this thread_local variable if thread_local_cache
+  // is actually necessary.
+  static inline thread_local
+    typename detail::processor_id_lookup::thread_local_cache processor_id_cache;
 };
 }
 

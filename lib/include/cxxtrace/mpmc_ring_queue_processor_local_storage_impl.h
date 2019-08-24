@@ -51,7 +51,8 @@ mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::add_sample(
 
   auto backoff = detail::backoff{};
 retry:
-  auto processor_id = this->processor_id_lookup.get_current_processor_id();
+  auto processor_id = this->processor_id_lookup.get_current_processor_id(
+    this->processor_id_cache);
   auto& samples = this->samples_by_processor[processor_id];
   auto result = samples.try_push(1, [&](auto data) noexcept {
     data.set(0, sample{ site, thread_id, time_point });
