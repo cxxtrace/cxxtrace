@@ -36,6 +36,10 @@ struct point
 namespace cxxtrace {
 namespace detail {
 // Ensure all methods are instantiatable.
+template class mpmc_ring_queue<int, 1, int>;
+template class mpmc_ring_queue<char, 1, signed char>;
+template class mpmc_ring_queue<point, 1024, std::size_t>;
+
 template class ring_queue<int, 1, int>;
 template class ring_queue<char, 1, signed char>;
 template class ring_queue<point, 1024, std::size_t>;
@@ -221,7 +225,8 @@ protected:
 };
 
 using test_ring_queue_against_reference_types =
-  ::testing::Types<cxxtrace::detail::ring_queue<int, 8, int>,
+  ::testing::Types<cxxtrace::detail::mpmc_ring_queue<int, 8, int>,
+                   cxxtrace::detail::ring_queue<int, 8, int>,
                    cxxtrace::detail::spmc_ring_queue<int, 8, int>>;
 TYPED_TEST_CASE(test_ring_queue_against_reference,
                 test_ring_queue_against_reference_types, );
