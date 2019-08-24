@@ -134,7 +134,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::initialize() noexcept
 
 auto
 processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
-  thread_local_cache& c) const noexcept -> processor_id
+  thread_local_cache& cache) const noexcept -> processor_id
 {
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   if (!this->commpage_supported) {
@@ -149,7 +149,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
     std::decay_t<decltype(*apple_commpage::sched_gen)>::value_type;
 #endif
   using scheduler_generation_type =
-    decltype(c.scheduler_generation_and_initialized);
+    decltype(cache.scheduler_generation_and_initialized);
   static_assert(
     (sched_gen_type{ ~0U } | thread_local_cache::initialized) !=
       sched_gen_type{ ~0U },
@@ -161,7 +161,7 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
   // TODO(strager): Determine if a separate boolean check is faster than
   // juggling the cache::initialized bit.
   scheduler_generation |= thread_local_cache::initialized;
-  if (scheduler_generation == c.scheduler_generation_and_initialized) {
+  if (scheduler_generation == cache.scheduler_generation_and_initialized) {
     // This thread was not rescheduled onto a different processor. Our cached
     // processor ID is valid.
   } else {
@@ -169,15 +169,15 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
     // thread was rescheduled onto a different processor, or another thread on
     // the system was scheduled onto a different processor. Our cached processor
     // ID is possibly invalid.
-    c.id = this->uncached_lookup.get_current_processor_id();
-    c.scheduler_generation_and_initialized = scheduler_generation;
+    cache.id = this->uncached_lookup.get_current_processor_id();
+    cache.scheduler_generation_and_initialized = scheduler_generation;
     // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
     // disagrees with our scheduler_generation automatic variable), ideally we
     // would query the processor ID again. However, this function is a hint
     // anyway; there's no point in getting the "right" answer when it'll be
     // possibly invalid after returning anyway.
   }
-  return c.id;
+  return cache.id;
 }
 #endif
 }
