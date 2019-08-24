@@ -49,10 +49,15 @@ mpmc_ring_queue_processor_local_storage<Capacity, ClockSample>::add_sample(
 {
   using detail::mpmc_ring_queue_push_result;
 
+  auto& processor_id_cache = *this->processor_id_cache.get(
+    [this](processor_id_lookup_thread_local_cache* uninitialized_cache) {
+      new (uninitialized_cache)
+        processor_id_lookup_thread_local_cache{ this->processor_id_lookup };
+    });
   auto backoff = detail::backoff{};
 retry:
-  auto processor_id = this->processor_id_lookup.get_current_processor_id(
-    this->processor_id_cache);
+  auto processor_id =
+    this->processor_id_lookup.get_current_processor_id(processor_id_cache);
   auto& samples = this->samples_by_processor[processor_id];
   auto result = samples.try_push(1, [&](auto data) noexcept {
     data.set(0, sample{ site, thread_id, time_point });

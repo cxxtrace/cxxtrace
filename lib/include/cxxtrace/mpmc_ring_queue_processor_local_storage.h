@@ -2,6 +2,7 @@
 #define CXXTRACE_MPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
 
 #include <cstddef>
+#include <cxxtrace/detail/lazy_thread_local.h>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/sample.h>
@@ -43,14 +44,26 @@ private:
   using sample = detail::global_sample<ClockSample>;
   using processor_samples = detail::mpmc_ring_queue<sample, Capacity>;
 
+  using processor_id_lookup_thread_local_cache =
+    typename detail::processor_id_lookup::thread_local_cache;
+
   detail::processor_id_lookup processor_id_lookup;
   std::vector<processor_samples> samples_by_processor;
   detail::thread_name_set remembered_thread_names;
 
-  // TODO(strager): Only create this thread_local variable if thread_local_cache
-  // is actually necessary.
-  static inline thread_local
-    typename detail::processor_id_lookup::thread_local_cache processor_id_cache;
+  // TODO(strager): Only create this thread-local variable if it's actually used
+  // by processor_id_lookup.
+  // FIXME(strager): Each thread_local_cache is bound to one processor_id_lookup
+  // object and should be used with only the processor_id_lookup object given to
+  // the thread_local_cache's constructor. processor_id_cache is shared across
+  // multiple instances of mpmc_ring_queue_processor_local_storage, thus
+  // processor_id_cache is shared across multiple processor_id_lookup objects.
+  struct processor_id_cache_tag
+  {};
+  static inline detail::lazy_thread_local<
+    processor_id_lookup_thread_local_cache,
+    processor_id_cache_tag>
+    processor_id_cache;
 };
 }
 

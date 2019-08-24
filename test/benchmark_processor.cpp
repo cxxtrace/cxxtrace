@@ -49,7 +49,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
 {
   using lookup_thread_local_cache =
     typename fixture_type::lookup_thread_local_cache;
-  auto cache = lookup_thread_local_cache{};
+  auto cache = lookup_thread_local_cache{ this->processor_id_lookup };
   for (auto _ : bench) {
 #pragma clang loop unroll(full)
     for (auto i = 0; i < this->samples_per_iteration; ++i) {

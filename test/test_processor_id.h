@@ -31,7 +31,7 @@ struct type_erased_processor_id_lookup : public any_processor_id_lookup
     -> cxxtrace::detail::processor_id
   {
     thread_local auto thread_local_cache =
-      typename ProcessorIDLookup::thread_local_cache{};
+      typename ProcessorIDLookup::thread_local_cache{ this->lookup };
     return lookup.get_current_processor_id(thread_local_cache);
   }
 

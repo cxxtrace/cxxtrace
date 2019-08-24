@@ -18,7 +18,9 @@ class cacheless_processor_id_lookup
 {
 public:
   struct thread_local_cache
-  {};
+  {
+    explicit thread_local_cache(const ProcessorIDLookup&) noexcept {}
+  };
 
   auto get_current_processor_id(thread_local_cache&) const noexcept
     -> processor_id
@@ -78,27 +80,19 @@ private:
 #if defined(__x86_64__) && defined(__APPLE__)
 class processor_id_lookup_x86_cpuid_commpage_preempt_cached
 {
+private:
+  using scheduler_generation_type = std::uint64_t;
+
 public:
   class thread_local_cache
-    : public processor_id_lookup_x86_cpuid_uncached::thread_local_cache
   {
-  private:
-    // A signal bit indicating that this cache has been initialized.
-    //
-    // If this bit didn't exist, the first calls to get_current_processor_id on
-    // a thread will return 0 if *apple_commpage::sched_gen happened to equal 0.
-    // (Returning 0 is possibly wrong.)
-    //
-    // TODO(strager): Because get_current_processor_id is advisory anyway,
-    // should we drop this bit and live with being wrong with a probability of
-    // 1-in-4-billion?
-    // TODO(strager): Write a constructor to do the initialization. We should be
-    // stashed in a guarded thread_local anyway.
-    static constexpr auto initialized = std::uint64_t{ 1ULL << 63 };
+  public:
+    explicit thread_local_cache(
+      const processor_id_lookup_x86_cpuid_commpage_preempt_cached&) noexcept;
 
+  private:
     processor_id id;
-    // Either 0, or *apple_commpage::sched_gen bitwise-or cache::initialized.
-    std::uint64_t scheduler_generation_and_initialized;
+    scheduler_generation_type scheduler_generation;
 
     friend class processor_id_lookup_x86_cpuid_commpage_preempt_cached;
   };
@@ -110,12 +104,16 @@ public:
 
 private:
   auto initialize() noexcept -> void;
+  auto update_cache(thread_local_cache&, scheduler_generation_type) const
+    noexcept -> void;
 
   CXXTRACE_NO_UNIQUE_ADDRESS processor_id_lookup_x86_cpuid_uncached
     uncached_lookup;
 #if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
   bool commpage_supported;
 #endif
+
+  friend class thread_local_cache;
 };
 #endif
 

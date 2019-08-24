@@ -3,6 +3,7 @@
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <atomic>
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <cxxtrace/detail/apple_commpage.h>
@@ -133,6 +134,16 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::initialize() noexcept
 }
 
 auto
+processor_id_lookup_x86_cpuid_commpage_preempt_cached::update_cache(
+  thread_local_cache& cache,
+  scheduler_generation_type scheduler_generation) const noexcept -> void
+{
+  assert(this->commpage_supported);
+  cache.id = this->uncached_lookup.get_current_processor_id();
+  cache.scheduler_generation = scheduler_generation;
+}
+
+auto
 processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
   thread_local_cache& cache) const noexcept -> processor_id
 {
@@ -142,35 +153,17 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
   }
 #endif
 
-#if CXXTRACE_WORK_AROUND_ATOMIC_VALUE_TYPE
-  using sched_gen_type = std::uint32_t;
-#else
-  using sched_gen_type =
-    std::decay_t<decltype(*apple_commpage::sched_gen)>::value_type;
-#endif
-  using scheduler_generation_type =
-    decltype(cache.scheduler_generation_and_initialized);
-  static_assert(
-    (sched_gen_type{ ~0U } | thread_local_cache::initialized) !=
-      sched_gen_type{ ~0U },
-    "cache::initialized must be disjoint from *apple_commpage::sched_gen");
-
   auto scheduler_generation = scheduler_generation_type{
     apple_commpage::sched_gen->load(std::memory_order_seq_cst)
   };
-  // TODO(strager): Determine if a separate boolean check is faster than
-  // juggling the cache::initialized bit.
-  scheduler_generation |= thread_local_cache::initialized;
-  if (scheduler_generation == cache.scheduler_generation_and_initialized) {
+  if (scheduler_generation == cache.scheduler_generation) {
     // This thread was not rescheduled onto a different processor. Our cached
     // processor ID is valid.
   } else {
-    // Either this is the first time we're being called on this thread, or this
-    // thread was rescheduled onto a different processor, or another thread on
-    // the system was scheduled onto a different processor. Our cached processor
-    // ID is possibly invalid.
-    cache.id = this->uncached_lookup.get_current_processor_id();
-    cache.scheduler_generation_and_initialized = scheduler_generation;
+    // Either this thread was rescheduled onto a different processor, or another
+    // thread on the system was scheduled onto a different processor. Our cached
+    // processor ID is possibly invalid.
+    this->update_cache(cache, scheduler_generation);
     // NOTE(strager): If *apple_commpage::sched_gen changes again (i.e.
     // disagrees with our scheduler_generation automatic variable), ideally we
     // would query the processor ID again. However, this function is a hint
@@ -178,6 +171,24 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::get_current_processor_id(
     // possibly invalid after returning anyway.
   }
   return cache.id;
+}
+
+processor_id_lookup_x86_cpuid_commpage_preempt_cached::thread_local_cache::
+  thread_local_cache(
+    const processor_id_lookup_x86_cpuid_commpage_preempt_cached&
+      lookup) noexcept
+{
+#if CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION
+  if (!lookup.commpage_supported) {
+    // get_current_processor_id does not use thread_local_cache.
+    return;
+  }
+#endif
+
+  auto scheduler_generation = scheduler_generation_type{
+    apple_commpage::sched_gen->load(std::memory_order_seq_cst)
+  };
+  lookup.update_cache(*this, scheduler_generation);
 }
 #endif
 }

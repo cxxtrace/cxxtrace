@@ -5,7 +5,6 @@
 #include <cxxtrace/detail/workarounds.h>
 #include <type_traits>
 
-#if CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS
 namespace cxxtrace {
 namespace detail {
 template<class T>
@@ -16,13 +15,22 @@ template<class T, class Tag>
 class lazy_thread_local
 {
 public:
-  static_assert(std::is_default_constructible_v<T>);
-
   static auto get() -> T*
+  {
+    static_assert(std::is_default_constructible_v<T>);
+    auto* storage = get_thread_data_storage();
+    if (!storage->is_initialized) {
+      initialize_no_inline(storage);
+    }
+    return storage->data_pointer_unsafe();
+  }
+
+  template<class Initialize>
+  static auto get(Initialize&& initialize_data) -> T*
   {
     auto* storage = get_thread_data_storage();
     if (!storage->is_initialized) {
-      initialize(storage);
+      initialize_no_inline(storage, std::forward<Initialize>(initialize_data));
     }
     return storage->data_pointer_unsafe();
   }
@@ -43,11 +51,26 @@ private:
                 "data_storage must be trivial in order for lazy_thread_local "
                 "to have low overhead");
 
-  __attribute__((noinline)) static auto initialize(data_storage* storage)
+  template<class Initialize>
+  __attribute__((noinline)) static auto initialize_no_inline(
+    data_storage* storage,
+    Initialize&& initialize_data) -> void
+  {
+    initialize(storage, std::forward<Initialize>(initialize_data));
+  }
+
+  __attribute__((noinline)) static auto initialize_no_inline(
+    data_storage* storage) -> void
+  {
+    initialize(storage, [](T* data) { new (data) T{}; });
+  }
+
+  template<class Initialize>
+  static auto initialize(data_storage* storage, Initialize&& initialize_data)
     -> void
   {
     auto* data = storage->data_pointer_unsafe();
-    new (data) T{};
+    std::forward<Initialize>(initialize_data)(data);
     storage->is_initialized = true;
     destroy_object_on_thread_exit(data);
   }
@@ -94,6 +117,5 @@ destroy_object_on_thread_exit(T* object) noexcept -> void
 #endif
 }
 }
-#endif
 
 #endif
