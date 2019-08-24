@@ -1,6 +1,6 @@
 #include "cxxtrace_concurrency_test.h"
 #include "memory_resource.h"
-#include "ring_queue.h"
+#include "ring_queue_wrapper.h"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -54,15 +54,14 @@ protected:
   auto push_range(size_type begin, size_type end) noexcept -> void
   {
     for (auto i = begin; i < end; ++i) {
-      push(this->queue, 1, [i](auto data) noexcept {
-        data.set(0, item_at_index(i));
-      });
+      this->queue.push(
+        1, [i](auto data) noexcept { data.set(0, item_at_index(i)); });
     }
   }
 
   auto bulk_push_range(size_type begin, size_type end) noexcept -> void
   {
-    push(this->queue, end - begin, [&](auto data) noexcept {
+    this->queue.push(end - begin, [&](auto data) noexcept {
       this->write_range(begin, end, data);
     });
   }
@@ -140,7 +139,7 @@ protected:
       caller);
   }
 
-  RingQueue queue{};
+  ring_queue_wrapper<RingQueue> queue{};
 };
 
 template<class RingQueue>
@@ -151,7 +150,7 @@ public:
   auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
-      push(this->queue, 1, [](auto data) noexcept { data.set(0, 42); });
+      this->queue.push(1, [](auto data) noexcept { data.set(0, 42); });
     } else {
       char buffer[1024];
       auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };

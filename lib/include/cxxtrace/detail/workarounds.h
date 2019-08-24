@@ -46,4 +46,9 @@
 #define CXXTRACE_WORK_AROUND_NON_CONST_STD_ATOMIC_LOAD 1
 #endif
 
+// At the time of writing, C++'s std::void_t<a> is indistinguishable from
+// std::void_t<b> when comparing class template partial specializations. See CWG
+// 1980: http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1980
+#define CXXTRACE_WORK_AROUND_VOID_T_EQUIVALENCE 1
+
 #endif

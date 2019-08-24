@@ -1,6 +1,6 @@
 #include "exhaustive_rng.h"
 #include "reference_ring_queue.h"
-#include "ring_queue.h"
+#include "ring_queue_wrapper.h"
 #include "stringify.h"
 #include <algorithm>
 #include <array>
@@ -60,7 +60,7 @@ template<template<class T, std::size_t Capacity, class Index> class RingQueue>
 struct ring_queue_factory
 {
   template<class T, std::size_t Capacity, class Index>
-  using ring_queue = RingQueue<T, Capacity, Index>;
+  using ring_queue = ring_queue_wrapper<RingQueue<T, Capacity, Index>>;
 };
 
 using test_ring_queue_types =
@@ -86,7 +86,7 @@ TYPED_TEST(test_ring_queue, new_queue_is_empty)
 TYPED_TEST(test_ring_queue, pop_returns_single_pushed_int)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  push(queue, 1, [](auto data) noexcept->void { data.set(0, 42); });
+  queue.push(1, [](auto data) noexcept->void { data.set(0, 42); });
 
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
@@ -98,7 +98,7 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
   auto queue = RING_QUEUE<int, 64>{};
   auto values_to_write = std::vector<int>{ 42, 9001, -1 };
   for (auto value : values_to_write) {
-    push(queue, 1, [value](auto data) noexcept->void { data.set(0, value); });
+    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto written_values = pop_all(queue);
@@ -108,7 +108,7 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
 TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  push(queue, 3, [](auto data) noexcept->void {
+  queue.push(3, [](auto data) noexcept->void {
     data.set(0, 42);
     data.set(1, 9001);
     data.set(2, -1);
@@ -121,10 +121,10 @@ TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
 {
   auto queue = RING_QUEUE<int, 8>{};
-  push(queue, 6, [](auto) noexcept->void{});
+  queue.push(6, [](auto) noexcept->void{});
   pop_all(queue);
 
-  push(queue, 4, [](auto data) noexcept->void {
+  queue.push(4, [](auto data) noexcept->void {
     data.set(0, 10);
     data.set(1, 20);
     data.set(2, 30);
@@ -138,7 +138,7 @@ TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
 TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  push(queue, 5, [](auto data) noexcept->void {
+  queue.push(5, [](auto data) noexcept->void {
     data.set(0, 10);
     data.set(1, 20);
     data.set(2, 30);
@@ -156,7 +156,7 @@ TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 TYPED_TEST(test_ring_queue, reset_then_pop_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  push(queue, 5, [](auto data) noexcept->void {
+  queue.push(5, [](auto data) noexcept->void {
     data.set(0, 10);
     data.set(1, 20);
     data.set(2, 30);
@@ -174,7 +174,7 @@ TYPED_TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
 {
   auto queue = RING_QUEUE<int, 4>{};
   for (auto value : { 10, 20, 30, 40, 50 }) {
-    push(queue, 1, [value](auto data) noexcept->void { data.set(0, value); });
+    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto items = pop_all(queue);
@@ -201,9 +201,8 @@ protected:
   auto push_n(int count) -> void
   {
     for (auto i = 0; i < count; ++i) {
-      push(this->queue, 1, [this](auto data) noexcept->void {
-        data.set(0, this->cur_value);
-      });
+      this->queue.push(
+        1, [this](auto data) noexcept->void { data.set(0, this->cur_value); });
       this->reference_queue.push(this->cur_value);
       this->cur_value += 1;
     }
@@ -216,7 +215,7 @@ protected:
     EXPECT_THAT(popped, ContainerEq(reference_popped));
   }
 
-  RingQueue queue{};
+  ring_queue_wrapper<RingQueue> queue{};
   reference_ring_queue<value_type, capacity> reference_queue{};
   value_type cur_value{ 100 };
 };
@@ -256,9 +255,9 @@ TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
   auto max_index =
     std::numeric_limits<typename decltype(queue)::size_type>::max();
   for (auto i = 0; i < max_index; ++i) {
-    push(queue, 1, [](auto data) noexcept { data.set(0, 0); });
+    queue.push(1, [](auto data) noexcept { data.set(0, 0); });
   }
-  EXPECT_EXIT({ push(queue, 1, [](auto data) noexcept { data.set(0, 0); }); },
+  EXPECT_EXIT({ queue.push(1, [](auto data) noexcept { data.set(0, 0); }); },
               testing::KilledBySignal(SIGABRT),
               "Writer overflowed size_type");
 }
