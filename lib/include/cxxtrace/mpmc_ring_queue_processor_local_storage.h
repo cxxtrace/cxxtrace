@@ -53,17 +53,9 @@ private:
 
   // TODO(strager): Only create this thread-local variable if it's actually used
   // by processor_id_lookup.
-  // FIXME(strager): Each thread_local_cache is bound to one processor_id_lookup
-  // object and should be used with only the processor_id_lookup object given to
-  // the thread_local_cache's constructor. processor_id_cache is shared across
-  // multiple instances of mpmc_ring_queue_processor_local_storage, thus
-  // processor_id_cache is shared across multiple processor_id_lookup objects.
-  struct processor_id_cache_tag
-  {};
-  static inline detail::lazy_thread_local<
-    processor_id_lookup_thread_local_cache,
-    processor_id_cache_tag>
-    processor_id_cache;
+  inline static detail::
+    lazy_thread_local<processor_id_lookup_thread_local_cache, Tag>
+      processor_id_cache;
 };
 }
 
