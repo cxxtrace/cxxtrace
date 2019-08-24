@@ -3,6 +3,7 @@
 
 #include "void_t.h"
 #include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/queue_sink.h>
 #include <type_traits>
 
 #if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_RELACY
@@ -44,9 +45,11 @@ public:
     return push_result::pushed;
   }
 
-  auto pop_all_into(std::vector<value_type>& output) -> void
+  template<class Allocator>
+  auto pop_all_into(std::vector<value_type, Allocator>& output) -> void
   {
-    this->queue.pop_all_into(output);
+    this->pop_all_into(
+      cxxtrace::detail::vector_queue_sink<value_type, Allocator>{ output });
   }
 
   template<class Sink>
@@ -96,9 +99,11 @@ public:
     return this->queue.try_push(count, std::forward<WriterFunction>(write));
   }
 
-  auto pop_all_into(std::vector<value_type>& output) -> void
+  template<class Allocator>
+  auto pop_all_into(std::vector<value_type, Allocator>& output) -> void
   {
-    this->queue.pop_all_into(output);
+    this->pop_all_into(
+      cxxtrace::detail::vector_queue_sink<value_type, Allocator>{ output });
   }
 
   template<class Sink>

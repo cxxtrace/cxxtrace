@@ -10,11 +10,9 @@
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/molecular.h>
 #include <cxxtrace/detail/mutex.h>
-#include <cxxtrace/detail/queue_sink.h>
 #include <limits>
 #include <optional>
 #include <type_traits>
-#include <vector>
 
 namespace cxxtrace {
 namespace detail {
@@ -79,12 +77,6 @@ public:
     write(push_handle{ this->storage, begin_vindex });
     this->end_push(end_vindex);
     return push_result::pushed;
-  }
-
-  template<class Allocator>
-  auto pop_all_into(std::vector<T, Allocator>& output) -> void
-  {
-    this->pop_all_into(vector_queue_sink<T, Allocator>{ output });
   }
 
   template<class Sink>

@@ -7,10 +7,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
-#include <cxxtrace/detail/queue_sink.h>
 #include <limits>
 #include <type_traits>
-#include <vector>
 
 namespace cxxtrace {
 namespace detail {
@@ -58,11 +56,6 @@ public:
   {
     this->read_vindex = 0;
     this->write_vindex = 0;
-  }
-
-  auto pop_all_into(std::vector<T>& output) -> void
-  {
-    this->pop_all_into(vector_queue_sink<T>{ output });
   }
 
   template<class Sink>
