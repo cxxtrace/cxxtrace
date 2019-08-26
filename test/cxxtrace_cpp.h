@@ -7,9 +7,48 @@
 //
 // For example, CXXTRACE_CPP_COUNT_ARGS(x, y(z, w, q)) expands to 2.
 #define CXXTRACE_CPP_COUNT_ARGS(...)                                           \
-  CXXTRACE_CPP_COUNT_ARGS_INDEX(__VA_ARGS__, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-#define CXXTRACE_CPP_COUNT_ARGS_INDEX(                                         \
-  a9, a8, a7, a6, a5, a4, a3, a2, a1, count, ...)                              \
+  CXXTRACE_CPP_COUNT_ARGS_INDEX(__VA_ARGS__,                                   \
+                                19,                                            \
+                                18,                                            \
+                                17,                                            \
+                                16,                                            \
+                                15,                                            \
+                                14,                                            \
+                                13,                                            \
+                                12,                                            \
+                                11,                                            \
+                                10,                                            \
+                                9,                                             \
+                                8,                                             \
+                                7,                                             \
+                                6,                                             \
+                                5,                                             \
+                                4,                                             \
+                                3,                                             \
+                                2,                                             \
+                                1,                                             \
+                                0)
+#define CXXTRACE_CPP_COUNT_ARGS_INDEX(a19,                                     \
+                                      a18,                                     \
+                                      a17,                                     \
+                                      a16,                                     \
+                                      a15,                                     \
+                                      a14,                                     \
+                                      a13,                                     \
+                                      a12,                                     \
+                                      a11,                                     \
+                                      a10,                                     \
+                                      a9,                                      \
+                                      a8,                                      \
+                                      a7,                                      \
+                                      a6,                                      \
+                                      a5,                                      \
+                                      a4,                                      \
+                                      a3,                                      \
+                                      a2,                                      \
+                                      a1,                                      \
+                                      count,                                   \
+                                      ...)                                     \
   count
 static_assert(CXXTRACE_CPP_COUNT_ARGS(x, y(z, w, q)) == 2);
 
@@ -53,5 +92,101 @@ static_assert(CXXTRACE_CPP_COUNT_ARGS(x, y(z, w, q)) == 2);
 #define CXXTRACE_CPP_MAP_9(macro, a0, a1, a2, a3, a4, a5, a6, a7, a8)          \
   macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
     macro(a7), macro(a8)
+#define CXXTRACE_CPP_MAP_10(macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9)     \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9)
+#define CXXTRACE_CPP_MAP_11(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10)                          \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10)
+#define CXXTRACE_CPP_MAP_12(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11)                     \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11)
+#define CXXTRACE_CPP_MAP_13(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12)                \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12)
+#define CXXTRACE_CPP_MAP_14(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13)           \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13)
+#define CXXTRACE_CPP_MAP_15(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14)      \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13), macro(a14)
+#define CXXTRACE_CPP_MAP_16(                                                   \
+  macro, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13), macro(a14), macro(a15)
+#define CXXTRACE_CPP_MAP_17(macro,                                             \
+                            a0,                                                \
+                            a1,                                                \
+                            a2,                                                \
+                            a3,                                                \
+                            a4,                                                \
+                            a5,                                                \
+                            a6,                                                \
+                            a7,                                                \
+                            a8,                                                \
+                            a9,                                                \
+                            a10,                                               \
+                            a11,                                               \
+                            a12,                                               \
+                            a13,                                               \
+                            a14,                                               \
+                            a15,                                               \
+                            a16)                                               \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13), macro(a14), macro(a15), macro(a16)
+#define CXXTRACE_CPP_MAP_18(macro,                                             \
+                            a0,                                                \
+                            a1,                                                \
+                            a2,                                                \
+                            a3,                                                \
+                            a4,                                                \
+                            a5,                                                \
+                            a6,                                                \
+                            a7,                                                \
+                            a8,                                                \
+                            a9,                                                \
+                            a10,                                               \
+                            a11,                                               \
+                            a12,                                               \
+                            a13,                                               \
+                            a14,                                               \
+                            a15,                                               \
+                            a16,                                               \
+                            a17)                                               \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13), macro(a14), macro(a15), macro(a16), macro(a17)
+#define CXXTRACE_CPP_MAP_19(macro,                                             \
+                            a0,                                                \
+                            a1,                                                \
+                            a2,                                                \
+                            a3,                                                \
+                            a4,                                                \
+                            a5,                                                \
+                            a6,                                                \
+                            a7,                                                \
+                            a8,                                                \
+                            a9,                                                \
+                            a10,                                               \
+                            a11,                                               \
+                            a12,                                               \
+                            a13,                                               \
+                            a14,                                               \
+                            a15,                                               \
+                            a16,                                               \
+                            a17,                                               \
+                            a18)                                               \
+  macro(a0), macro(a1), macro(a2), macro(a3), macro(a4), macro(a5), macro(a6), \
+    macro(a7), macro(a8), macro(a9), macro(a10), macro(a11), macro(a12),       \
+    macro(a13), macro(a14), macro(a15), macro(a16), macro(a17), macro(a18)
 
 #endif

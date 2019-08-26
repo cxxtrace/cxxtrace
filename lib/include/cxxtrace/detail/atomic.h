@@ -103,6 +103,13 @@ public:
       expected, desired, success_order, failure_order);
   }
 
+  auto exchange(T desired,
+                std::memory_order memory_order,
+                debug_source_location) noexcept -> T
+  {
+    return this->data.exchange(desired, memory_order);
+  }
+
   auto fetch_add(T addend,
                  std::memory_order memory_order,
                  debug_source_location) noexcept -> T
@@ -170,6 +177,26 @@ real_atomic_thread_fence(std::memory_order memory_order,
 {
   std::atomic_thread_fence(memory_order);
 }
+
+class real_atomic_flag
+{
+public:
+  explicit real_atomic_flag() noexcept = default;
+
+  auto clear(std::memory_order order, debug_source_location) noexcept -> void
+  {
+    this->flag.clear(order);
+  }
+
+  auto test_and_set(std::memory_order order, debug_source_location) noexcept
+    -> bool
+  {
+    return this->flag.test_and_set(order);
+  }
+
+private:
+  std::atomic_flag flag = ATOMIC_FLAG_INIT;
+};
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 template<class T>
@@ -465,16 +492,21 @@ template<class T>
 using atomic = cdschecker_atomic<T>;
 template<class T>
 using nonatomic = cdschecker_nonatomic<T>;
+// TODO(strager): Implement cdschecker_atomic_flag.
+using atomic_flag = void;
 #elif CXXTRACE_ENABLE_RELACY
 template<class T>
 using atomic = relacy_atomic<T>;
 template<class T>
 using nonatomic = relacy_nonatomic<T>;
+// TODO(strager): Implement relacy_atomic_flag.
+using atomic_flag = void;
 #else
 template<class T>
 using atomic = real_atomic<T>;
 template<class T>
 using nonatomic = real_nonatomic<T>;
+using atomic_flag = real_atomic_flag;
 #endif
 
 namespace { // Avoid ODR violation: #if inside an inline function's body.
