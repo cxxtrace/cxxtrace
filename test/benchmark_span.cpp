@@ -76,10 +76,10 @@ private:
 
 struct mpmc_ring_queue_processor_local_benchmark_storage_tag
 {};
-template<std::size_t CapacityPerThread, class ClockSample>
+template<std::size_t CapacityPerProcessor, class ClockSample>
 using mpmc_ring_queue_processor_local_benchmark_storage =
   cxxtrace::mpmc_ring_queue_processor_local_storage<
-    CapacityPerThread,
+    CapacityPerProcessor,
     mpmc_ring_queue_processor_local_benchmark_storage_tag,
     ClockSample>;
 

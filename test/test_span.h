@@ -17,10 +17,10 @@
 namespace cxxtrace_test {
 struct mpmc_ring_queue_processor_local_test_storage_tag
 {};
-template<std::size_t CapacityPerThread, class ClockSample>
+template<std::size_t CapacityPerProcessor, class ClockSample>
 using mpmc_ring_queue_processor_local_test_storage =
   cxxtrace::mpmc_ring_queue_processor_local_storage<
-    CapacityPerThread,
+    CapacityPerProcessor,
     mpmc_ring_queue_processor_local_test_storage_tag,
     ClockSample>;
 

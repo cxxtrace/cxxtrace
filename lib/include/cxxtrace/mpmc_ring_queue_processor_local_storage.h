@@ -13,7 +13,7 @@
 namespace cxxtrace {
 class samples_snapshot;
 
-template<std::size_t Capacity, class Tag, class ClockSample>
+template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 class mpmc_ring_queue_processor_local_storage
 {
 public:
@@ -42,7 +42,8 @@ public:
 
 private:
   using sample = detail::global_sample<ClockSample>;
-  using processor_samples = detail::mpmc_ring_queue<sample, Capacity>;
+  using processor_samples =
+    detail::mpmc_ring_queue<sample, CapacityPerProcessor>;
 
   using processor_id_lookup_thread_local_cache =
     typename detail::processor_id_lookup::thread_local_cache;
