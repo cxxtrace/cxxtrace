@@ -10,4 +10,4 @@ add_library(
   snapshot.cpp
   thread.cpp
 )
-target_include_directories(cxxtrace PUBLIC include PRIVATE private_include)
+target_include_directories(cxxtrace PUBLIC include PRIVATE)
