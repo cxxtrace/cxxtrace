@@ -56,6 +56,15 @@ private:
 using relacy_mutex = rl::mutex;
 #endif
 
+#if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_RELACY
+struct try_to_lock_t
+{};
+inline constexpr try_to_lock_t try_to_lock{};
+#else
+using try_to_lock_t = std::try_to_lock_t;
+using std::try_to_lock;
+#endif
+
 template<class Mutex>
 class lock_guard
 {
@@ -75,6 +84,39 @@ public:
 private:
   Mutex& mutex_;
   debug_source_location caller_;
+};
+
+template<class Mutex>
+class unique_lock
+{
+public:
+  explicit unique_lock(Mutex& mutex,
+                       try_to_lock_t,
+                       debug_source_location caller) noexcept
+    : mutex_{ mutex }
+    , caller_{ caller }
+  {
+    this->owns_lock_ = this->mutex_.try_lock(this->caller_);
+  }
+
+  unique_lock(const unique_lock&) = delete;
+  unique_lock& operator=(const unique_lock&) = delete;
+
+  ~unique_lock()
+  {
+    if (this->owns_lock()) {
+      this->mutex_.unlock(this->caller_);
+    }
+  }
+
+  auto owns_lock() const noexcept -> bool { return this->owns_lock_; }
+
+  explicit operator bool() const noexcept { return this->owns_lock(); }
+
+private:
+  Mutex& mutex_;
+  debug_source_location caller_;
+  bool owns_lock_{ false };
 };
 
 #if CXXTRACE_ENABLE_CDSCHECKER
