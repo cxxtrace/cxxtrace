@@ -42,6 +42,6 @@ private:
 };
 }
 
-#include <cxxtrace/ring_queue_unsafe_storage_impl.h>
+#include <cxxtrace/ring_queue_unsafe_storage_impl.h> // IWYU pragma: export
 
 #endif

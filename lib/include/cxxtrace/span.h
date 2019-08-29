@@ -44,6 +44,6 @@ private:
 }
 }
 
-#include <cxxtrace/span_impl.h>
+#include <cxxtrace/span_impl.h> // IWYU pragma: export
 
 #endif

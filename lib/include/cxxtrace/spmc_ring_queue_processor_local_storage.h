@@ -65,6 +65,6 @@ private:
 };
 }
 
-#include <cxxtrace/spmc_ring_queue_processor_local_storage_impl.h>
+#include <cxxtrace/spmc_ring_queue_processor_local_storage_impl.h> // IWYU pragma: export
 
 #endif

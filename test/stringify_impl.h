@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 
+// IWYU pragma: private, include "stringify.h"
 #if !defined(CXXTRACE_STRINGIFY_H)
 #error                                                                         \
   "Include \"stringify.h\" instead of including \"stringify_impl.h\" directly."

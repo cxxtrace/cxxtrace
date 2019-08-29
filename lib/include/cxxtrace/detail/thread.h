@@ -6,8 +6,9 @@
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <experimental/memory_resource>
-#include <experimental/unordered_map>
+#include <experimental/unordered_map> // IWYU pragma: keep
 #include <string>
+// IWYU pragma: no_include <unordered_map>
 
 namespace cxxtrace {
 namespace detail {

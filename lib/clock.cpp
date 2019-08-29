@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <sys/time.h>
 #include <utility>
+// IWYU pragma: no_include <ratio>
 
 #if defined(__APPLE__)
 #include <mach/kern_return.h>

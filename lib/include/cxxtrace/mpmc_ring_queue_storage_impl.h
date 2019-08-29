@@ -7,7 +7,7 @@
 #endif
 
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/queue_sink.h>
+#include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>

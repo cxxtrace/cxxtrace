@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/string.h>
@@ -14,6 +15,7 @@
 #include <string_view>
 #include <system_error>
 #include <type_traits>
+// IWYU pragma: no_include <vector>
 
 #if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 8000
 // Work around std::to_chars adding leading zeros.

@@ -3,7 +3,7 @@
 #endif
 
 #include "cxxtrace_concurrency_test_base.h"
-#include "stringify.h"
+#include "stringify.h" // IWYU pragma: keep
 #include <algorithm>
 #include <cerrno>
 #include <charconv>
@@ -21,6 +21,7 @@
 #include <system_error>
 #include <unistd.h>
 #include <vector>
+// IWYU pragma: no_include "stringify_impl.h"
 
 #if defined(__APPLE__) && !defined(_LIBCPP_HAS_QUICK_EXIT)
 // libc++ 8.0 does not define std::quick_exit on Apple platforms.

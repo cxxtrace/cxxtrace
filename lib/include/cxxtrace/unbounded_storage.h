@@ -43,6 +43,6 @@ private:
 };
 }
 
-#include <cxxtrace/unbounded_storage_impl.h>
+#include <cxxtrace/unbounded_storage_impl.h> // IWYU pragma: export
 
 #endif

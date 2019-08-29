@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
 #include <limits>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: keep
 
 namespace cxxtrace {
 namespace detail {

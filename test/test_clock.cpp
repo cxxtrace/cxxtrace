@@ -1,7 +1,7 @@
 #include "cxxtrace_algorithm.h"
 #include <chrono>
 #include <cxxtrace/clock.h>
-#include <cxxtrace/clock_extra.h>
+#include <cxxtrace/clock_extra.h> // IWYU pragma: keep
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>

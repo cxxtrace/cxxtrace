@@ -9,6 +9,6 @@ auto
 stringify(Args&&...) -> std::string;
 }
 
-#include "stringify_impl.h"
+#include "stringify_impl.h" // IWYU pragma: export
 
 #endif

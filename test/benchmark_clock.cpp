@@ -1,8 +1,8 @@
 #include "black_hole.h"
 #include "cxxtrace_benchmark.h"
 #include <benchmark/benchmark.h>
-#include <cxxtrace/clock.h>
-#include <cxxtrace/clock_extra.h>
+#include <cxxtrace/clock.h>       // IWYU pragma: keep
+#include <cxxtrace/clock_extra.h> // IWYU pragma: keep
 
 namespace cxxtrace_test {
 namespace {

@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_CONCURRENCY_TEST_H
 #define CXXTRACE_CONCURRENCY_TEST_H
 
-#include "cxxtrace_concurrency_test_base.h"
+#include "cxxtrace_concurrency_test_base.h" // IWYU pragma: export
 #include <cassert>
 #include <cxxtrace/detail/atomic.h>
 #include <exception>

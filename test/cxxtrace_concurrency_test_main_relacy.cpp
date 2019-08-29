@@ -1,5 +1,6 @@
 #include "cxxtrace_concurrency_test_base.h"
 #include <cstdlib>
+// IWYU pragma: no_include <vector>
 
 int
 main()

@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include <memory>
-#include <utility>
+#include <utility> // IWYU pragma: keep
 #include <vector>
 
 namespace cxxtrace {

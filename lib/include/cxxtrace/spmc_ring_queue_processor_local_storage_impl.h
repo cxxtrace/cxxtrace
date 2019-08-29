@@ -11,7 +11,7 @@
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/processor.h>
-#include <cxxtrace/detail/queue_sink.h>
+#include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
@@ -20,6 +20,9 @@
 #include <cxxtrace/thread.h>
 #include <utility>
 #include <vector>
+// IWYU pragma: no_include <cxxtrace/clock.h>
+// IWYU pragma: no_include <mutex>
+// IWYU pragma: no_include <new>
 
 namespace cxxtrace {
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>

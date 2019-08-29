@@ -32,6 +32,6 @@ transform_to_vector(Container1 container_1,
                                           *std::begin(container_2)))>>;
 }
 
-#include "cxxtrace_algorithm_impl.h"
+#include "cxxtrace_algorithm_impl.h" // IWYU pragma: export
 
 #endif

@@ -80,6 +80,6 @@ auto
 remember_current_thread_name_for_next_snapshot(Config&) -> void;
 }
 
-#include <cxxtrace/snapshot_impl.h>
+#include <cxxtrace/snapshot_impl.h> // IWYU pragma: export
 
 #endif

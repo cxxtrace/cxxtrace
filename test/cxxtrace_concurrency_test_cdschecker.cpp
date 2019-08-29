@@ -11,6 +11,7 @@
 #include <threads.h>
 #include <utility>
 #include <vector>
+// IWYU pragma: no_include <new>
 
 namespace {
 template<class Func>

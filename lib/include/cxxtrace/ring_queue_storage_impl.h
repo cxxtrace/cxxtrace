@@ -10,7 +10,7 @@
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
-#include <mutex>
+#include <mutex> // IWYU pragma: keep
 #include <utility>
 #include <vector>
 

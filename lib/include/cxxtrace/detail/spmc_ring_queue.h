@@ -11,7 +11,8 @@
 #include <cxxtrace/detail/molecular.h>
 #include <cxxtrace/detail/mutex.h>
 #include <limits>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: keep
+// IWYU pragma: no_forward_declare cxxtrace::detail::molecular
 
 namespace cxxtrace {
 namespace detail {

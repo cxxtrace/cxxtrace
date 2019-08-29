@@ -11,7 +11,7 @@
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
-#include <mutex>
+#include <mutex> // IWYU pragma: keep
 #include <utility>
 
 namespace cxxtrace {

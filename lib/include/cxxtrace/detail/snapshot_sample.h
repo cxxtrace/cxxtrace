@@ -6,7 +6,7 @@
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/thread.h>
 #include <iterator>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: keep
 #include <vector>
 
 namespace cxxtrace {

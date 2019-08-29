@@ -27,6 +27,6 @@ template<class Storage, class Clock>
 basic_config(Storage&, Clock&)->basic_config<Storage, Clock>;
 }
 
-#include <cxxtrace/config_impl.h>
+#include <cxxtrace/config_impl.h> // IWYU pragma: export
 
 #endif

@@ -173,6 +173,6 @@ private:
 };
 }
 
-#include <cxxtrace/clock_impl.h>
+#include <cxxtrace/clock_impl.h> // IWYU pragma: export
 
 #endif

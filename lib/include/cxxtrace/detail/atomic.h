@@ -3,7 +3,8 @@
 
 #include <atomic>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
+#include <type_traits>                   // IWYU pragma: keep
 #include <utility>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
@@ -25,6 +26,7 @@
 
 #include <relacy/atomic.hpp>
 #include <relacy/atomic_fence.hpp>
+#include <relacy/memory_order.hpp>
 #include <relacy/var.hpp>
 
 #pragma clang diagnostic pop

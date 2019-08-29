@@ -5,6 +5,7 @@
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
 #include <iostream>
+// IWYU pragma: no_include <vector>
 
 int
 main()

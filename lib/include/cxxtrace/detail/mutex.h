@@ -3,7 +3,10 @@
 
 #include <cxxtrace/detail/debug_source_location.h>
 #include <mutex>
+
+#if CXXTRACE_ENABLE_CDSCHECKER
 #include <type_traits>
+#endif
 
 #if CXXTRACE_ENABLE_RELACY
 #pragma clang diagnostic push

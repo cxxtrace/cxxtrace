@@ -10,7 +10,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/lazy_thread_local.h>
-#include <cxxtrace/detail/queue_sink.h>
+#include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
@@ -18,7 +18,7 @@
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/snapshot.h>
-#include <mutex>
+#include <mutex> // IWYU pragma: keep
 #include <utility>
 #include <vector>
 

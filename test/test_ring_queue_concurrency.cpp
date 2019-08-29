@@ -13,8 +13,12 @@
 #include <numeric>
 #include <optional>
 #include <ostream>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: keep
 #include <utility>
+// IWYU pragma: no_include <initializer_list>
+// IWYU pragma: no_include <relacy/stdlib/../context_base.hpp>
+// IWYU pragma: no_include <string>
+// IWYU pragma: no_include <vector>
 
 namespace {
 auto

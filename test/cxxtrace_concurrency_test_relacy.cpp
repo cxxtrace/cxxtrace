@@ -11,8 +11,12 @@
 #include <exception>
 #include <experimental/memory_resource>
 #include <experimental/string>
+#include <ostream>
 #include <sstream>
 #include <utility>
+// IWYU pragma: no_include <new>
+// IWYU pragma: no_include <string>
+// IWYU pragma: no_include <type_traits>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -22,8 +26,13 @@
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #pragma clang diagnostic ignored "-Wunused-parameter"
 
+#include <cxxtrace/detail/debug_source_location.h>
+#include <relacy/backoff.hpp>
 #include <relacy/context.hpp>
+#include <relacy/context_base.hpp>
 #include <relacy/context_base_impl.hpp>
+#include <relacy/test_params.hpp>
+#include <relacy/test_suite.hpp>
 
 #pragma clang diagnostic pop
 

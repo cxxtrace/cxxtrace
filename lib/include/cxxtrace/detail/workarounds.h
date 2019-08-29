@@ -2,9 +2,9 @@
 #define CXXTRACE_DETAIL_WORKAROUNDS_H
 
 #if __has_include(<version>)
-#include <version>
+#include <version> // IWYU pragma: export
 #else
-#include <ciso646>
+#include <ciso646> // IWYU pragma: export
 #endif
 
 #if defined(__clang__) && (__clang_major__ == 7 || __clang_major__ == 8) &&    \

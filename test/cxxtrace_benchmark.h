@@ -1,8 +1,8 @@
 #ifndef CXXTRACE_BENCHMARK_H
 #define CXXTRACE_BENCHMARK_H
 
-#include "cxxtrace_cpp.h"
-#include <benchmark/benchmark.h>
+#include "cxxtrace_cpp.h"        // IWYU pragma: export
+#include <benchmark/benchmark.h> // IWYU pragma: keep
 #include <cstddef>
 #include <cstdint>
 #include <cxxtrace/string.h>

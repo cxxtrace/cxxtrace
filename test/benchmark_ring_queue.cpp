@@ -1,11 +1,12 @@
 #include "cxxtrace_benchmark.h"
-#include "mutex.h"
+#include "mutex.h" // IWYU pragma: keep
 #include "ring_queue_wrapper.h"
 #include <benchmark/benchmark.h>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
+// IWYU pragma: no_forward_declare cxxtrace_test::wrapped_mutex
 
 namespace cxxtrace_test {
 template<class RingQueue>
