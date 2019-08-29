@@ -7,12 +7,8 @@
 #include <utility>
 
 #if defined(__APPLE__)
-#include <mach/clock.h>
-#include <mach/clock_types.h>
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
-#include <mach/mach_host.h>
-#include <mach/mach_port.h>
 #include <mach/mach_time.h>
 #endif
 

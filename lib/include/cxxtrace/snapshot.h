@@ -3,22 +3,17 @@
 
 #include <cstddef>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/sample.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
-#include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace cxxtrace {
 class sample_ref;
-class samples_snapshot;
-enum class event_kind;
 
-namespace detail {
-struct snapshot_sample;
-}
+enum class event_kind;
 
 class samples_snapshot
 {

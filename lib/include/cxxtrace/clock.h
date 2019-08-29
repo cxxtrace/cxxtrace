@@ -3,15 +3,15 @@
 
 #include <chrono>
 #include <cstdint>
-#include <cxxtrace/uninitialized.h>
 #include <sys/time.h>
 
 #if defined(__APPLE__)
-#include <mach/clock_types.h>
 #include <mach/mach_time.h>
 #endif
 
 namespace cxxtrace {
+struct uninitialized_t;
+
 class time_point
 {
 public:

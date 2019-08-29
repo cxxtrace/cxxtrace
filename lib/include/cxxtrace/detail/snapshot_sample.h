@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <iterator>
 #include <type_traits>

@@ -1,11 +1,14 @@
 #include <array>
 #include <cassert>
 #include <charconv>
+#include <chrono>
 #include <cstddef>
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/string.h>
+#include <cxxtrace/thread.h>
 #include <limits>
 #include <ostream>
 #include <string_view>

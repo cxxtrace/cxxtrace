@@ -6,8 +6,6 @@
   "Include <cxxtrace/snapshot.h> instead of including <cxxtrace/snapshot_impl.h> directly."
 #endif
 
-#include <cxxtrace/detail/snapshot_sample.h>
-
 namespace cxxtrace {
 template<class Config>
 auto

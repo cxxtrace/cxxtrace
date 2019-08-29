@@ -1,11 +1,16 @@
 #include <algorithm>
-#include <cassert>
+#include <cxxtrace/clock.h>
+#include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <iterator>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace cxxtrace {

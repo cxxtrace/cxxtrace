@@ -1,5 +1,6 @@
 #include <cxxtrace/detail/processor.h>
-#include <cxxtrace/detail/workarounds.h>
+#include <cerrno>
+#include <cstddef>
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <atomic>
@@ -10,9 +11,7 @@
 #include <mach/vm_types.h>
 #include <stdexcept>
 #include <sys/sysctl.h>
-#include <sys/types.h>
 #include <system_error>
-#include <type_traits>
 #endif
 
 namespace cxxtrace {

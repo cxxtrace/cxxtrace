@@ -1,12 +1,15 @@
 #include <cstddef>
 #include <cstdint>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
+#include <experimental/memory_resource>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #if defined(__APPLE__) && defined(__MACH__)
-#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
@@ -17,15 +20,15 @@
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
-#include <mach/mach_vm.h>
-#include <mach/task.h>
+#include <mach/mach_types.h>
+#include <mach/message.h>
+#include <mach/port.h>
 #include <mach/thread_act.h>
 #include <mach/thread_info.h>
 #include <pthread.h>
 #include <sys/proc_info.h>
 #include <unistd.h>
 #include <unordered_map>
-#include <vector>
 #endif
 
 static_assert(std::is_integral_v<cxxtrace::thread_id>);
