@@ -1,0 +1,4 @@
+[
+  {"include": ["<map>", "public", "<benchmark/benchmark.h>", "public"]},
+  {"symbol": ["benchmark::State", "private", "<benchmark/benchmark.h>", "public"]},
+]

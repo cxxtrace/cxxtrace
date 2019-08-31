@@ -1,0 +1,5 @@
+[
+  {"include": ["<impatomic.h>", "private", "<atomic>", "public"]},
+  {"include": ["<memoryorder.h>", "private", "<atomic>", "public"]},
+  {"symbol": ["memory_order", "private", "<atomic>", "public"]},
+]

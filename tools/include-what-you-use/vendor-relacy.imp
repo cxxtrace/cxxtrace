@@ -1,0 +1,5 @@
+[
+  {"include": ["<relacy/stdlib/../atomic.hpp>", "private", "<relacy/atomic.hpp>", "public"]},
+  {"symbol": ["RL_INFO", "private", "<relacy/base.hpp>", "public"]},
+  {"symbol": ["rl::debug_info", "private", "<relacy/base.hpp>", "public"]},
+]
