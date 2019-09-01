@@ -27,11 +27,6 @@
 #include <vector>
 // IWYU pragma: no_include "stringify_impl.h"
 
-#if defined(__APPLE__) && !defined(_LIBCPP_HAS_QUICK_EXIT)
-// libc++ 8.0 does not define std::quick_exit on Apple platforms.
-#define CXXTRACE_WORK_AROUND_QUICK_EXIT 1
-#endif
-
 namespace {
 cxxtrace_test::detail::concurrency_test* test_to_run{};
 
