@@ -48,9 +48,10 @@ mpmc_ring_queue_storage<Capacity, ClockSample>::add_sample(
 
   auto backoff = detail::backoff{};
 retry:
-  auto result = this->samples.try_push(1, [&](auto data) noexcept {
-    data.set(0, sample{ site, thread_id, time_point });
-  });
+  auto result = this->samples.try_push(
+    1, [&](auto data) noexcept {
+      data.set(0, sample{ site, thread_id, time_point });
+    });
   switch (result) {
     case mpmc_ring_queue_push_result::not_pushed_due_to_contention:
       backoff.yield(CXXTRACE_HERE);

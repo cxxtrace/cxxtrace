@@ -93,12 +93,13 @@ sort_grouped_lines_in_parallel(
     (groups.size() + number_of_threads - 1) / number_of_threads;
 
   auto group_vectors = std::vector<std::vector<std::string>*>{};
-  std::transform(groups.begin(),
-                 groups.end(),
-                 std::back_inserter(group_vectors),
-                 [](std::pair<const group_key, std::vector<std::string>> &
-                    entry) noexcept->std::vector<std::string> *
-                   { return &entry.second; });
+  std::transform(
+    groups.begin(),
+    groups.end(),
+    std::back_inserter(group_vectors),
+    [](std::pair<const group_key, std::vector<std::string>> &
+       entry) noexcept->std::vector<std::string> *
+      { return &entry.second; });
   auto rng = std::mt19937{};
   std::shuffle(group_vectors.begin(), group_vectors.end(), rng);
 

@@ -37,7 +37,7 @@ public:
   {
     auto was_locked = bool{};
     asm("lock bts $0, %[lock]"
-        : [lock] "+m"(this->lock), "=@ccc"(was_locked)
+        : [ lock ] "+m"(this->lock), "=@ccc"(was_locked)
         :
         : "cc");
     return !was_locked;

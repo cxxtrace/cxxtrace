@@ -41,9 +41,10 @@ ring_queue_unsafe_storage<Capacity, ClockSample>::add_sample(
   ClockSample time_point,
   thread_id thread_id) noexcept -> void
 {
-  this->samples.push(1, [&](auto data) noexcept {
-    data.set(0, sample{ site, thread_id, time_point });
-  });
+  this->samples.push(
+    1, [&](auto data) noexcept {
+      data.set(0, sample{ site, thread_id, time_point });
+    });
 }
 
 template<std::size_t Capacity, class ClockSample>

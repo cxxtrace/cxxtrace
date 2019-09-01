@@ -93,11 +93,12 @@ TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 {
   EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
             cxxtrace::get_current_thread_mach_thread_id());
-  std::thread{ [] {
-    EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
-              cxxtrace::get_current_thread_mach_thread_id());
-  } }
-    .join();
+  std::thread{
+    [] {
+      EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
+                cxxtrace::get_current_thread_mach_thread_id());
+    }
+  }.join();
 }
 #endif
 
@@ -106,14 +107,15 @@ TEST(test_thread_mach_thread_id,
      getting_current_thread_id_does_not_leak_thread_port)
 {
   auto thread_port = ::mach_port_t{};
-  std::thread{ [&thread_port] {
-    thread_port = ::mach_thread_self();
-    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
-    ASSERT_EQ(rc, KERN_SUCCESS);
+  std::thread{
+    [&thread_port] {
+      thread_port = ::mach_thread_self();
+      auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+      ASSERT_EQ(rc, KERN_SUCCESS);
 
-    cxxtrace::get_current_thread_mach_thread_id();
-  } }
-    .join();
+      cxxtrace::get_current_thread_mach_thread_id();
+    }
+  }.join();
 
   auto ports = get_mach_task_ports();
   EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
@@ -124,16 +126,17 @@ TEST(test_thread_mach_thread_id,
 TEST(test_thread, getting_current_thread_name_by_id_does_not_leak_thread_port)
 {
   auto thread_port = ::mach_port_t{};
-  std::thread{ [&thread_port] {
-    thread_port = ::mach_thread_self();
-    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
-    ASSERT_EQ(rc, KERN_SUCCESS);
+  std::thread{
+    [&thread_port] {
+      thread_port = ::mach_thread_self();
+      auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+      ASSERT_EQ(rc, KERN_SUCCESS);
 
-    auto thread_names = cxxtrace::detail::thread_name_set{};
-    thread_names.fetch_and_remember_name_of_current_thread_mach(
-      cxxtrace::get_current_thread_id());
-  } }
-    .join();
+      auto thread_names = cxxtrace::detail::thread_name_set{};
+      thread_names.fetch_and_remember_name_of_current_thread_mach(
+        cxxtrace::get_current_thread_id());
+    }
+  }.join();
 
   auto ports = get_mach_task_ports();
   EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
@@ -170,12 +173,13 @@ TEST(test_thread, task_ports_includes_port_of_live_thread)
 TEST(test_get_mach_task_ports, excludes_port_of_dead_thread)
 {
   auto thread_port = ::mach_port_t{};
-  std::thread{ [&thread_port] {
-    thread_port = ::mach_thread_self();
-    auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
-    ASSERT_EQ(rc, KERN_SUCCESS);
-  } }
-    .join();
+  std::thread{
+    [&thread_port] {
+      thread_port = ::mach_thread_self();
+      auto rc = ::mach_port_deallocate(::mach_task_self(), thread_port);
+      ASSERT_EQ(rc, KERN_SUCCESS);
+    }
+  }.join();
 
   auto ports = get_mach_task_ports();
   EXPECT_EQ(std::count(ports.names.begin(), ports.names.end(), thread_port), 0);
@@ -198,28 +202,31 @@ TEST(test_get_mach_task_ports, includes_port_of_dead_referenced_thread)
 
 TEST(test_thread_name, default_thread_name_is_empty)
 {
-  std::thread{ [] {
-    auto thread_names = cxxtrace::detail::thread_name_set{};
-    thread_names.fetch_and_remember_name_of_current_thread();
-    EXPECT_STREQ(
-      thread_names.name_of_thread_by_id(cxxtrace::get_current_thread_id()), "");
-  } }
-    .join();
+  std::thread{
+    [] {
+      auto thread_names = cxxtrace::detail::thread_name_set{};
+      thread_names.fetch_and_remember_name_of_current_thread();
+      EXPECT_STREQ(
+        thread_names.name_of_thread_by_id(cxxtrace::get_current_thread_id()),
+        "");
+    }
+  }.join();
 }
 
 #if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_name, current_thread_name_matches_pthread_setname_np)
 {
-  std::thread{ [] {
-    auto rc = ::pthread_setname_np("my thread name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
-    auto thread_names = cxxtrace::detail::thread_name_set{};
-    thread_names.fetch_and_remember_name_of_current_thread();
-    EXPECT_STREQ(
-      thread_names.name_of_thread_by_id(cxxtrace::get_current_thread_id()),
-      "my thread name");
-  } }
-    .join();
+  std::thread{
+    [] {
+      auto rc = ::pthread_setname_np("my thread name");
+      ASSERT_EQ(rc, 0) << std::strerror(rc);
+      auto thread_names = cxxtrace::detail::thread_name_set{};
+      thread_names.fetch_and_remember_name_of_current_thread();
+      EXPECT_STREQ(
+        thread_names.name_of_thread_by_id(cxxtrace::get_current_thread_id()),
+        "my thread name");
+    }
+  }.join();
 }
 #endif
 

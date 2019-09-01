@@ -94,9 +94,10 @@ spmc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
              ClockSample time_point) noexcept -> void
 {
   auto& thread_data = get_thread_data();
-  thread_data.samples.push(1, [&](auto data) noexcept {
-    data.set(0, sample{ site, time_point });
-  });
+  thread_data.samples.push(
+    1, [&](auto data) noexcept {
+      data.set(0, sample{ site, time_point });
+    });
 }
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>

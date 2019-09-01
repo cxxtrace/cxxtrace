@@ -78,9 +78,10 @@ retry:
     backoff.yield(CXXTRACE_HERE);
     goto retry;
   }
-  samples.samples.push(1, [&](auto data) noexcept {
-    data.set(0, sample{ site, thread_id, time_point });
-  });
+  samples.samples.push(
+    1, [&](auto data) noexcept {
+      data.set(0, sample{ site, thread_id, time_point });
+    });
 }
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>

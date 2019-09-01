@@ -69,9 +69,10 @@ retry:
   auto processor_id =
     this->processor_id_lookup.get_current_processor_id(processor_id_cache);
   auto& samples = this->samples_by_processor[processor_id];
-  auto result = samples.try_push(1, [&](auto data) noexcept {
-    data.set(0, sample{ site, thread_id, time_point });
-  });
+  auto result = samples.try_push(
+    1, [&](auto data) noexcept {
+      data.set(0, sample{ site, thread_id, time_point });
+    });
   switch (result) {
     case mpmc_ring_queue_push_result::not_pushed_due_to_contention:
       backoff.yield(CXXTRACE_HERE);

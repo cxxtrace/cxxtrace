@@ -165,13 +165,14 @@ did_cdschecker_test_succeed(const child_process_result& result) -> bool
 
   constexpr auto success_message =
     std::string_view{ "Number of buggy executions: 0\n" };
-  auto it = std::search(result.output.begin(),
-                        result.output.end(),
-                        success_message.begin(),
-                        success_message.end(),
-                        [](std::byte x, char y) noexcept->bool {
-                          return x == static_cast<std::byte>(y);
-                        });
+  auto it = std::search(
+    result.output.begin(),
+    result.output.end(),
+    success_message.begin(),
+    success_message.end(),
+    [](std::byte x, char y) noexcept->bool {
+      return x == static_cast<std::byte>(y);
+    });
   if (it == result.output.end()) {
     return false;
   }

@@ -68,18 +68,20 @@ protected:
 
   auto bulk_push_range(size_type begin, size_type end) noexcept -> void
   {
-    this->queue.push(end - begin, [&](auto data) noexcept {
-      this->write_range(begin, end, data);
-    });
+    this->queue.push(
+      end - begin, [&](auto data) noexcept {
+        this->write_range(begin, end, data);
+      });
   }
 
   template<class RQ = RingQueue>
   auto try_bulk_push_range(size_type begin, size_type end) noexcept ->
     typename RQ::push_result
   {
-    return this->queue.try_push(end - begin, [&](auto data) noexcept {
-      this->write_range(begin, end, data);
-    });
+    return this->queue.try_push(
+      end - begin, [&](auto data) noexcept {
+        this->write_range(begin, end, data);
+      });
   }
 
   template<class WriteHandle>
@@ -157,7 +159,8 @@ public:
   auto run_thread(int thread_index) -> void
   {
     if (thread_index == 0) {
-      this->queue.push(1, [](auto data) noexcept { data.set(0, 42); });
+      this->queue.push(
+        1, [](auto data) noexcept { data.set(0, 42); });
     } else {
       char buffer[1024];
       auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };

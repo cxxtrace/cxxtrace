@@ -49,7 +49,8 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(ring_queue_benchmark, individual_pushes)
     this->queue.reset();
 #pragma clang loop unroll_count(1)
     for (auto i = 0; i < this->items_per_iteration; ++i) {
-      this->queue.push(1, [i](auto data) noexcept { data.set(0, i); });
+      this->queue.push(
+        1, [i](auto data) noexcept { data.set(0, i); });
     }
     benchmark::DoNotOptimize(this->queue);
   }
@@ -102,7 +103,8 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spmc_ring_queue_benchmark,
 #pragma clang loop unroll_count(1)
     for (auto i = 0; i < this->items_per_iteration; ++i) {
       if (this->mutex.try_lock(CXXTRACE_HERE)) {
-        this->queue.push(1, [i](auto data) noexcept { data.set(0, i); });
+        this->queue.push(
+          1, [i](auto data) noexcept { data.set(0, i); });
         this->mutex.unlock(CXXTRACE_HERE);
       }
     }

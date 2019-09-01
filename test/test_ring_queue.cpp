@@ -90,7 +90,8 @@ TYPED_TEST(test_ring_queue, new_queue_is_empty)
 TYPED_TEST(test_ring_queue, pop_returns_single_pushed_int)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  queue.push(1, [](auto data) noexcept->void { data.set(0, 42); });
+  queue.push(
+    1, [](auto data) noexcept->void { data.set(0, 42); });
 
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
@@ -102,7 +103,8 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
   auto queue = RING_QUEUE<int, 64>{};
   auto values_to_write = std::vector<int>{ 42, 9001, -1 };
   for (auto value : values_to_write) {
-    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
+    queue.push(
+      1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto written_values = pop_all(queue);
@@ -112,11 +114,12 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
 TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  queue.push(3, [](auto data) noexcept->void {
-    data.set(0, 42);
-    data.set(1, 9001);
-    data.set(2, -1);
-  });
+  queue.push(
+    3, [](auto data) noexcept->void {
+      data.set(0, 42);
+      data.set(1, 9001);
+      data.set(2, -1);
+    });
 
   auto written_values = pop_all(queue);
   EXPECT_THAT(written_values, ElementsAre(42, 9001, -1));
@@ -128,12 +131,13 @@ TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
   queue.push(6, [](auto) noexcept->void{});
   pop_all(queue);
 
-  queue.push(4, [](auto data) noexcept->void {
-    data.set(0, 10);
-    data.set(1, 20);
-    data.set(2, 30);
-    data.set(3, 40);
-  });
+  queue.push(
+    4, [](auto data) noexcept->void {
+      data.set(0, 10);
+      data.set(1, 20);
+      data.set(2, 30);
+      data.set(3, 40);
+    });
 
   auto written_values = pop_all(queue);
   EXPECT_THAT(written_values, ElementsAre(10, 20, 30, 40));
@@ -142,13 +146,14 @@ TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
 TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  queue.push(5, [](auto data) noexcept->void {
-    data.set(0, 10);
-    data.set(1, 20);
-    data.set(2, 30);
-    data.set(3, 40);
-    data.set(4, 50);
-  });
+  queue.push(
+    5, [](auto data) noexcept->void {
+      data.set(0, 10);
+      data.set(1, 20);
+      data.set(2, 30);
+      data.set(3, 40);
+      data.set(4, 50);
+    });
 
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
@@ -160,13 +165,14 @@ TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 TYPED_TEST(test_ring_queue, reset_then_pop_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
-  queue.push(5, [](auto data) noexcept->void {
-    data.set(0, 10);
-    data.set(1, 20);
-    data.set(2, 30);
-    data.set(3, 40);
-    data.set(4, 50);
-  });
+  queue.push(
+    5, [](auto data) noexcept->void {
+      data.set(0, 10);
+      data.set(1, 20);
+      data.set(2, 30);
+      data.set(3, 40);
+      data.set(4, 50);
+    });
 
   queue.reset();
   auto contents = std::vector<int>{};
@@ -178,7 +184,8 @@ TYPED_TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
 {
   auto queue = RING_QUEUE<int, 4>{};
   for (auto value : { 10, 20, 30, 40, 50 }) {
-    queue.push(1, [value](auto data) noexcept->void { data.set(0, value); });
+    queue.push(
+      1, [value](auto data) noexcept->void { data.set(0, value); });
   }
 
   auto items = pop_all(queue);
@@ -260,11 +267,16 @@ TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
   auto max_index =
     std::numeric_limits<typename decltype(queue)::size_type>::max();
   for (auto i = 0; i < max_index; ++i) {
-    queue.push(1, [](auto data) noexcept { data.set(0, 0); });
+    queue.push(
+      1, [](auto data) noexcept { data.set(0, 0); });
   }
-  EXPECT_EXIT({ queue.push(1, [](auto data) noexcept { data.set(0, 0); }); },
-              testing::KilledBySignal(SIGABRT),
-              "Writer overflowed size_type");
+  EXPECT_EXIT(
+    {
+      queue.push(
+        1, [](auto data) noexcept { data.set(0, 0); });
+    },
+    testing::KilledBySignal(SIGABRT),
+    "Writer overflowed size_type");
 }
 
 namespace {

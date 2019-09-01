@@ -51,12 +51,13 @@ struct snapshot_sample
       std::is_convertible_v<Sample, global_sample<typename Clock::sample>>);
 
     out.reserve(out.size() + samples.size());
-    std::transform(samples.begin(),
-                   samples.end(),
-                   std::back_inserter(out),
-                   [&](auto&& s) noexcept->detail::snapshot_sample {
-                     return detail::snapshot_sample{ s, clock };
-                   });
+    std::transform(
+      samples.begin(),
+      samples.end(),
+      std::back_inserter(out),
+      [&](auto&& s) noexcept->detail::snapshot_sample {
+        return detail::snapshot_sample{ s, clock };
+      });
   }
 
   sample_site_local_data site;

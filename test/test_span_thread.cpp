@@ -47,19 +47,21 @@ TYPED_TEST(test_span, span_samples_include_thread_id)
   SCOPED_TRACE(stringify("main_thread_id: ", main_thread_id));
 
   auto thread_1_id = std::atomic<cxxtrace::thread_id>{};
-  std::thread{ [&] {
-    auto thread_1_span = CXXTRACE_SPAN("category", "thread 1 span");
-    thread_1_id = cxxtrace::get_current_thread_id();
-  } }
-    .join();
+  std::thread{
+    [&] {
+      auto thread_1_span = CXXTRACE_SPAN("category", "thread 1 span");
+      thread_1_id = cxxtrace::get_current_thread_id();
+    }
+  }.join();
   SCOPED_TRACE(stringify("thread_1_id: ", thread_1_id));
 
   auto thread_2_id = std::atomic<cxxtrace::thread_id>{};
-  std::thread{ [&] {
-    auto thread_2_span = CXXTRACE_SPAN("category", "thread 2 span");
-    thread_2_id = cxxtrace::get_current_thread_id();
-  } }
-    .join();
+  std::thread{
+    [&] {
+      auto thread_2_span = CXXTRACE_SPAN("category", "thread 2 span");
+      thread_2_id = cxxtrace::get_current_thread_id();
+    }
+  }.join();
   SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
 
   ASSERT_NE(thread_1_id, main_thread_id);
