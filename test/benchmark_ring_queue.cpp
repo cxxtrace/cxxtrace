@@ -5,6 +5,7 @@
 #include <benchmark/benchmark.h>
 #include <cstdint>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
@@ -72,8 +73,10 @@ protected:
 #pragma clang diagnostic ignored "-Wembedded-directive"
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   locked_spmc_ring_queue_benchmark,
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_OS_SPIN_LOCK
   wrapped_mutex<apple_os_spin_lock>,
+#endif
+#if CXXTRACE_HAVE_OS_UNFAIR_LOCK
   wrapped_mutex<apple_os_unfair_lock>,
 #endif
 #if defined(__x86_64__) && defined(__GCC_ASM_FLAG_OUTPUTS__)

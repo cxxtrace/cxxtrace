@@ -2,6 +2,7 @@
 #define CXXTRACE_DETAIL_LAZY_THREAD_LOCAL_H
 
 #include <cstdint>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <type_traits>
 #include <utility>
@@ -93,7 +94,7 @@ private:
   }
 };
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_TLV_ATEXIT
 extern "C"
 {
   __attribute__((visibility("hidden"))) extern std::int8_t __dso_handle;

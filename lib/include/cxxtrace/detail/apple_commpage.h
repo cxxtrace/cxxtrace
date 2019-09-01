@@ -4,11 +4,12 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <cxxtrace/detail/have.h>
 #include <type_traits> // IWYU pragma: keep
 
 namespace cxxtrace {
 namespace detail {
-#if defined(__APPLE__) && defined(__x86_64__)
+#if CXXTRACE_HAVE_APPLE_COMMPAGE && defined(__x86_64__)
 // See darwin-xnu/osfmk/i386/cpu_capabilities.h:
 // https://github.com/apple/darwin-xnu/blob/a449c6a3b8014d9406c2ddbdc81795da24aa7443/osfmk/i386/cpu_capabilities.h#L176
 struct apple_commpage

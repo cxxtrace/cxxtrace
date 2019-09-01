@@ -1,17 +1,20 @@
 #include <cerrno>
 #include <cstddef>
+#include <cstdint>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/processor.h>
 
-#if defined(__APPLE__) && defined(__MACH__)
-#include <atomic>
-#include <cassert>
-#include <cstdint>
-#include <cstring>
-#include <cxxtrace/detail/apple_commpage.h>
-#include <mach/vm_types.h>
+#if CXXTRACE_HAVE_SYSCTL
 #include <stdexcept>
 #include <sys/sysctl.h>
 #include <system_error>
+#endif
+
+#if CXXTRACE_HAVE_APPLE_COMMPAGE
+#include <atomic>
+#include <cassert>
+#include <cstring>
+#include <cxxtrace/detail/apple_commpage.h>
 #endif
 
 namespace cxxtrace {
@@ -19,9 +22,10 @@ namespace detail {
 auto
 get_maximum_processor_id() noexcept(false) -> processor_id
 {
-#if defined(__APPLE__) && defined(__MACH__)
-  // TODO(strager): If available, use _COMM_PAGE_LOGICAL_CPUS instead of sysctl.
-  auto maximum_processor_count = ::integer_t{};
+#if CXXTRACE_HAVE_SYSCTL
+  // TODO(strager): On macOS, if available, use _COMM_PAGE_LOGICAL_CPUS instead
+  // of sysctl.
+  auto maximum_processor_count = std::int32_t{};
   auto maximum_processor_count_size =
     std::size_t{ sizeof(maximum_processor_count) };
   auto rc = ::sysctlbyname("hw.logicalcpu_max",
@@ -97,7 +101,7 @@ processor_id_lookup_x86_cpuid_uncached::get_current_processor_id() const
 }
 #endif
 
-#if defined(__x86_64__) && defined(__APPLE__)
+#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 processor_id_lookup_x86_cpuid_commpage_preempt_cached::
   processor_id_lookup_x86_cpuid_commpage_preempt_cached() noexcept
 {

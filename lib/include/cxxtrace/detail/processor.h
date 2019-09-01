@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <cxxtrace/detail/attribute.h>
+#include <cxxtrace/detail/have.h>
 
 #define CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION 1
 
@@ -77,7 +78,7 @@ private:
 };
 #endif
 
-#if defined(__x86_64__) && defined(__APPLE__)
+#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 class processor_id_lookup_x86_cpuid_commpage_preempt_cached
 {
 private:
@@ -117,7 +118,7 @@ private:
 };
 #endif
 
-#if defined(__x86_64__) && defined(__APPLE__)
+#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 using processor_id_lookup =
   processor_id_lookup_x86_cpuid_commpage_preempt_cached;
 #else

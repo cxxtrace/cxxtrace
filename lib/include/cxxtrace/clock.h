@@ -3,9 +3,10 @@
 
 #include <chrono>
 #include <cstdint>
+#include <cxxtrace/detail/have.h>
 #include <sys/time.h>
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_MACH_TIME
 #include <mach/mach_time.h>
 #endif
 
@@ -50,7 +51,7 @@ struct clock_traits
   clock_monotonicity monotonicity;
 };
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_MACH_TIME
 namespace detail {
 inline constexpr auto
 apple_absolute_time_clock_traits() noexcept -> clock_traits

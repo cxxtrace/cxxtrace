@@ -12,10 +12,10 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
 #include <dlfcn.h>
 #include <iterator>
-#include <mach-o/dyld.h>
 #include <ostream>
 #include <spawn.h>
 #include <stdexcept>
@@ -26,6 +26,10 @@
 #include <unistd.h>
 #include <vector>
 // IWYU pragma: no_include "stringify_impl.h"
+
+#if CXXTRACE_HAVE_NS_GET_EXECUTABLE_PATH
+#include <mach-o/dyld.h>
+#endif
 
 namespace {
 cxxtrace_test::detail::concurrency_test* test_to_run{};
@@ -455,10 +459,10 @@ get_exit_code_from_waitpid_status(int status) noexcept -> int
   return EXIT_FAILURE;
 }
 
-#if defined(__APPLE__)
 auto
 current_executable_path() -> std::string
 {
+#if CXXTRACE_HAVE_NS_GET_EXECUTABLE_PATH
   auto buffer = std::string{};
 retry:
   auto old_buffer_size = static_cast<std::uint32_t>(buffer.size() + 1);
@@ -471,10 +475,10 @@ retry:
     goto retry;
   }
   return buffer;
-}
 #else
 #error "Unknown platform."
 #endif
+}
 
 auto
 string_starts_with(std::string_view haystack, std::string_view needle) noexcept

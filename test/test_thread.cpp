@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
 #include <gtest/gtest.h>
@@ -14,20 +15,23 @@
 #include <utility>
 #include <vector>
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP || CXXTRACE_HAVE_PTHREAD_THREADID_NP
+#include <pthread.h>
+#endif
+
+#if CXXTRACE_HAVE_MACH_THREAD
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 #include <mach/mach_vm.h>
-#include <pthread.h>
 #include <stdexcept>
 #endif
 
 using namespace std::literals::chrono_literals;
 
 namespace {
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 template<class T>
 class mach_array
 {
@@ -88,7 +92,7 @@ get_mach_task_ports() -> mach_task_ports;
 }
 
 namespace cxxtrace_test {
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD && CXXTRACE_HAVE_PTHREAD_THREADID_NP
 TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 {
   EXPECT_EQ(cxxtrace::get_current_thread_pthread_thread_id(),
@@ -102,7 +106,7 @@ TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 TEST(test_thread_mach_thread_id,
      getting_current_thread_id_does_not_leak_thread_port)
 {
@@ -122,7 +126,7 @@ TEST(test_thread_mach_thread_id,
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 TEST(test_thread, getting_current_thread_name_by_id_does_not_leak_thread_port)
 {
   auto thread_port = ::mach_port_t{};
@@ -143,7 +147,7 @@ TEST(test_thread, getting_current_thread_name_by_id_does_not_leak_thread_port)
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 TEST(test_thread, task_ports_includes_port_of_live_thread)
 {
   auto test_done_event = event{};
@@ -169,7 +173,7 @@ TEST(test_thread, task_ports_includes_port_of_live_thread)
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 TEST(test_get_mach_task_ports, excludes_port_of_dead_thread)
 {
   auto thread_port = ::mach_port_t{};
@@ -186,7 +190,7 @@ TEST(test_get_mach_task_ports, excludes_port_of_dead_thread)
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 TEST(test_get_mach_task_ports, includes_port_of_dead_referenced_thread)
 {
   auto thread_port = mach_port_t{};
@@ -213,7 +217,7 @@ TEST(test_thread_name, default_thread_name_is_empty)
   }.join();
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_SETNAME_NP
 TEST(test_thread_name, current_thread_name_matches_pthread_setname_np)
 {
   std::thread{
@@ -265,7 +269,7 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
       EXPECT_EQ(thread_name(fetch), expected_thread_name);
     }
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PROC_PIDINFO
     {
       auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_name_of_current_thread_libproc(thread_id);
@@ -274,7 +278,7 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
     }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
     {
       auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_name_of_current_thread_mach(thread_id);
@@ -283,7 +287,7 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
     }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
     {
       auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_name_of_current_thread_pthread(thread_id);
@@ -292,16 +296,14 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
     }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
     {
       auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_thread_name_for_id(thread_id);
       };
       EXPECT_EQ(thread_name(fetch), expected_thread_name);
     }
-#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PROC_PIDINFO
     {
       auto fetch = [&](thread_name_set& names) {
         names.fetch_and_remember_thread_name_for_id_libproc(thread_id);
@@ -313,7 +315,7 @@ TEST(test_thread_name, current_thread_name_implementations_agree)
     .join();
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_SETNAME_NP
 TEST(test_thread_name, names_of_other_live_threads_match_pthread_setname_np)
 {
   auto test_done = cxxtrace_test::event{};
@@ -361,7 +363,6 @@ TEST(test_thread_name, names_of_other_live_threads_match_pthread_setname_np)
 }
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_name, dead_threads_have_no_name)
 {
   auto thread_id = cxxtrace::thread_id{};
@@ -375,9 +376,7 @@ TEST(test_thread_name, dead_threads_have_no_name)
   thread_names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_FALSE(thread_names.name_of_thread_by_id(thread_id));
 }
-#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_name, getting_name_of_live_thread_updates_set)
 {
   auto rc = int{};
@@ -397,9 +396,7 @@ TEST(test_thread_name, getting_name_of_live_thread_updates_set)
   EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id),
                "second thread name");
 }
-#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_name, getting_name_of_new_live_thread_updates_set)
 {
   auto test_done = cxxtrace_test::event{};
@@ -444,9 +441,7 @@ TEST(test_thread_name, getting_name_of_new_live_thread_updates_set)
   thread_1.join();
   thread_2.join();
 }
-#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
 TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
 {
   auto kill_thread = cxxtrace_test::event{};
@@ -484,11 +479,10 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
     << "Updated thread name should not be fetched (because thread thread died "
        "before we queried its name)";
 }
-#endif
 }
 
 namespace {
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 get_mach_task_ports() -> mach_task_ports
 {

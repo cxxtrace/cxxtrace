@@ -1,13 +1,14 @@
 #include <cassert>
 #include <chrono>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/uninitialized.h>
 #include <stdexcept>
 #include <sys/time.h>
 #include <utility>
 // IWYU pragma: no_include <ratio>
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_MACH_TIME
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_time.h>
@@ -64,7 +65,7 @@ operator>=(const time_point& left, const time_point& right) -> bool
   return left.time_since_reference >= right.time_since_reference;
 }
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_MACH_TIME
 apple_absolute_time_clock::apple_absolute_time_clock() noexcept(false)
 {
   auto rc = ::mach_timebase_info(&this->time_base);

@@ -3,6 +3,7 @@
 
 #include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <experimental/memory_resource>
@@ -33,16 +34,21 @@ struct thread_name_set
   auto fetch_and_remember_name_of_current_thread() noexcept(false) -> void;
   auto fetch_and_remember_name_of_current_thread(
     thread_id current_thread_id) noexcept(false) -> void;
-
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PROC_PIDINFO
   auto fetch_and_remember_name_of_current_thread_libproc(
     thread_id current_thread_id) noexcept(false) -> void;
+#endif
+#if CXXTRACE_HAVE_MACH_THREAD
   auto fetch_and_remember_name_of_current_thread_mach(
     thread_id current_thread_id) noexcept(false) -> void;
+#endif
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
   auto fetch_and_remember_name_of_current_thread_pthread(
     thread_id current_thread_id) noexcept(false) -> void;
+#endif
 
   auto fetch_and_remember_thread_name_for_id(thread_id) noexcept(false) -> void;
+#if CXXTRACE_HAVE_PROC_PIDINFO
   auto fetch_and_remember_thread_name_for_id_libproc(thread_id) noexcept(false)
     -> void;
 #endif

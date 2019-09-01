@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
@@ -23,7 +24,7 @@ benchmark_get_current_thread_id(benchmark::State& bench) -> void
 }
 BENCHMARK(benchmark_get_current_thread_id);
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 benchmark_get_current_thread_mach_thread_id(benchmark::State& bench) -> void
 {
@@ -32,7 +33,9 @@ benchmark_get_current_thread_mach_thread_id(benchmark::State& bench) -> void
   }
 }
 BENCHMARK(benchmark_get_current_thread_mach_thread_id);
+#endif
 
+#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
 auto
 benchmark_get_current_thread_pthread_thread_id(benchmark::State& bench) -> void
 {
@@ -61,7 +64,7 @@ benchmark_fetch_and_remember_name_of_current_thread(benchmark::State& bench)
 }
 BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread);
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PROC_PIDINFO
 auto
 benchmark_fetch_and_remember_name_of_current_thread_libproc(
   benchmark::State& bench) -> void
@@ -81,7 +84,7 @@ benchmark_fetch_and_remember_name_of_current_thread_libproc(
 BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread_libproc);
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 benchmark_fetch_and_remember_name_of_current_thread_mach(
   benchmark::State& bench) -> void
@@ -101,7 +104,7 @@ benchmark_fetch_and_remember_name_of_current_thread_mach(
 BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread_mach);
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
 auto
 benchmark_fetch_and_remember_name_of_current_thread_pthread(
   benchmark::State& bench) -> void
@@ -121,7 +124,6 @@ benchmark_fetch_and_remember_name_of_current_thread_pthread(
 BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread_pthread);
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
 auto
 benchmark_fetch_and_remember_name_of_current_thread_by_thread_id(
   benchmark::State& bench) -> void
@@ -139,9 +141,8 @@ benchmark_fetch_and_remember_name_of_current_thread_by_thread_id(
   }
 }
 BENCHMARK(benchmark_fetch_and_remember_name_of_current_thread_by_thread_id);
-#endif
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PROC_PIDINFO
 auto
 benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc(
   benchmark::State& bench) -> void

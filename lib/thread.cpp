@@ -1,21 +1,22 @@
+#include <cassert>
+#include <cerrno>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
+#include <exception>
 #include <experimental/memory_resource>
 #include <string>
 #include <type_traits>
+#include <unordered_map>
 #include <utility>
 
-#if defined(__APPLE__) && defined(__MACH__)
-#include <cassert>
-#include <cerrno>
-#include <cstdio>
-#include <cstring>
-#include <exception>
-#include <libproc.h>
+#if CXXTRACE_HAVE_MACH_THREAD
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
@@ -25,17 +26,27 @@
 #include <mach/port.h>
 #include <mach/thread_act.h>
 #include <mach/thread_info.h>
+#endif
+
+#if CXXTRACE_HAVE_PROC_PIDINFO && !CXXTRACE_HAVE_GETPID
+#error "proc_pidinfo should imply getpid"
+#endif
+
+#if CXXTRACE_HAVE_PROC_PIDINFO && CXXTRACE_HAVE_GETPID
+#include <libproc.h>
+#include <unistd.h>
+#endif
+
+#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
 #include <pthread.h>
 #include <sys/proc_info.h>
-#include <unistd.h>
-#include <unordered_map>
 #endif
 
 static_assert(std::is_integral_v<cxxtrace::thread_id>);
 
 namespace cxxtrace {
 namespace {
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 get_thread_identifier_info(thread_act_t,
                            thread_identifier_info_data_t* out) noexcept
@@ -87,14 +98,14 @@ public:
 auto
 get_current_thread_id() noexcept -> thread_id
 {
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
   return get_current_thread_pthread_thread_id();
 #else
 #error "Unknown platform"
 #endif
 }
 
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 get_current_thread_mach_thread_id() noexcept -> std::uint64_t
 {
@@ -102,7 +113,9 @@ get_current_thread_mach_thread_id() noexcept -> std::uint64_t
   auto info = get_thread_identifier_info_or_terminate(thread_port.port);
   return thread_id{ info.thread_id };
 }
+#endif
 
+#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
 auto
 get_current_thread_pthread_thread_id() noexcept -> std::uint64_t
 {
@@ -157,7 +170,7 @@ thread_name_set::fetch_and_remember_name_of_current_thread(
   thread_id current_thread_id) noexcept(false) -> void
 {
   assert(current_thread_id == get_current_thread_id());
-#if defined(__APPLE__) && defined(__MACH__)
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
   return this->fetch_and_remember_name_of_current_thread_pthread(
     current_thread_id);
 #else
@@ -165,6 +178,7 @@ thread_name_set::fetch_and_remember_name_of_current_thread(
 #endif
 }
 
+#if CXXTRACE_HAVE_PROC_PIDINFO
 auto
 thread_name_set::fetch_and_remember_name_of_current_thread_libproc(
   thread_id current_thread_id) noexcept(false) -> void
@@ -172,14 +186,20 @@ thread_name_set::fetch_and_remember_name_of_current_thread_libproc(
   assert(current_thread_id == get_current_thread_id());
   this->fetch_and_remember_thread_name_for_id_libproc(current_thread_id);
 }
+#endif
 
 auto
 thread_name_set::fetch_and_remember_thread_name_for_id(thread_id id) noexcept(
   false) -> void
 {
+#if CXXTRACE_HAVE_PROC_PIDINFO
   this->fetch_and_remember_thread_name_for_id_libproc(id);
+#else
+#error "Unknown platform"
+#endif
 }
 
+#if CXXTRACE_HAVE_PROC_PIDINFO
 auto
 thread_name_set::fetch_and_remember_thread_name_for_id_libproc(
   thread_id id) noexcept(false) -> void
@@ -217,7 +237,9 @@ thread_name_set::fetch_and_remember_thread_name_for_id_libproc(
     it->second.assign(info.pth_name, thread_name_length);
   }
 }
+#endif
 
+#if CXXTRACE_HAVE_MACH_THREAD
 auto
 thread_name_set::fetch_and_remember_name_of_current_thread_mach(
   thread_id current_thread_id) noexcept(false) -> void
@@ -234,7 +256,9 @@ thread_name_set::fetch_and_remember_name_of_current_thread_mach(
     it->second.assign(info.pth_name, thread_name_length);
   }
 }
+#endif
 
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
 auto
 thread_name_set::fetch_and_remember_name_of_current_thread_pthread(
   thread_id current_thread_id) noexcept(false) -> void
@@ -256,6 +280,7 @@ thread_name_set::fetch_and_remember_name_of_current_thread_pthread(
   assert(thread_name.data()[thread_name.size()] == '\0');
   thread_name.resize(std::strlen(thread_name.c_str()));
 }
+#endif
 
 auto
 thread_name_set::remember_name_of_thread(

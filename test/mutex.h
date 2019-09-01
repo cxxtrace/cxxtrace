@@ -5,13 +5,17 @@
 #include <atomic>
 #include <cstdint>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <type_traits>
 #include <utility>
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_OS_SPIN_LOCK
 #include <libkern/OSSpinLockDeprecated.h>
+#endif
+
+#if CXXTRACE_HAVE_OS_UNFAIR_LOCK
 #include <os/lock.h>
 #endif
 
@@ -76,7 +80,7 @@ private:
   std::atomic<LockType> is_locked;
 };
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_OS_SPIN_LOCK
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated"
 class apple_os_spin_lock
@@ -92,7 +96,7 @@ private:
 #pragma clang diagnostic pop
 #endif
 
-#if defined(__APPLE__)
+#if CXXTRACE_HAVE_OS_UNFAIR_LOCK
 class apple_os_unfair_lock
 {
 public:
