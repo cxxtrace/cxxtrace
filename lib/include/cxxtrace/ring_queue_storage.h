@@ -2,14 +2,15 @@
 #define CXXTRACE_RING_QUEUE_STORAGE_H
 
 #include <cstddef>
-#include <cxxtrace/detail/ring_queue.h>
-#include <cxxtrace/detail/sample.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 
 namespace cxxtrace {
 class samples_snapshot;
+namespace detail {
+struct sample_site_local_data;
+}
 
 template<std::size_t Capacity, class ClockSample>
 class ring_queue_storage

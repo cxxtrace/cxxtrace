@@ -3,11 +3,8 @@
 
 #include "cxxtrace_cpp.h"        // IWYU pragma: export
 #include <benchmark/benchmark.h> // IWYU pragma: keep
-#include <cstddef>
 #include <cstdint>
 #include <cxxtrace/string.h>
-#include <string>
-#include <utility>
 #include <vector>
 
 // Make CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F instantiate the given fixture

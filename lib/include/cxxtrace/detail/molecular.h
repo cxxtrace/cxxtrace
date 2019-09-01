@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstring>
 #include <cxxtrace/detail/atomic.h>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <type_traits>
 
 namespace cxxtrace {

@@ -3,16 +3,20 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <cassert>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
 #include <cxxtrace/detail/atomic.h>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/molecular.h>
 #include <cxxtrace/detail/mutex.h>
 #include <limits>
 #include <optional>
 #include <type_traits> // IWYU pragma: keep
+#include <utility>
 // IWYU pragma: no_forward_declare cxxtrace::detail::molecular
 
 namespace cxxtrace {

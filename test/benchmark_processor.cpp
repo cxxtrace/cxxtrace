@@ -1,4 +1,5 @@
 #include "cxxtrace_benchmark.h"
+#include "cxxtrace_cpp.h"
 #include <benchmark/benchmark.h>
 #include <cxxtrace/detail/processor.h>
 

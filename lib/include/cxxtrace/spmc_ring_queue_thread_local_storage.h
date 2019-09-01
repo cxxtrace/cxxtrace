@@ -3,7 +3,6 @@
 
 #include <cstddef>
 #include <cxxtrace/detail/sample.h>
-#include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <mutex>
 #include <vector>

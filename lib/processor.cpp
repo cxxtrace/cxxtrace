@@ -1,6 +1,6 @@
-#include <cxxtrace/detail/processor.h>
 #include <cerrno>
 #include <cstddef>
+#include <cxxtrace/detail/processor.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
 #include <atomic>

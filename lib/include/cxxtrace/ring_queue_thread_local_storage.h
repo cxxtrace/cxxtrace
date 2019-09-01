@@ -2,10 +2,8 @@
 #define CXXTRACE_RING_QUEUE_THREAD_LOCAL_STORAGE_H
 
 #include <cstddef>
-#include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
-#include <cxxtrace/thread.h>
 #include <mutex>
 #include <vector>
 

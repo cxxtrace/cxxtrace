@@ -1,7 +1,9 @@
 #include "cxxtrace_benchmark.h"
+#include "cxxtrace_cpp.h"
 #include <algorithm>
 #include <array>
 #include <benchmark/benchmark.h>
+#include <cassert>
 #include <cstddef>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
@@ -16,6 +18,7 @@
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
 #include <iostream>
+#include <numeric>
 #include <random>
 #include <vector>
 

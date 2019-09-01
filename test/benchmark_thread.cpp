@@ -4,11 +4,9 @@
 #include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <exception>
-#include <experimental/memory_resource>
-#include <memory>
-#include <new>
 #include <pthread.h>
 
 namespace {

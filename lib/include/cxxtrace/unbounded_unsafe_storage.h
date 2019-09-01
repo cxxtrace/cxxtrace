@@ -1,18 +1,15 @@
 #ifndef CXXTRACE_UNBOUNDED_UNSAFE_STORAGE_H
 #define CXXTRACE_UNBOUNDED_UNSAFE_STORAGE_H
 
+#include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
 class samples_snapshot;
-enum class sample_kind;
 
-namespace detail {
-template<class ClockSample>
-struct sample;
-}
+enum class sample_kind;
 
 template<class ClockSample>
 class unbounded_unsafe_storage

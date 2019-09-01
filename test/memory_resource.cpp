@@ -1,6 +1,5 @@
 #include "memory_resource.h"
 #include <cstddef>
-#include <exception>
 #include <memory>
 #include <new>
 

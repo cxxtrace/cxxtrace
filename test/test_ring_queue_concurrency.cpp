@@ -1,10 +1,13 @@
 #include "cxxtrace_concurrency_test.h"
+#include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
 #include "ring_queue_wrapper.h"
 #include <algorithm>
 #include <array>
-#include <cstdlib>
+#include <cassert>
+#include <cstddef>
 #include <cxxtrace/detail/atomic.h>
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/string.h>

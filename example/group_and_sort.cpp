@@ -3,11 +3,11 @@
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
 #include <cxxtrace/ring_queue_storage.h>
-#include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
 #include <iostream>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace example {

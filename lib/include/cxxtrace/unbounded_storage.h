@@ -7,12 +7,11 @@
 
 namespace cxxtrace {
 class samples_snapshot;
-enum class sample_kind;
-
 namespace detail {
-template<class ClockSample>
-struct sample;
+struct sample_site_local_data;
 }
+
+enum class sample_kind;
 
 template<class ClockSample>
 class unbounded_storage

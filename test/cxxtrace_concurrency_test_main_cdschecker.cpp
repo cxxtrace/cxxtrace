@@ -5,14 +5,18 @@
 #include "cxxtrace_concurrency_test_base.h"
 #include "stringify.h" // IWYU pragma: keep
 #include <algorithm>
+#include <cassert>
 #include <cerrno>
 #include <charconv>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/string.h>
 #include <dlfcn.h>
 #include <iterator>
 #include <mach-o/dyld.h>
+#include <ostream>
 #include <spawn.h>
 #include <stdexcept>
 #include <string>

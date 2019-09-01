@@ -3,6 +3,7 @@
 #endif
 
 #include "cxxtrace_concurrency_test.h"
+#include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
 #include <array>
 #include <cassert>

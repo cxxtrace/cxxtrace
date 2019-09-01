@@ -6,13 +6,12 @@
   "Include <cxxtrace/ring_queue_storage.h> instead of including <cxxtrace/ring_queue_storage_impl.h> directly."
 #endif
 
+#include <cstddef>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex> // IWYU pragma: keep
-#include <utility>
-#include <vector>
 
 namespace cxxtrace {
 template<std::size_t Capacity, class ClockSample>

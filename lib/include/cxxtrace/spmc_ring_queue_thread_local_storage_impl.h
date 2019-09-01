@@ -18,6 +18,7 @@
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/snapshot.h>
+#include <cxxtrace/thread.h>
 #include <mutex> // IWYU pragma: keep
 #include <utility>
 #include <vector>

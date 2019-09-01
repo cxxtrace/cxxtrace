@@ -6,11 +6,14 @@
   "Include <cxxtrace/mpmc_ring_queue_storage.h> instead of including <cxxtrace/mpmc_ring_queue_storage_impl.h> directly."
 #endif
 
+#include <algorithm>
+#include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
-#include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
+#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <utility>

@@ -1,4 +1,5 @@
 #include "cxxtrace_benchmark.h"
+#include <utility>
 
 namespace cxxtrace_test {
 namespace detail {

@@ -6,16 +6,11 @@
   "Include <cxxtrace/unbounded_unsafe_storage.h> instead of including <cxxtrace/unbounded_unsafe_storage_impl.h> directly."
 #endif
 
-#include <algorithm>
-#include <cassert>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
-#include <cxxtrace/detail/thread.h>
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
-#include <cxxtrace/unbounded_unsafe_storage.h>
-#include <utility>
 #include <vector>
 
 namespace cxxtrace {

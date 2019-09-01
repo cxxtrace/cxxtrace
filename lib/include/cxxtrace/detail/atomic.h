@@ -5,7 +5,6 @@
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <type_traits>                   // IWYU pragma: keep
-#include <utility>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include <cstddef>

@@ -18,7 +18,6 @@
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/snapshot.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <utility>

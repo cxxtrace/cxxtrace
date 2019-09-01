@@ -6,12 +6,8 @@
   "Include <cxxtrace/span.h> instead of including <cxxtrace/span_impl.h> directly."
 #endif
 
-#include <cxxtrace/detail/sample.h>
-#include <cxxtrace/span.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/string.h>
-#include <cxxtrace/thread.h>
-#include <cxxtrace/unbounded_storage.h>
-#include <vector>
 
 namespace cxxtrace {
 namespace detail {

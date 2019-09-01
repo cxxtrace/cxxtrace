@@ -3,10 +3,13 @@
 #endif
 
 #include "cxxtrace_concurrency_test.h"
+#include "cxxtrace_concurrency_test_base.h"
+#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <threads.h>
 #include <utility>

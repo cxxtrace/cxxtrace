@@ -5,6 +5,7 @@
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/thread.h>
 
 namespace cxxtrace {
 class samples_snapshot;

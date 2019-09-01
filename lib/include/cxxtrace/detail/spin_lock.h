@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_DETAIL_SPIN_LOCK_H
 #define CXXTRACE_DETAIL_SPIN_LOCK_H
 
+#include <atomic>
 #include <cstdint>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
