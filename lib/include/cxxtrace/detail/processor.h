@@ -63,7 +63,7 @@ public:
 };
 #endif
 
-#if defined(__x86_64__) && defined(__APPLE__)
+#if defined(__x86_64__)
 class processor_id_lookup_x86_cpuid_uncached
   : public cacheless_processor_id_lookup<processor_id_lookup_x86_cpuid_uncached>
 {
