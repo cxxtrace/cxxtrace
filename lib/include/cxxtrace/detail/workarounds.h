@@ -29,23 +29,6 @@
 #define CXXTRACE_WORK_AROUND_ATOMIC_VALUE_TYPE 1
 #endif
 
-#if CXXTRACE_ENABLE_CDSCHECKER
-// CDSChecker's definition of thrd_join in <threads.h> does not match the C11
-// standard.
-#define CXXTRACE_WORK_AROUND_CDCHECKER_THRD_JOIN 1
-
-// CDSChecker's definition of thread_start_t in <threads.h> does not match the
-// C11 standard.
-#define CXXTRACE_WORK_AROUND_CDCHECKER_THRD_START_T 1
-
-// CDSChecker's <threads.h> lacks a definition of thrd_success.
-#define CXXTRACE_WORK_AROUND_MISSING_THRD_ENUM 1
-
-// CDSChecker's definition of std::atomic<T>::load in <atomic> is not marked
-// const, but C++11's definition is marked const.
-#define CXXTRACE_WORK_AROUND_NON_CONST_STD_ATOMIC_LOAD 1
-#endif
-
 // At the time of writing, C++'s std::void_t<a> is indistinguishable from
 // std::void_t<b> when comparing class template partial specializations. See CWG
 // 1980: http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_active.html#1980

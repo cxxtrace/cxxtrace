@@ -5,7 +5,7 @@
 #include <mutex>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-#include <type_traits>
+#include <cxxtrace/detail/cdschecker_mutex.h>
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -33,27 +33,6 @@ public:
 private:
   std::mutex mutex_;
 };
-
-#if CXXTRACE_ENABLE_CDSCHECKER
-class cdschecker_mutex
-{
-public:
-  explicit cdschecker_mutex();
-
-  cdschecker_mutex(const cdschecker_mutex&) = delete;
-  cdschecker_mutex& operator=(const cdschecker_mutex&) = delete;
-
-  ~cdschecker_mutex();
-
-  auto lock(debug_source_location) noexcept -> void;
-  auto unlock(debug_source_location) noexcept -> void;
-
-private:
-  inline auto get() noexcept -> std::mutex&;
-
-  std::aligned_storage_t<16, alignof(void*)> storage_;
-};
-#endif
 
 #if CXXTRACE_ENABLE_RELACY
 using relacy_mutex = rl::mutex;

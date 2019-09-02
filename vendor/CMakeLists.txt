@@ -1,6 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 
 if (CXXTRACE_CDSCHECKER)
+  # See CDSChecker/test/Makefile and CDSChecker/common.mk.
+  add_library(CDSChecker_common INTERFACE)
+  target_include_directories(
+    CDSChecker_common
+    INTERFACE
+    CDSChecker
+    CDSChecker/include
+  )
+  if (APPLE)
+    # See CDSChecker/test/Makefile and CDSChecker/common.mk.
+    target_compile_definitions(CDSChecker_common INTERFACE MAC=1 _XOPEN_SOURCE=1)
+  endif ()
   add_library(
     CDSChecker_model
     SHARED
@@ -47,17 +59,19 @@ if (CXXTRACE_CDSCHECKER)
     MSPACES=1
     ONLY_MSPACES=1
   )
-  # See CDSChecker/Makefile and CDSChecker/test/Makefile.
+  # See CDSChecker/Makefile.
   target_include_directories(
     CDSChecker_model
-    PUBLIC CDSChecker CDSChecker/include
-    PRIVATE CDSChecker/scfence
+    PRIVATE
+    CDSChecker/scfence
   )
   # See CDSChecker/Makefile.
-  target_link_libraries(CDSChecker_model PUBLIC -rdynamic PRIVATE dl)
+  target_link_libraries(
+    CDSChecker_model
+    PUBLIC -rdynamic
+    PRIVATE CDSChecker_common dl
+  )
   if (APPLE)
-    # See CDSChecker/test/Makefile and CDSChecker/common.mk.
-    target_compile_definitions(CDSChecker_model PUBLIC MAC=1 _XOPEN_SOURCE=1)
     # See CDSChecker/Makefile.
     set_property(
       TARGET CDSChecker_model

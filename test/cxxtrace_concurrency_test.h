@@ -13,7 +13,7 @@
 #include <vector>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-#include <model-assert.h>
+#include <cxxtrace/detail/cdschecker.h>
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -40,7 +40,9 @@
 #endif
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-#define CXXTRACE_ASSERT(...) MODEL_ASSERT((__VA_ARGS__))
+#define CXXTRACE_ASSERT(...)                                                   \
+  ::cxxtrace::detail::cdschecker::model_assert(                                \
+    (__VA_ARGS__), __FILE__, __LINE__)
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -163,14 +165,5 @@ concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
     caller);
 }
 }
-
-#if CXXTRACE_ENABLE_CDSCHECKER
-// HACK(strager): Work around CDSChecker not defining std::once_flag in <mutex>,
-// breaking inclusion of libc++'s <ostream>.
-namespace std {
-struct once_flag
-{};
-}
-#endif
 
 #endif

@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <librace.h>
+#include <cxxtrace/detail/cdschecker.h>
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -121,11 +121,7 @@ public:
   auto load(std::memory_order memory_order, debug_source_location) const
     noexcept -> T
   {
-#if CXXTRACE_WORK_AROUND_NON_CONST_STD_ATOMIC_LOAD
-    auto& data = const_cast<std::atomic<T>&>(this->data);
-#else
     auto& data = this->data;
-#endif
     return data.load(memory_order);
   }
 
@@ -200,6 +196,28 @@ private:
 };
 
 #if CXXTRACE_ENABLE_CDSCHECKER
+inline auto
+cdschecker_cast(std::memory_order memory_order) noexcept
+  -> cdschecker::memory_order
+{
+  switch (memory_order) {
+    case std::memory_order_relaxed:
+      return cdschecker::memory_order_relaxed;
+    case std::memory_order_consume:
+      // NOTE(strager): CDSChecker does not support memory_order_consume.
+      return cdschecker::memory_order_acquire;
+    case std::memory_order_acquire:
+      return cdschecker::memory_order_acquire;
+    case std::memory_order_release:
+      return cdschecker::memory_order_release;
+    case std::memory_order_acq_rel:
+      return cdschecker::memory_order_acq_rel;
+    case std::memory_order_seq_cst:
+      return cdschecker::memory_order_seq_cst;
+  }
+  __builtin_unreachable();
+}
+
 template<class T>
 class cdschecker_atomic : public atomic_base<T, cdschecker_atomic<T>>
 {
@@ -216,10 +234,7 @@ public:
 
   explicit cdschecker_atomic(T value) noexcept
   {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-statement-expression"
-    _ATOMIC_INIT_(&this->data, value);
-#pragma clang diagnostic pop
+    cdschecker::model_init_action(&this->data, this->from_t(value));
   }
 
   auto compare_exchange_strong(T& expected,
@@ -228,43 +243,69 @@ public:
                                [[maybe_unused]] std::memory_order failure_order,
                                debug_source_location) noexcept -> bool
   {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-statement-expression"
-    return _ATOMIC_CMPSWP_(&this->data, &expected, desired, success_order);
-#pragma clang diagnostic pop
+    auto actual = this->to_t(cdschecker::model_rmwr_action(
+      &this->data, cdschecker_cast(success_order)));
+    if (actual == expected) {
+      cdschecker::model_rmw_action(
+        &this->data, cdschecker_cast(success_order), this->from_t(desired));
+      return true;
+    } else {
+      // TODO(strager): Should we use failure_order here? Why does CDSChecker's
+      // own implementation of atomic_compare_exchange_strong_explicit ignore
+      // failure_order?
+      cdschecker::model_rmwc_action(&this->data,
+                                    cdschecker_cast(success_order));
+      expected = actual;
+      return false;
+    }
   }
 
   auto fetch_add(T addend,
                  std::memory_order memory_order,
                  debug_source_location) noexcept -> T
   {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-statement-expression"
-    return _ATOMIC_MODIFY_(&this->data, +=, addend, memory_order);
-#pragma clang diagnostic pop
+    auto original =
+      cdschecker::model_rmwr_action(&this->data, cdschecker_cast(memory_order));
+    auto modified = original + addend;
+    cdschecker::model_rmw_action(
+      &this->data, cdschecker_cast(memory_order), this->from_t(modified));
+    return original;
   }
 
   auto load(std::memory_order memory_order, debug_source_location) const
     noexcept -> T
   {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-statement-expression"
-    return _ATOMIC_LOAD_(&this->data, memory_order);
-#pragma clang diagnostic pop
+    auto* data = const_cast<std::uint64_t*>(&this->data);
+    return this->to_t(
+      cdschecker::model_read_action(data, cdschecker_cast(memory_order)));
   }
 
   auto store(T value,
              std::memory_order memory_order,
              debug_source_location) noexcept -> void
   {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-statement-expression"
-    _ATOMIC_STORE_(&this->data, value, memory_order);
-#pragma clang diagnostic pop
+    cdschecker::model_write_action(
+      &this->data, cdschecker_cast(memory_order), this->from_t(value));
   }
 
 private:
-  std::atomic<T> data /* uninitialized */;
+  static auto to_t(std::uint64_t x) noexcept -> T
+  {
+    auto result = T{};
+    std::memcpy(&result, &x, sizeof(result));
+    return result;
+    static_assert(sizeof(result) <= sizeof(x));
+  }
+
+  static auto from_t(T x) noexcept -> std::uint64_t
+  {
+    auto result = std::uint64_t{};
+    std::memcpy(&result, &x, sizeof(x));
+    return result;
+    static_assert(sizeof(result) >= sizeof(x));
+  }
+
+  std::uint64_t data /* uninitialized */;
 };
 
 template<std::size_t Size>
@@ -277,12 +318,12 @@ struct cdschecker_nonatomic_traits<1>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return ::load_8(&data);
+    return cdschecker::load_8(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return ::store_8(&data, value);
+    return cdschecker::store_8(&data, value);
   }
 };
 
@@ -293,12 +334,12 @@ struct cdschecker_nonatomic_traits<2>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return ::load_16(&data);
+    return cdschecker::load_16(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return ::store_16(&data, value);
+    return cdschecker::store_16(&data, value);
   }
 };
 
@@ -309,12 +350,12 @@ struct cdschecker_nonatomic_traits<4>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return ::load_32(&data);
+    return cdschecker::load_32(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return ::store_32(&data, value);
+    return cdschecker::store_32(&data, value);
   }
 };
 
@@ -325,12 +366,12 @@ struct cdschecker_nonatomic_traits<8>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return ::load_64(&data);
+    return cdschecker::load_64(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return ::store_64(&data, value);
+    return cdschecker::store_64(&data, value);
   }
 };
 
@@ -377,6 +418,13 @@ private:
 
   storage_type storage /* uninitialized */;
 };
+
+inline auto
+cdschecker_atomic_thread_fence(std::memory_order memory_order,
+                               debug_source_location) noexcept -> void
+{
+  cdschecker::model_fence_action(cdschecker_cast(memory_order));
+}
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -517,6 +565,8 @@ atomic_thread_fence(std::memory_order memory_order,
 {
 #if CXXTRACE_ENABLE_RELACY
   relacy_atomic_thread_fence(memory_order, caller);
+#elif CXXTRACE_ENABLE_CDSCHECKER
+  cdschecker_atomic_thread_fence(memory_order, caller);
 #else
   real_atomic_thread_fence(memory_order, caller);
 #endif

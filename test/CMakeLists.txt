@@ -43,6 +43,22 @@ cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
 target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_memory_resource)
 
+if (CXXTRACE_CDSCHECKER)
+  add_library(cxxtrace_cdschecker_mutex STATIC cdschecker_mutex.cpp)
+  target_compile_definitions(
+    cxxtrace_cdschecker_mutex
+    PRIVATE
+    CXXTRACE_ENABLE_CDSCHECKER=1
+  )
+  target_link_libraries(
+    cxxtrace_cdschecker_mutex
+    PRIVATE
+    CDSChecker_common
+    CDSChecker_model
+    cxxtrace
+  )
+endif ()
+
 function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
   cmake_parse_arguments("" "" "" "" ${ARGN})
   set(SOURCES ${_UNPARSED_ARGUMENTS})
@@ -68,6 +84,7 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
       PRIVATE
       ${BASE_NAME}
       CDSChecker_model
+      cxxtrace_cdschecker_mutex
       cxxtrace_concurrency_test
     )
     add_test(NAME ${BASE_NAME}_cdschecker COMMAND ${BASE_NAME}_cdschecker)
