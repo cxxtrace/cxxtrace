@@ -54,6 +54,7 @@ blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "test" / "test_span.cpp",
     cxxtrace_project_path / "test" / "test_span_thread.cpp",
     cxxtrace_project_path / "test" / "test_thread.cpp",
+    cxxtrace_project_path / "test" / "thread.cpp",
 }
 
 # TODO(strager): IWYU mangles these files in harmful ways which can't be worked

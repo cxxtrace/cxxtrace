@@ -1,6 +1,7 @@
 #include "event.h"
 #include "stringify.h"
 #include "test_span.h"
+#include "thread.h"
 #include <cstring>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
@@ -35,8 +36,7 @@ TYPED_TEST(test_snapshot, name_of_live_threads)
   auto thread_1_id = cxxtrace::thread_id{};
   auto thread_1_ready = event{};
   auto thread_1 = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("thread 1 name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread 1 name");
 
     CXXTRACE_SAMPLE();
     thread_1_id = cxxtrace::get_current_thread_id();
@@ -47,8 +47,7 @@ TYPED_TEST(test_snapshot, name_of_live_threads)
   auto thread_2_id = cxxtrace::thread_id{};
   auto thread_2_ready = event{};
   auto thread_2 = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("thread 2 name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread 2 name");
 
     CXXTRACE_SAMPLE();
     thread_2_id = cxxtrace::get_current_thread_id();
@@ -75,8 +74,7 @@ TYPED_TEST(test_snapshot, name_of_dead_threads)
 {
   auto thread_1_id = cxxtrace::thread_id{};
   auto thread_1 = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("thread 1 name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread 1 name");
 
     thread_1_id = cxxtrace::get_current_thread_id();
     CXXTRACE_SAMPLE();
@@ -87,8 +85,7 @@ TYPED_TEST(test_snapshot, name_of_dead_threads)
 
   auto thread_2_id = cxxtrace::thread_id{};
   auto thread_2 = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("thread 2 name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread 2 name");
 
     thread_2_id = cxxtrace::get_current_thread_id();
     CXXTRACE_SAMPLE();
@@ -120,16 +117,12 @@ TYPED_TEST(test_snapshot, name_of_live_thread_ignores_remembering)
   auto thread_id = cxxtrace::thread_id{};
   auto thread_ready = event{};
   auto thread = std::thread{ [&] {
-    auto rc = int{};
-
     CXXTRACE_SAMPLE();
 
-    rc = ::pthread_setname_np("thread name before remember");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread name before remember");
     cxxtrace::remember_current_thread_name_for_next_snapshot(
       this->get_cxxtrace_config());
-    rc = ::pthread_setname_np("thread name after remember");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("thread name after remember");
 
     thread_id = cxxtrace::get_current_thread_id();
     thread_ready.set();

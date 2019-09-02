@@ -1,6 +1,7 @@
 #include "event.h"
 #include "nlohmann_json.h"
 #include "stringify.h"
+#include "thread.h"
 #include <algorithm>
 #include <atomic>
 #include <cstring>
@@ -14,7 +15,6 @@
 #include <gtest/gtest.h>
 #include <iterator>
 #include <locale>
-#include <pthread.h>
 #include <sstream>
 #include <thread>
 #include <type_traits>
@@ -318,8 +318,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
 
 TEST_F(test_chrome_trace_event_format, metadata_includes_thread_names)
 {
-  auto rc = ::pthread_setname_np("main thread name");
-  ASSERT_EQ(rc, 0) << std::strerror(rc);
+  set_current_thread_name("main thread name");
   auto main_thread_id = cxxtrace::get_current_thread_id();
   {
     auto main_thread_span = CXXTRACE_SPAN("category", "main thread span");
@@ -330,8 +329,7 @@ TEST_F(test_chrome_trace_event_format, metadata_includes_thread_names)
   auto live_thread_ready = cxxtrace_test::event{};
   auto live_thread_id = cxxtrace::thread_id{};
   auto live_thread = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("live thread name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("live thread name");
     live_thread_id = cxxtrace::get_current_thread_id();
     {
       auto live_thread_span = CXXTRACE_SPAN("category", "live thread span");
@@ -343,8 +341,7 @@ TEST_F(test_chrome_trace_event_format, metadata_includes_thread_names)
 
   auto dead_thread_id = cxxtrace::thread_id{};
   auto dead_thread = std::thread{ [&] {
-    auto rc = ::pthread_setname_np("dead thread name");
-    ASSERT_EQ(rc, 0) << std::strerror(rc);
+    set_current_thread_name("dead thread name");
     dead_thread_id = cxxtrace::get_current_thread_id();
     auto dead_thread_span = CXXTRACE_SPAN("category", "dead thread");
 

@@ -21,6 +21,7 @@ add_executable(
   test_span.cpp
   test_span_thread.cpp
   test_thread.cpp
+  thread.cpp
 )
 target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
@@ -129,6 +130,7 @@ add_executable(
   benchmark_span.cpp
   benchmark_thread.cpp
   cxxtrace_benchmark.cpp
+  thread.cpp
 )
 target_link_libraries(
   benchmark_cxxtrace

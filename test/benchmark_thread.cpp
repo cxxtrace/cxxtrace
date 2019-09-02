@@ -1,18 +1,9 @@
 #include "memory_resource.h"
+#include "thread.h"
 #include <benchmark/benchmark.h>
-#include <cerrno>
-#include <cstdio>
-#include <cstring>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
-#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
-#include <exception>
-#include <pthread.h>
-
-namespace {
-auto set_current_thread_name(cxxtrace::czstring) -> void;
-}
 
 namespace cxxtrace_test {
 auto
@@ -162,17 +153,4 @@ benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc(
 BENCHMARK(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id_libproc);
 #endif
-}
-
-namespace {
-auto
-set_current_thread_name(cxxtrace::czstring name) -> void
-{
-  auto rc = ::pthread_setname_np(name);
-  if (rc != 0) {
-    std::fprintf(
-      stderr, "fatal: pthread_setname_np failed: %s\n", std::strerror(errno));
-    std::terminate();
-  }
-}
 }
