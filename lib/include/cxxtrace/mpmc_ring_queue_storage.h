@@ -6,6 +6,7 @@
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
+#include <mutex>
 
 namespace cxxtrace {
 class samples_snapshot;
@@ -36,7 +37,11 @@ public:
 private:
   using sample = detail::global_sample<ClockSample>;
 
+  auto take_remembered_thread_names() -> detail::thread_name_set;
+
   detail::mpmc_ring_queue<sample, Capacity> samples;
+
+  std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 };
 }

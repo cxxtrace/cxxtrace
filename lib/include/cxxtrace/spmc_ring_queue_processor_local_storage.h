@@ -9,6 +9,7 @@
 #include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
+#include <mutex>
 #include <vector>
 
 namespace cxxtrace {
@@ -53,8 +54,12 @@ private:
   using processor_id_lookup_thread_local_cache =
     typename detail::processor_id_lookup::thread_local_cache;
 
+  auto take_remembered_thread_names() -> detail::thread_name_set;
+
   detail::processor_id_lookup processor_id_lookup;
   std::vector<processor_samples> samples_by_processor;
+
+  std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 
   // TODO(strager): Only create this thread-local variable if it's actually used

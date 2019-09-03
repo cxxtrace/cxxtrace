@@ -16,6 +16,7 @@
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
+#include <mutex> // IWYU pragma: keep
 #include <utility>
 #include <vector>
 
@@ -87,7 +88,7 @@ mpmc_ring_queue_storage<Capacity, ClockSample>::take_all_samples(
     detail::transform_vector_queue_sink{ samples, make_sample });
 
   auto named_threads = std::vector<thread_id>{};
-  auto thread_names = std::move(this->remembered_thread_names);
+  auto thread_names = this->take_remembered_thread_names();
   for (const auto& sample : samples) {
     auto id = sample.thread_id;
     if (std::find(named_threads.begin(), named_threads.end(), id) ==
@@ -105,7 +106,17 @@ auto
 mpmc_ring_queue_storage<Capacity, ClockSample>::
   remember_current_thread_name_for_next_snapshot() -> void
 {
+  auto guard = std::lock_guard{ this->remembered_thread_names_mutex };
   this->remembered_thread_names.fetch_and_remember_name_of_current_thread();
+}
+
+template<std::size_t Capacity, class ClockSample>
+auto
+mpmc_ring_queue_storage<Capacity, ClockSample>::take_remembered_thread_names()
+  -> detail::thread_name_set
+{
+  auto guard = std::lock_guard{ this->remembered_thread_names_mutex };
+  return std::move(this->remembered_thread_names);
 }
 }
 
