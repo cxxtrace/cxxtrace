@@ -12,10 +12,10 @@
 #include <exception>
 #include <experimental/memory_resource>
 #include <experimental/string>
+#include <new>
 #include <ostream>
 #include <sstream>
 #include <utility>
-// IWYU pragma: no_include <new>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <type_traits>
 

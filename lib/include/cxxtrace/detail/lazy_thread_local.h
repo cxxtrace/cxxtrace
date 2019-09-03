@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/workarounds.h>
+#include <new>
 #include <type_traits>
 #include <utility>
-// IWYU pragma: no_include <new>
 
 namespace cxxtrace {
 namespace detail {

@@ -17,10 +17,10 @@
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
+#include <new>
 #include <utility>
 #include <vector>
 // IWYU pragma: no_include <cxxtrace/clock.h>
-// IWYU pragma: no_include <new>
 
 namespace cxxtrace {
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
