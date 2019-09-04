@@ -7,10 +7,16 @@
 #include <cstdint>
 #endif
 
+#if defined(__linux__)
+#include <sys/types.h>
+#endif
+
 namespace cxxtrace {
 using thread_id =
 #if defined(__APPLE__) && defined(__MACH__)
   std::uint64_t
+#elif defined(__linux__)
+  ::pid_t
 #else
 #error "Unsupported platform"
 #endif
@@ -27,6 +33,11 @@ get_current_thread_mach_thread_id() noexcept -> std::uint64_t;
 #if CXXTRACE_HAVE_PTHREAD_THREADID_NP
 auto
 get_current_thread_pthread_thread_id() noexcept -> std::uint64_t;
+#endif
+
+#if CXXTRACE_HAVE_SYSCALL_GETTID
+auto
+get_current_thread_id_gettid() noexcept -> thread_id;
 #endif
 }
 

@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/clock_extra.h> // IWYU pragma: keep
+#include <cxxtrace/detail/have.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <thread>
@@ -25,14 +26,16 @@ public:
   using clock_type = Clock;
 };
 
-using test_clock_types =
-  ::testing::Types<cxxtrace::apple_absolute_time_clock,
-                   cxxtrace::apple_approximate_time_clock,
-                   cxxtrace::fake_clock,
-                   cxxtrace::posix_gettimeofday_clock,
-                   cxxtrace::std_high_resolution_clock,
-                   cxxtrace::std_steady_clock,
-                   cxxtrace::std_system_clock>;
+using test_clock_types = ::testing::Types<
+#if CXXTRACE_HAVE_MACH_TIME
+  cxxtrace::apple_absolute_time_clock,
+  cxxtrace::apple_approximate_time_clock,
+#endif
+  cxxtrace::fake_clock,
+  cxxtrace::posix_gettimeofday_clock,
+  cxxtrace::std_high_resolution_clock,
+  cxxtrace::std_steady_clock,
+  cxxtrace::std_system_clock>;
 TYPED_TEST_CASE(test_clock, test_clock_types, );
 
 TYPED_TEST(test_clock, clock_samples_are_comparable)
@@ -55,8 +58,11 @@ public:
   using clock_type = Clock;
 };
 
-using test_strictly_increasing_clock_types =
-  ::testing::Types<cxxtrace::apple_absolute_time_clock, cxxtrace::fake_clock>;
+using test_strictly_increasing_clock_types = ::testing::Types<
+#if CXXTRACE_HAVE_MACH_TIME
+  cxxtrace::apple_absolute_time_clock,
+#endif
+  cxxtrace::fake_clock>;
 TYPED_TEST_CASE(test_strictly_increasing_clock,
                 test_strictly_increasing_clock_types, );
 
@@ -91,11 +97,13 @@ public:
   using clock_type = Clock;
 };
 
-using test_non_decreasing_clock_types =
-  ::testing::Types<cxxtrace::apple_absolute_time_clock,
-                   cxxtrace::apple_approximate_time_clock,
-                   cxxtrace::fake_clock,
-                   cxxtrace::std_steady_clock>;
+using test_non_decreasing_clock_types = ::testing::Types<
+#if CXXTRACE_HAVE_MACH_TIME
+  cxxtrace::apple_absolute_time_clock,
+  cxxtrace::apple_approximate_time_clock,
+#endif
+  cxxtrace::fake_clock,
+  cxxtrace::std_steady_clock>;
 TYPED_TEST_CASE(test_non_decreasing_clock, test_non_decreasing_clock_types, );
 
 TYPED_TEST(test_non_decreasing_clock, clock_is_non_decreasing)
@@ -129,13 +137,15 @@ public:
   using clock_type = Clock;
 };
 
-using test_real_clock_types =
-  ::testing::Types<cxxtrace::apple_absolute_time_clock,
-                   cxxtrace::apple_approximate_time_clock,
-                   cxxtrace::posix_gettimeofday_clock,
-                   cxxtrace::std_high_resolution_clock,
-                   cxxtrace::std_steady_clock,
-                   cxxtrace::std_system_clock>;
+using test_real_clock_types = ::testing::Types<
+#if CXXTRACE_HAVE_MACH_TIME
+  cxxtrace::apple_absolute_time_clock,
+  cxxtrace::apple_approximate_time_clock,
+#endif
+  cxxtrace::posix_gettimeofday_clock,
+  cxxtrace::std_high_resolution_clock,
+  cxxtrace::std_steady_clock,
+  cxxtrace::std_system_clock>;
 TYPED_TEST_CASE(test_real_clock, test_real_clock_types, );
 
 TYPED_TEST(test_real_clock, clock_advances_within_decisecond_of_system_clock)

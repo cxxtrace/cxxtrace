@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_TEST_PROCESSOR_ID_H
 #define CXXTRACE_TEST_PROCESSOR_ID_H
 
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/string.h>
 #include <gtest/gtest.h>
@@ -56,13 +57,15 @@ public:
     ::cxxtrace::detail::lookup,                                                \
     __COUNTER__>::instance(#lookup))
   static inline auto param_values = testing::Values(
+#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
+    CXXTRACE_PROCESSOR_ID_LOOKUP(
+      processor_id_lookup_x86_cpuid_commpage_preempt_cached),
+#endif
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
-    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_uncached),
-    CXXTRACE_PROCESSOR_ID_LOOKUP(
-      processor_id_lookup_x86_cpuid_commpage_preempt_cached));
+    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_uncached));
 #undef CXXTRACE_PROCESSOR_ID_LOOKUP
 
   static auto param_name(const testing::TestParamInfo<ParamType>& param)

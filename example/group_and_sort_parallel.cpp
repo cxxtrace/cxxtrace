@@ -112,7 +112,13 @@ sort_grouped_lines_in_parallel(
       std::min(thread_begin_index + groups_per_thread, groups.size());
     threads.emplace_back(
       [&group_vectors, thread_begin_index, thread_end_index] {
+#if defined(__APPLE__)
         ::pthread_setname_np("worker");
+#elif defined(__linux__)
+        ::pthread_setname_np(::pthread_self(), "worker");
+#else
+#error "Unknown platform"
+#endif
         cxxtrace::remember_current_thread_name_for_next_snapshot(config);
 
         sort_grouped_lines(&group_vectors[thread_begin_index],

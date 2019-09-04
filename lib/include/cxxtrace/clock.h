@@ -173,7 +173,13 @@ private:
   sample query_increment;
 };
 
-using default_clock = apple_absolute_time_clock;
+using default_clock =
+#if CXXTRACE_HAVE_MACH_TIME
+  apple_absolute_time_clock
+#else
+  posix_gettimeofday_clock
+#endif
+  ;
 }
 
 #include <cxxtrace/clock_impl.h> // IWYU pragma: export

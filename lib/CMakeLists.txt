@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+find_package(Threads REQUIRED)
+
 add_library(
   cxxtrace
   add.cpp
@@ -12,3 +14,4 @@ add_library(
   thread.cpp
 )
 target_include_directories(cxxtrace PUBLIC include PRIVATE)
+target_link_libraries(cxxtrace PRIVATE Threads::Threads)

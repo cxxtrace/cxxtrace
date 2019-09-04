@@ -30,6 +30,8 @@ struct thread_name_set
   auto remember_name_of_thread(thread_id,
                                const char* name,
                                std::size_t name_length) noexcept(false) -> void;
+  auto allocate_name(thread_id, std::size_t max_name_length) noexcept(false)
+    -> std::string&;
 
   auto fetch_and_remember_name_of_current_thread() noexcept(false) -> void;
   auto fetch_and_remember_name_of_current_thread(
@@ -50,6 +52,10 @@ struct thread_name_set
   auto fetch_and_remember_thread_name_for_id(thread_id) noexcept(false) -> void;
 #if CXXTRACE_HAVE_PROC_PIDINFO
   auto fetch_and_remember_thread_name_for_id_libproc(thread_id) noexcept(false)
+    -> void;
+#endif
+#if CXXTRACE_HAVE_LINUX_PROCFS
+  auto fetch_and_remember_thread_name_for_id_procfs(thread_id) noexcept(false)
     -> void;
 #endif
 

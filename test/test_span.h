@@ -66,7 +66,7 @@ public:
   auto TearDown() -> void override { this->reset_storage(); }
 
 protected:
-  using clock_type = clock;
+  using clock_type = cxxtrace_test::clock;
   using storage_type = Storage;
 
   auto get_cxxtrace_config() noexcept

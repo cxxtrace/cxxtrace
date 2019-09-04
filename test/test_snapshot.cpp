@@ -120,10 +120,10 @@ TYPED_TEST(test_snapshot, name_of_live_thread_ignores_remembering)
   auto thread = std::thread{ [&] {
     CXXTRACE_SAMPLE();
 
-    set_current_thread_name("thread name before remember");
+    set_current_thread_name("before remember");
     cxxtrace::remember_current_thread_name_for_next_snapshot(
       this->get_cxxtrace_config());
-    set_current_thread_name("thread name after remember");
+    set_current_thread_name("after remember");
 
     thread_id = cxxtrace::get_current_thread_id();
     thread_ready.set();
@@ -132,7 +132,7 @@ TYPED_TEST(test_snapshot, name_of_live_thread_ignores_remembering)
   thread_ready.wait();
 
   auto snapshot = cxxtrace::samples_snapshot{ this->take_all_samples() };
-  EXPECT_STREQ(snapshot.thread_name(thread_id), "thread name after remember");
+  EXPECT_STREQ(snapshot.thread_name(thread_id), "after remember");
 
   test_done.set();
   thread.join();

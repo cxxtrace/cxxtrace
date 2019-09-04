@@ -121,6 +121,8 @@ private:
 #if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 using processor_id_lookup =
   processor_id_lookup_x86_cpuid_commpage_preempt_cached;
+#elif defined(__x86_64__)
+using processor_id_lookup = processor_id_lookup_x86_cpuid_0bh;
 #else
 #error "Unknown platform"
 #endif

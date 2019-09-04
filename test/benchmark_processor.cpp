@@ -1,6 +1,7 @@
 #include "cxxtrace_benchmark.h"
 #include "cxxtrace_cpp.h"
 #include <benchmark/benchmark.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <cxxtrace/detail/processor.h>
 
 namespace cxxtrace_test {
@@ -35,14 +36,21 @@ protected:
 // TODO(strager): Figure out how to avoid namespace pollution while keeping the
 // benchmark names short.
 using namespace cxxtrace::detail;
+// TODO(strager): Allow CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F to be called
+// multiple times or something to avoid #if in macro arguments.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wembedded-directive"
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   get_current_processor_id_benchmark,
+#if CXXTRACE_HAVE_APPLE_COMMPAGE
+  processor_id_lookup_x86_cpuid_commpage_preempt_cached,
+#endif
   processor_id_lookup,
   processor_id_lookup_x86_cpuid_01h,
   processor_id_lookup_x86_cpuid_0bh,
   processor_id_lookup_x86_cpuid_1fh,
-  processor_id_lookup_x86_cpuid_uncached,
-  processor_id_lookup_x86_cpuid_commpage_preempt_cached);
+  processor_id_lookup_x86_cpuid_uncached);
+#pragma clang diagnostic pop
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
                                      busy_loop_unrolled)

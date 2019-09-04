@@ -17,12 +17,6 @@
 #include <type_traits>
 // IWYU pragma: no_include <vector>
 
-#if defined(_LIBCPP_VERSION) && _LIBCPP_VERSION <= 8000
-// Work around std::to_chars adding leading zeros.
-// Bug report: https://bugs.llvm.org/show_bug.cgi?id=42166
-#define CXXTRACE_WORK_AROUND_LIBCXX_42166 1
-#endif
-
 namespace cxxtrace {
 namespace {
 // Reset the formatting options to their defaults.

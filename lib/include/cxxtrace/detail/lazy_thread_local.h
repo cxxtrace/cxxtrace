@@ -8,6 +8,10 @@
 #include <type_traits>
 #include <utility>
 
+#if CXXTRACE_HAVE_CXA_THREAD_ATEXIT
+#include <cxxabi.h>
+#endif
+
 namespace cxxtrace {
 namespace detail {
 template<class T>
@@ -94,7 +98,25 @@ private:
   }
 };
 
-#if CXXTRACE_HAVE_TLV_ATEXIT
+#if CXXTRACE_HAVE_CXA_THREAD_ATEXIT
+extern "C"
+{
+  __attribute__((visibility("hidden"))) extern void* __dso_handle;
+}
+
+template<class T>
+auto
+destroy_object_on_thread_exit(T* object) noexcept -> void
+{
+  auto on_thread_exit = [](void* opaque) noexcept->void
+  {
+    auto* object = reinterpret_cast<T*>(opaque);
+    object->~T();
+  };
+  __cxxabiv1::__cxa_thread_atexit(
+    on_thread_exit, static_cast<void*>(object), &__dso_handle);
+}
+#elif CXXTRACE_HAVE_TLV_ATEXIT
 extern "C"
 {
   __attribute__((visibility("hidden"))) extern std::int8_t __dso_handle;

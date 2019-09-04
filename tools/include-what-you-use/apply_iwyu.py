@@ -61,7 +61,8 @@ blacklisted_cxxtrace_inputs = {
 # around using IWYU pragmas. Remove these files from the blacklist when IWYU
 # stop breaking code.
 blacklisted_cxxtrace_outputs = {
-    cxxtrace_project_path / "lib" / "include" / "cxxtrace" / "span.h"
+    cxxtrace_project_path / "lib" / "include" / "cxxtrace" / "span.h",
+    cxxtrace_project_path / "test" / "test_string.cpp",
 }
 
 iwyu_fix_includes = None

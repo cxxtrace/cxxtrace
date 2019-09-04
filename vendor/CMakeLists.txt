@@ -102,6 +102,14 @@ if (CXXTRACE_CDSCHECKER)
     COMPILE_FLAGS
     " -Wno-expansion-to-defined -Wno-null-pointer-arithmetic -Wno-sign-compare -Wno-unknown-warning-option -Wno-unused-variable"
   )
+  # Allow dynamic exception specifications (deprecated in C++17).
+  set_property(
+    SOURCE CDSChecker/mymemory.cc
+    APPEND_STRING PROPERTY
+    COMPILE_FLAGS
+    " -Wno-deprecated"
+  )
+  set_property(TARGET CDSChecker_model PROPERTY CXX_STANDARD 14)
 endif ()
 
 set(BENCHMARK_DOWNLOAD_DEPENDENCIES FALSE CACHE INTERNAL "")

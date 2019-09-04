@@ -6,6 +6,8 @@ include(cxxtrace_cotire)
 add_subdirectory(test_processor_id_manual)
 add_subdirectory(test_ring_queue)
 
+find_package(Threads REQUIRED)
+
 add_executable(
   test_cxxtrace
   $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
@@ -20,10 +22,19 @@ add_executable(
   test_snapshot.cpp
   test_span.cpp
   test_span_thread.cpp
+  test_string.cpp
   test_thread.cpp
   thread.cpp
 )
-target_link_libraries(test_cxxtrace PRIVATE cxxtrace gmock gtest gmock_main)
+target_link_libraries(
+  test_cxxtrace
+  PRIVATE
+  Threads::Threads
+  cxxtrace
+  gmock
+  gmock_main
+  gtest
+)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch.h)
 cxxtrace_cotire(test_cxxtrace)
@@ -88,6 +99,7 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
       ${BASE_NAME}_cdschecker
       PRIVATE
       ${BASE_NAME}
+      ${CMAKE_DL_LIBS}
       CDSChecker_model
       cxxtrace_cdschecker_extra
       cxxtrace_concurrency_test
@@ -157,6 +169,7 @@ add_executable(
 target_link_libraries(
   benchmark_cxxtrace
   PRIVATE
+  Threads::Threads
   benchmark
   benchmark_main
   cxxtrace

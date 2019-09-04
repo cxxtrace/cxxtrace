@@ -4,6 +4,7 @@
 #include <benchmark/benchmark.h>
 #include <cxxtrace/clock.h>       // IWYU pragma: keep
 #include <cxxtrace/clock_extra.h> // IWYU pragma: keep
+#include <cxxtrace/detail/have.h>
 
 namespace cxxtrace_test {
 namespace {
@@ -13,14 +14,21 @@ class clock_benchmark : public benchmark_fixture
 public:
   using clock_type = Clock;
 };
+// TODO(strager): Allow CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F to be called
+// multiple times or something to avoid #if in macro arguments.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wembedded-directive"
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(clock_benchmark,
+#if CXXTRACE_HAVE_MACH_TIME
                                         cxxtrace::apple_absolute_time_clock,
                                         cxxtrace::apple_approximate_time_clock,
+#endif
                                         cxxtrace::fake_clock,
                                         cxxtrace::posix_gettimeofday_clock,
                                         cxxtrace::std_high_resolution_clock,
                                         cxxtrace::std_steady_clock,
                                         cxxtrace::std_system_clock);
+#pragma clang diagnostic pop
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(clock_benchmark, query)
 (benchmark::State& bench)
