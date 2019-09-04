@@ -19,8 +19,8 @@ else ()
   add_custom_target(
     include-what-you-use
     COMMAND
-    "${CMAKE}" -E echo "fatal: CMAKE_EXPORT_COMPILE_COMMANDS is unset"
-    && "${CMAKE}" -E echo "note: include-what-you-use requires CMAKE_EXPORT_COMPILE_COMMANDS"
+    "${CMAKE_COMMAND}" -E echo "fatal: CMAKE_EXPORT_COMPILE_COMMANDS is unset"
+    && "${CMAKE_COMMAND}" -E echo "note: include-what-you-use requires CMAKE_EXPORT_COMPILE_COMMANDS"
     && exit 1
     VERBATIM
   )
