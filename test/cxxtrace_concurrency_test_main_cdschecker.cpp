@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
 #include <dlfcn.h>
@@ -226,53 +227,10 @@ default_test_options(const cxxtrace_test::detail::concurrency_test* test)
   return options;
 }
 
-class file_descriptor
-{
-public:
-  explicit file_descriptor(int fd) noexcept
-    : fd{ fd }
-  {
-    assert(fd == -1 || fd >= 0);
-  }
-
-  file_descriptor(const file_descriptor&) = delete;
-  file_descriptor operator=(const file_descriptor&) = delete;
-
-  ~file_descriptor() noexcept(false) { this->reset(); }
-
-  auto get() const noexcept -> int
-  {
-    assert(this->valid());
-    return this->fd;
-  }
-
-  auto reset() noexcept(false) -> void
-  {
-    if (this->valid()) {
-      this->close();
-    }
-  }
-
-  auto close() noexcept(false) -> void
-  {
-    assert(this->valid());
-    auto rc = ::close(this->fd);
-    if (rc != 0) {
-      throw std::system_error{ errno, std::generic_category(), "close failed" };
-    }
-    this->fd = -1;
-  }
-
-private:
-  auto valid() const noexcept -> bool { return this->fd != -1; }
-
-  int fd{ -1 };
-};
-
 struct pipe_result
 {
-  file_descriptor reader;
-  file_descriptor writer;
+  cxxtrace::detail::file_descriptor reader;
+  cxxtrace::detail::file_descriptor writer;
 };
 
 auto
@@ -283,7 +241,8 @@ create_pipe() -> pipe_result
   if (rc != 0) {
     throw std::system_error{ errno, std::generic_category(), "pipe failed" };
   }
-  return pipe_result{ file_descriptor{ fds[0] }, file_descriptor{ fds[1] } };
+  return pipe_result{ cxxtrace::detail::file_descriptor{ fds[0] },
+                      cxxtrace::detail::file_descriptor{ fds[1] } };
 }
 
 class spawn_file_actions

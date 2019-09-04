@@ -81,4 +81,10 @@
 #define CXXTRACE_HAVE_NS_GET_EXECUTABLE_PATH 1
 #endif
 
+#if defined(__APPLE__)
+// ::close(...)
+// <unistd.h>
+#define CXXTRACE_HAVE_POSIX_FD 1
+#endif
+
 #endif
