@@ -8,6 +8,7 @@ should be in PATH.
 
 import argparse
 import contextlib
+import enum
 import functools
 import importlib.util
 import io
@@ -148,10 +149,12 @@ def compute_and_apply_fixes_for_compilation_database(
 
     @functools.lru_cache(maxsize=None)
     def get_clang_resource_dir(clang_exe: str) -> pathlib.Path:
-        clang_output = subprocess.check_output(
-            [clang_exe, "--print-resource-dir"], encoding="utf-8"
-        )
-        return pathlib.Path(clang_output.rstrip("\n\r"))
+        return pathlib.Path("")
+
+    #        clang_output = subprocess.check_output(
+    #            [clang_exe, "--print-resource-dir"], encoding="utf-8"
+    #        )
+    #        return pathlib.Path(clang_output.rstrip("\n\r"))
 
     for entry in compilation_db:
         compile_command_raw = entry["command"]
@@ -168,14 +171,16 @@ def compute_and_apply_fixes_for_compilation_database(
         source_file = pathlib.Path(compile_command[-1])  # HACK(strager)
         relative_source_file = relative_path(source_file, cwd)
         sys.stderr.write(f"Checking {relative_source_file} ...\n")
+        compile_cwd = pathlib.Path(compile_cwd_raw)
 
+        include_paths = get_include_paths_from_real_compiler_invocation(
+            command=compile_command, cwd=compile_cwd
+        )
         iwyu_command = [iwyu_tool.IWYU_EXECUTABLE] + compile_command[1:]
-        clang_resource_dir = get_clang_resource_dir(compile_command[0])
-        iwyu_command = fix_iwyu_command(
-            command=iwyu_command, clang_resource_dir=clang_resource_dir
+        iwyu_command = fix_iwyu_command_2(
+            command=iwyu_command, include_paths=include_paths
         )
 
-        compile_cwd = pathlib.Path(compile_cwd_raw)
         fixes = compute_fixes(
             iwyu_command=iwyu_command,
             command_cwd=compile_cwd,
@@ -191,14 +196,20 @@ def compute_fixes(
     command_cwd: pathlib.Path,
     file_whitelist: typing.Collection[pathlib.Path],
 ) -> "IWYUFixes":
-    iwyu_mapping_files = ("libcxx.imp", "stl.c.headers.imp")
+    iwyu_mapping_files = (
+        # "libcxx.imp",
+        "gcc.stl.headers.imp",
+        "stl.c.headers.imp",
+    )
     project_mapping_files = (
-        "apple.imp",
+        # "apple.imp",
+        "glibc.imp",
         "c++.imp",
         "libc++.imp",
         "posix.imp",
         "vendor-benchmark.imp",
         "vendor-cdschecker.imp",
+        "vendor-googletest.imp",
         "vendor-relacy.imp",
     )
 
@@ -300,8 +311,8 @@ def fix_iwyu_command(
 
     fixed_command = command[0:1]
 
-    fixed_command.append("-isystem")
-    fixed_command.append(str(clang_resource_dir / "include"))
+    # fixed_command.append("-isystem")
+    # fixed_command.append(str(clang_resource_dir / "include"))
 
     arg_index = 1
     while arg_index < len(command):
@@ -333,6 +344,81 @@ def fix_iwyu_command(
         arg_index += 1
 
     return fixed_command
+
+
+def get_include_paths_from_real_compiler_invocation(
+    command: typing.Sequence[str], cwd: pathlib.Path
+) -> "IncludePaths":
+    command = list(command)
+    command.extend(("-Wp,-v", "-E", "-o", "/dev/null"))
+    # HACK(strager): GCC complains if -o is specified twice. When this happens,
+    # despite failing with a non-zero exit code, GCC still prints the include
+    # paths we want. Only bother checking the exit code if we don't get the
+    # output we expect.
+    compile_result = subprocess.run(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
+    include_paths = parse_include_paths_from_verbose_compiler_output(
+        compile_result.stdout
+    )
+    if not (include_paths.angle_paths or include_paths.quote_paths):
+        compile_result.check_returncode()  # @nocommit test
+    return include_paths
+
+
+def fix_iwyu_command_2(
+    command: typing.Sequence[str], include_paths: "IncludePaths"
+) -> typing.List[str]:
+    fixed_command = command[0:1]
+
+    arg_index = 1
+    while arg_index < len(command):
+        arg = command[arg_index]
+
+        if arg == "-include" and command[arg_index + 1].endswith(".hxx"):
+            arg_index += 2
+            continue
+
+        fixed_command.append(arg)
+        arg_index += 1
+
+    # @nocommit what about include_paths.quote_paths?
+    for path in include_paths.angle_paths:
+        fixed_command.append("-isystem")
+        fixed_command.append(str(path))
+    return fixed_command
+
+
+def parse_include_paths_from_verbose_compiler_output(output: str) -> "IncludePaths":
+    class State(enum.Enum):
+        ANGLE_PATHS = "ANGLE_PATHS"
+        DONE = "DONE"
+        INITIAL = "INITIAL"
+
+    angle_paths = []
+    state = State.INITIAL
+    for line in output.splitlines():
+        # @nocommit quoted paths plz?
+        if state == State.INITIAL:
+            if line == "#include <...> search starts here:":
+                state = State.ANGLE_PATHS
+        elif state == State.ANGLE_PATHS:
+            if line.startswith(" "):
+                angle_paths.append(pathlib.Path(line[1:]))
+            else:
+                state = state.DONE
+        elif state == State.DONE:
+            pass
+    return IncludePaths(angle_paths=tuple(angle_paths), quote_paths=())
+
+
+class IncludePaths(typing.NamedTuple):
+    angle_paths: typing.Tuple[pathlib.Path]
+    quote_paths: typing.Tuple[pathlib.Path]
 
 
 def include_what_you_use_share_path() -> pathlib.Path:
