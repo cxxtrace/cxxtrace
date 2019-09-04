@@ -29,7 +29,8 @@ public:
   virtual auto thread_count() const noexcept -> int = 0;
 };
 
-auto register_concurrency_test(std::unique_ptr<concurrency_test>) -> void;
+auto
+register_concurrency_test(concurrency_test*) -> void;
 
 auto
 get_registered_concurrency_tests() -> std::vector<concurrency_test*>;

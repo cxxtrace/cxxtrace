@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cxxtrace/detail/atomic.h>
 #include <exception>
+#include <experimental/memory_resource>
 #include <iosfwd>
 #include <memory>
 #include <optional>
@@ -50,6 +51,10 @@
 #endif
 
 namespace cxxtrace_test {
+namespace detail {
+extern std::experimental::pmr::memory_resource* concurrency_tests_memory;
+}
+
 template<class Test, class... Args>
 auto
 register_concurrency_test(int thread_count,
@@ -107,8 +112,11 @@ register_concurrency_test(int thread_count,
     std::optional<Test> test_object{};
   };
 
-  detail::register_concurrency_test(
-    std::make_unique<test>(thread_count, depth, args...));
+  auto* t = static_cast<test*>(
+    detail::concurrency_tests_memory->allocate(sizeof(test), alignof(test)));
+  new (t) test(thread_count, depth, args...);
+
+  detail::register_concurrency_test(t);
 }
 
 #if CXXTRACE_ENABLE_CDSCHECKER

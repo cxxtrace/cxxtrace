@@ -1,34 +1,56 @@
 #include "cxxtrace_concurrency_test_base.h"
-#include <algorithm>
-#include <iterator>
-#include <memory>
-#include <utility>
+#include <experimental/memory_resource>
 #include <vector>
+
+#if defined(__linux__)
+#include "memory_resource.h"
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#endif
 
 namespace cxxtrace_test {
 namespace detail {
 namespace {
-std::vector<std::unique_ptr<concurrency_test>> registered_concurrency_tests{};
+auto registered_concurrency_tests = std::vector<concurrency_test*>{};
 }
+
+#if defined(__APPLE__)
+// HACK(strager): CDSChecker handles pre-user_main allocations poorly. Put
+// concurrency_test objects in libCDSChecker_model.dylib's bootstrapmemory
+// global variable in the hopes that CDSChecker snapshots this memory correctly.
+std::experimental::pmr::memory_resource* concurrency_tests_memory =
+  std::experimental::pmr::new_delete_resource();
+#endif
+
+#if defined(__linux__)
+namespace {
+// HACK(strager): CDSChecker handles pre-user_main allocations poorly. Put
+// concurrency_test objects in our executable's .data section in the hopes that
+// CDSChecker snapshots this memory correctly.
+auto registered_concurrency_tests_storage =
+  std::array<std::byte, 128 * 1024>{ std::byte{ 42 } };
+auto registered_concurrency_tests_memory =
+  monotonic_buffer_resource{ registered_concurrency_tests_storage.data(),
+                             registered_concurrency_tests_storage.size() };
+}
+
+std::experimental::pmr::memory_resource* concurrency_tests_memory =
+  &registered_concurrency_tests_memory;
+#endif
 
 concurrency_test::~concurrency_test() = default;
 
 auto
-register_concurrency_test(std::unique_ptr<concurrency_test> test) -> void
+register_concurrency_test(concurrency_test* test) -> void
 {
-  registered_concurrency_tests.emplace_back(std::move(test));
+  registered_concurrency_tests.emplace_back(test);
 }
 
 auto
 get_registered_concurrency_tests() -> std::vector<concurrency_test*>
 {
-  auto tests = std::vector<concurrency_test*>{};
-  std::transform(
-    registered_concurrency_tests.begin(),
-    registered_concurrency_tests.end(),
-    std::back_inserter(tests),
-    [](const std::unique_ptr<concurrency_test>& test) { return test.get(); });
-  return tests;
+  return registered_concurrency_tests;
 }
 }
 }

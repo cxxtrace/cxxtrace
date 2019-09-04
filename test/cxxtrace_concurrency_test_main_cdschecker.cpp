@@ -2,6 +2,7 @@
 #error "CXXTRACE_ENABLE_CDSCHECKER must be undefined or zero."
 #endif
 
+#include "cdschecker_allocator.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "stringify.h" // IWYU pragma: keep
 #include <algorithm>
@@ -116,6 +117,7 @@ main(int argc, char** argv) -> int
     test_argv.erase(test_argv.begin() + 1);
     run_single_cdschecker_test(tests.at(test_index), test_argv);
   } else {
+    cxxtrace_test::configure_default_allocator();
     run_all_tests_in_child_processes(tests, argv_vector);
   }
 }
