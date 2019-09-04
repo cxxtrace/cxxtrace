@@ -1,5 +1,6 @@
 #include "black_hole.h"
 #include <benchmark/benchmark.h>
+// IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {
 auto

@@ -1,10 +1,10 @@
-#include <cerrno>
-#include <cstddef>
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/processor.h>
 
 #if CXXTRACE_HAVE_SYSCTL
+#include <cerrno>
+#include <cstddef>
 #include <stdexcept>
 #include <sys/sysctl.h>
 #include <system_error>

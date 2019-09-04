@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_DETAIL_RING_QUEUE_H
 #define CXXTRACE_DETAIL_RING_QUEUE_H
 
-#include <algorithm>
+#include <algorithm> // IWYU pragma: keep
 #include <array>
 #include <cassert>
 #include <cstddef>

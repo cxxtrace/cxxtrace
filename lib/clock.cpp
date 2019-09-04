@@ -1,17 +1,18 @@
 #include <cassert>
 #include <chrono>
 #include <cxxtrace/clock.h>
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <cxxtrace/uninitialized.h>
-#include <stdexcept>
 #include <sys/time.h>
 #include <utility>
 // IWYU pragma: no_include <ratio>
+// IWYU pragma: no_include <type_traits>
 
 #if CXXTRACE_HAVE_MACH_TIME
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_time.h>
+#include <stdexcept>
 #endif
 
 namespace cxxtrace {

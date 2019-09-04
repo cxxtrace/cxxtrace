@@ -13,11 +13,13 @@
 #include <experimental/memory_resource>
 #include <experimental/string>
 #include <new>
-#include <ostream>
+#include <ostream> // IWYU pragma: keep
 #include <sstream>
 #include <utility>
+// IWYU pragma: no_include <algorithm>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <vector>
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"

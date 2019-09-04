@@ -3,6 +3,7 @@
 #include <benchmark/benchmark.h>
 #include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <cxxtrace/detail/processor.h>
+// IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {
 template<class ProcessorIDLookup>

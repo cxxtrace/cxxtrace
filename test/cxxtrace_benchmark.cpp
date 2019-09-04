@@ -1,5 +1,6 @@
 #include "cxxtrace_benchmark.h"
 #include <utility>
+// IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {
 namespace detail {

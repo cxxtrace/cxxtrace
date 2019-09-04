@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/debug_source_location.h>
@@ -15,6 +14,7 @@
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
+// IWYU pragma: no_include <pthread.h>
 
 #if CXXTRACE_HAVE_PROC_PIDINFO && !CXXTRACE_HAVE_GETPID
 #error "proc_pidinfo should imply getpid"
@@ -25,6 +25,7 @@
 #endif
 
 #if CXXTRACE_HAVE_MACH_THREAD
+#include <cstdint>
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
@@ -37,6 +38,7 @@
 #endif
 
 #if CXXTRACE_HAVE_PROC_PIDINFO && CXXTRACE_HAVE_GETPID
+#include <cstdint>
 #include <libproc.h>
 #include <unistd.h>
 #endif

@@ -4,7 +4,7 @@
 #include <benchmark/benchmark.h>
 #include <cxxtrace/clock.h>       // IWYU pragma: keep
 #include <cxxtrace/clock_extra.h> // IWYU pragma: keep
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 
 namespace cxxtrace_test {
 namespace {

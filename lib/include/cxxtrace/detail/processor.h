@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include <cxxtrace/detail/attribute.h>
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 
 #define CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION 1
 

@@ -8,20 +8,23 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
-#include <cxxtrace/detail/lazy_thread_local.h>
+#include <cstddef>                      // IWYU pragma: keep
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/detail/vector.h>
-#include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex> // IWYU pragma: keep
 #include <utility>
 #include <vector>
+
+#if CXXTRACE_WORK_AROUND_SLOW_THREAD_LOCAL_GUARDS
+#include <cxxtrace/detail/lazy_thread_local.h>
+#endif
 
 namespace cxxtrace {
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>

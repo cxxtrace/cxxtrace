@@ -11,6 +11,7 @@
 #include <cxxtrace/detail/vector.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
+#include <utility> // IWYU pragma: keep
 #include <vector>
 
 namespace cxxtrace {

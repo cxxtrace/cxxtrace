@@ -5,13 +5,14 @@
 #include <benchmark/benchmark.h>
 #include <cstdint>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
 #include <cxxtrace/detail/spmc_ring_queue.h>
 #include <mutex>
 // IWYU pragma: no_forward_declare cxxtrace_test::wrapped_mutex
+// IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {
 template<class RingQueue>

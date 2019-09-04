@@ -2,11 +2,11 @@
 #define CXXTRACE_CLOCK_H
 
 #include <chrono>
-#include <cstdint>
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <sys/time.h>
 
 #if CXXTRACE_HAVE_MACH_TIME
+#include <cstdint>
 #include <mach/mach_time.h>
 #endif
 

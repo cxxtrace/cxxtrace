@@ -4,7 +4,7 @@
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cassert>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
 #include <cxxtrace/mpmc_ring_queue_processor_local_storage.h>
@@ -21,6 +21,7 @@
 #include <numeric>
 #include <random>
 #include <vector>
+// IWYU pragma: no_include <memory>
 
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
