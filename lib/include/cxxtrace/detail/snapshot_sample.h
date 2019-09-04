@@ -61,7 +61,7 @@ struct snapshot_sample
   }
 
   sample_site_local_data site;
-  thread_id thread_id;
+  cxxtrace::thread_id thread_id;
   time_point timestamp;
 };
 }
