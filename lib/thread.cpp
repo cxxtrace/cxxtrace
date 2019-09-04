@@ -16,6 +16,14 @@
 #include <unordered_map>
 #include <utility>
 
+#if CXXTRACE_HAVE_PROC_PIDINFO && !CXXTRACE_HAVE_GETPID
+#error "proc_pidinfo should imply getpid"
+#endif
+
+#if CXXTRACE_HAVE_LINUX_PROCFS && !CXXTRACE_HAVE_POSIX_FD
+#error "Linux procfs should imply POSIX file descriptors"
+#endif
+
 #if CXXTRACE_HAVE_MACH_THREAD
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
@@ -28,10 +36,6 @@
 #include <mach/thread_info.h>
 #endif
 
-#if CXXTRACE_HAVE_PROC_PIDINFO && !CXXTRACE_HAVE_GETPID
-#error "proc_pidinfo should imply getpid"
-#endif
-
 #if CXXTRACE_HAVE_PROC_PIDINFO && CXXTRACE_HAVE_GETPID
 #include <libproc.h>
 #include <unistd.h>
@@ -42,10 +46,38 @@
 #include <sys/proc_info.h>
 #endif
 
+#if CXXTRACE_HAVE_LINUX_PROCFS
+#include <array>
+#include <cxxtrace/detail/file_descriptor.h>
+#include <cxxtrace/detail/string.h>
+#include <fcntl.h>
+#include <unistd.h>
+#endif
+
+#if CXXTRACE_HAVE_SYSCALL_GETTID
+#include <sys/syscall.h>
+#endif
+
+#if defined(__linux__) && !defined(TASK_COMM_LEN)
+// See:
+// https://github.com/torvalds/linux/blob/eea173097dfbb44855e3cf03c09eb5a665c20438/include/linux/sched.h#L211
+#define TASK_COMM_LEN 16
+#endif
+
 static_assert(std::is_integral_v<cxxtrace::thread_id>);
 
 namespace cxxtrace {
 namespace {
+constexpr auto max_thread_name_length =
+#if defined(__APPLE__) && defined(__MACH__)
+  MAXTHREADNAMESIZE
+#elif defined(__linux__)
+  TASK_COMM_LEN
+#else
+#error "Unknown platform"
+#endif
+  ;
+
 #if CXXTRACE_HAVE_MACH_THREAD
 auto
 get_thread_identifier_info(thread_act_t,
@@ -100,6 +132,8 @@ get_current_thread_id() noexcept -> thread_id
 {
 #if CXXTRACE_HAVE_PTHREAD_THREADID_NP
   return get_current_thread_pthread_thread_id();
+#elif CXXTRACE_HAVE_SYSCALL_GETTID
+  return get_current_thread_id_gettid();
 #else
 #error "Unknown platform"
 #endif
@@ -123,6 +157,19 @@ get_current_thread_pthread_thread_id() noexcept -> std::uint64_t
   auto rc = pthread_threadid_np(nullptr, &thread_id);
   if (rc != 0) {
     errno = rc;
+    std::perror("fatal: could not determine thread ID of current thread");
+    std::terminate();
+  }
+  return thread_id;
+}
+#endif
+
+#if CXXTRACE_HAVE_SYSCALL_GETTID
+auto
+get_current_thread_id_gettid() noexcept -> thread_id
+{
+  auto thread_id = ::syscall(SYS_gettid);
+  if (thread_id < 0) {
     std::perror("fatal: could not determine thread ID of current thread");
     std::terminate();
   }
@@ -171,8 +218,7 @@ thread_name_set::fetch_and_remember_name_of_current_thread(
 {
   assert(current_thread_id == get_current_thread_id());
 #if CXXTRACE_HAVE_PTHREAD_GETNAME_NP
-  return this->fetch_and_remember_name_of_current_thread_pthread(
-    current_thread_id);
+  this->fetch_and_remember_name_of_current_thread_pthread(current_thread_id);
 #else
 #error "Unknown platform"
 #endif
@@ -194,6 +240,8 @@ thread_name_set::fetch_and_remember_thread_name_for_id(thread_id id) noexcept(
 {
 #if CXXTRACE_HAVE_PROC_PIDINFO
   this->fetch_and_remember_thread_name_for_id_libproc(id);
+#elif CXXTRACE_HAVE_LINUX_PROCFS
+  this->fetch_and_remember_thread_name_for_id_procfs(id);
 #else
 #error "Unknown platform"
 #endif
@@ -239,6 +287,52 @@ thread_name_set::fetch_and_remember_thread_name_for_id_libproc(
 }
 #endif
 
+#if CXXTRACE_HAVE_LINUX_PROCFS
+auto
+thread_name_set::fetch_and_remember_thread_name_for_id_procfs(
+  thread_id id) noexcept(false) -> void
+{
+  auto path = stringify("/proc/self/task/", id, "/comm");
+  auto fd = file_descriptor{ ::open(path.data(), O_CLOEXEC | O_RDONLY) };
+  if (!fd.valid()) {
+    auto error = errno;
+    if (error == ENOENT) {
+      // The thread is dead, or was never alive. Ignore it.
+      // TODO(strager): Should we communicate this fact to the caller?
+    } else {
+      // FIXME(strager): How should we handle this error? Should we throw an
+      // exception?
+      std::fprintf(
+        stderr,
+        "error: could not get name of current thread by opening %s: %s\n",
+        path.data(),
+        std::strerror(error));
+    }
+    return;
+  }
+
+  auto& thread_name = this->allocate_name(id, max_thread_name_length);
+  auto thread_name_length =
+    ::read(fd.get(), thread_name.data(), thread_name.size());
+  if (thread_name_length == -1) {
+    auto error = errno;
+    // FIXME(strager): How should we handle this error? Should we throw an
+    // exception?
+    std::fprintf(stderr,
+                 "error: could not get name of current thread from %s: %s\n",
+                 path.data(),
+                 std::strerror(error));
+    return;
+  }
+  assert(thread_name_length <= thread_name.size());
+  auto end_of_line_index = thread_name.find('\n');
+  if (end_of_line_index != thread_name.npos) {
+    thread_name_length = end_of_line_index;
+  }
+  thread_name.resize(thread_name_length);
+}
+#endif
+
 #if CXXTRACE_HAVE_MACH_THREAD
 auto
 thread_name_set::fetch_and_remember_name_of_current_thread_mach(
@@ -265,14 +359,8 @@ thread_name_set::fetch_and_remember_name_of_current_thread_pthread(
 {
   assert(current_thread_id == get_current_thread_id());
 
-  auto [it, inserted] =
-    this->names.try_emplace(current_thread_id, MAXTHREADNAMESIZE, '\0');
-  std::string& thread_name = it->second;
-  if (!inserted) {
-    thread_name.resize(MAXTHREADNAMESIZE);
-  }
-  assert(thread_name.size() >= MAXTHREADNAMESIZE);
-
+  auto& thread_name =
+    this->allocate_name(current_thread_id, max_thread_name_length);
   auto rc = ::pthread_getname_np(
     ::pthread_self(), thread_name.data(), thread_name.size() + 1);
   assert(rc == 0);
@@ -293,6 +381,20 @@ thread_name_set::remember_name_of_thread(
     assert(it != this->names.end());
     it->second.assign(name, name_length);
   }
+}
+
+auto
+thread_name_set::allocate_name(thread_id id,
+                               std::size_t max_name_length) noexcept(false)
+  -> std::string&
+{
+  auto [it, inserted] = this->names.try_emplace(id, max_name_length, '\0');
+  std::string& name = it->second;
+  if (!inserted) {
+    name.resize(max_name_length);
+  }
+  assert(name.size() >= max_name_length);
+  return name;
 }
 
 backoff::backoff() = default;

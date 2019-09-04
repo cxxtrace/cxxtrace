@@ -91,6 +91,39 @@ get_mach_task_ports() -> mach_task_ports;
 }
 
 namespace cxxtrace_test {
+TEST(test_thread, thread_id_differs_on_different_live_threads)
+{
+  auto test_done_event = event{};
+
+  auto thread_1_id = cxxtrace::thread_id{};
+  auto thread_1_ready_event = event{};
+  auto thread_1 = std::thread{ [&] {
+    thread_1_id = cxxtrace::get_current_thread_id();
+    thread_1_ready_event.set();
+    test_done_event.wait();
+  } };
+
+  auto thread_2_id = cxxtrace::thread_id{};
+  auto thread_2_ready_event = event{};
+  auto thread_2 = std::thread{ [&] {
+    thread_2_id = cxxtrace::get_current_thread_id();
+    thread_2_ready_event.set();
+    test_done_event.wait();
+  } };
+
+  thread_1_ready_event.wait();
+  thread_2_ready_event.wait();
+
+  auto main_thread_id = cxxtrace::get_current_thread_id();
+  EXPECT_NE(main_thread_id, thread_1_id);
+  EXPECT_NE(main_thread_id, thread_2_id);
+  EXPECT_NE(thread_1_id, thread_2_id);
+
+  test_done_event.set();
+  thread_1.join();
+  thread_2.join();
+}
+
 #if CXXTRACE_HAVE_MACH_THREAD && CXXTRACE_HAVE_PTHREAD_THREADID_NP
 TEST(test_thread_pthread_thread_id, current_thread_id_matches_mach_thread_id)
 {
@@ -203,6 +236,7 @@ TEST(test_get_mach_task_ports, includes_port_of_dead_referenced_thread)
 }
 #endif
 
+#if defined(__APPLE__)
 TEST(test_thread_name, default_thread_name_is_empty)
 {
   std::thread{
@@ -215,13 +249,43 @@ TEST(test_thread_name, default_thread_name_is_empty)
     }
   }.join();
 }
+#elif defined(__linux__)
+TEST(test_thread_name, threads_inherit_name_from_parent)
+{
+  std::thread{
+    [] {
+      set_current_thread_name("parent");
+
+      std::thread{
+        [] {
+          auto thread_names = cxxtrace::detail::thread_name_set{};
+          thread_names.fetch_and_remember_name_of_current_thread();
+          EXPECT_STREQ(thread_names.name_of_thread_by_id(
+                         cxxtrace::get_current_thread_id()),
+                       "parent");
+        }
+      }.join();
+    }
+  }.join();
+}
+#else
+#error "Unknown platform"
+#endif
 
 #if CXXTRACE_HAVE_PTHREAD_SETNAME_NP
 TEST(test_thread_name, current_thread_name_matches_pthread_setname_np)
 {
   std::thread{
     [] {
-      auto rc = ::pthread_setname_np("my thread name");
+      auto rc =
+#if CXXTRACE_HAVE_PTHREAD_SETNAME_NP_1
+        ::pthread_setname_np("my thread name")
+#elif CXXTRACE_HAVE_PTHREAD_SETNAME_NP_2
+        ::pthread_setname_np(::pthread_self(), "my thread name")
+#else
+#error "Unknown platform"
+#endif
+        ;
       ASSERT_EQ(rc, 0) << std::strerror(rc);
       auto thread_names = cxxtrace::detail::thread_name_set{};
       thread_names.fetch_and_remember_name_of_current_thread();
@@ -376,15 +440,13 @@ TEST(test_thread_name, getting_name_of_live_thread_updates_set)
   auto thread_id = cxxtrace::get_current_thread_id();
   auto thread_names = cxxtrace::detail::thread_name_set{};
 
-  set_current_thread_name("first thread name");
+  set_current_thread_name("first thread");
   thread_names.fetch_and_remember_thread_name_for_id(thread_id);
-  EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id),
-               "first thread name");
+  EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id), "first thread");
 
-  set_current_thread_name("second thread name");
+  set_current_thread_name("second thread");
   thread_names.fetch_and_remember_thread_name_for_id(thread_id);
-  EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id),
-               "second thread name");
+  EXPECT_STREQ(thread_names.name_of_thread_by_id(thread_id), "second thread");
 }
 
 TEST(test_thread_name, getting_name_of_new_live_thread_updates_set)
@@ -437,27 +499,27 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
   auto thread_id = cxxtrace::thread_id{};
   auto thread_ready = cxxtrace_test::event{};
   auto thread = std::thread{ [&] {
-    set_current_thread_name("original thread name");
+    set_current_thread_name("original name");
 
     thread_id = cxxtrace::get_current_thread_id();
     thread_ready.set();
     kill_thread.wait();
 
-    set_current_thread_name("updated thread name");
+    set_current_thread_name("updated name");
   } };
 
   thread_ready.wait();
 
   auto names = cxxtrace::detail::thread_name_set{};
   names.fetch_and_remember_thread_name_for_id(thread_id);
-  EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original thread name");
+  EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original name");
 
   kill_thread.set();
   thread.join();
   await_thread_exit(thread);
 
   names.fetch_and_remember_thread_name_for_id(thread_id);
-  EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original thread name")
+  EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original name")
     << "Updated thread name should not be fetched (because thread thread died "
        "before we queried its name)";
 }

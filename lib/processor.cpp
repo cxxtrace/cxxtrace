@@ -17,6 +17,10 @@
 #include <cxxtrace/detail/apple_commpage.h>
 #endif
 
+#if CXXTRACE_HAVE_GET_NPROCS_CONF
+#include <sys/sysinfo.h>
+#endif
+
 namespace cxxtrace {
 namespace detail {
 auto
@@ -46,6 +50,8 @@ get_maximum_processor_id() noexcept(false) -> processor_id
     };
   }
   return maximum_processor_count - 1;
+#elif CXXTRACE_HAVE_GET_NPROCS_CONF
+  return ::get_nprocs_conf() - 1;
 #else
 #error "Unknown platform"
 #endif

@@ -27,6 +27,10 @@ BENCHMARK_TEMPLATE1(benchmark_get_current_thread_id,
 BENCHMARK_TEMPLATE1(benchmark_get_current_thread_id,
                     cxxtrace::get_current_thread_pthread_thread_id);
 #endif
+#if CXXTRACE_HAVE_SYSCALL_GETTID
+BENCHMARK_TEMPLATE1(benchmark_get_current_thread_id,
+                    cxxtrace::get_current_thread_id_gettid);
+#endif
 
 template<void (thread_name_set::*FetchAndRememberNameOfCurrentThread)(
   cxxtrace::thread_id) noexcept(false)>
@@ -49,6 +53,11 @@ benchmark_fetch_and_remember_name_of_current_thread(benchmark::State& bench)
 BENCHMARK_TEMPLATE1(
   benchmark_fetch_and_remember_name_of_current_thread,
   &thread_name_set::fetch_and_remember_name_of_current_thread);
+#if CXXTRACE_HAVE_PROC_PIDINFO
+BENCHMARK_TEMPLATE1(
+  benchmark_fetch_and_remember_name_of_current_thread,
+  &thread_name_set::fetch_and_remember_name_of_current_thread_libproc);
+#endif
 #if CXXTRACE_HAVE_MACH_THREAD
 BENCHMARK_TEMPLATE1(
   benchmark_fetch_and_remember_name_of_current_thread,
@@ -85,6 +94,11 @@ BENCHMARK_TEMPLATE(
 BENCHMARK_TEMPLATE(
   benchmark_fetch_and_remember_name_of_current_thread_by_thread_id,
   &thread_name_set::fetch_and_remember_thread_name_for_id_libproc);
+#endif
+#if CXXTRACE_HAVE_LINUX_PROCFS
+BENCHMARK_TEMPLATE(
+  benchmark_fetch_and_remember_name_of_current_thread_by_thread_id,
+  &thread_name_set::fetch_and_remember_thread_name_for_id_procfs);
 #endif
 }
 }

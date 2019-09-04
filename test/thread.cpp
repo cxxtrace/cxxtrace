@@ -32,7 +32,15 @@ auto
 set_current_thread_name(cxxtrace::czstring name) -> void
 {
 #if CXXTRACE_HAVE_PTHREAD_SETNAME_NP
-  auto rc = ::pthread_setname_np(name);
+  auto rc =
+#if CXXTRACE_HAVE_PTHREAD_SETNAME_NP_1
+    ::pthread_setname_np(name)
+#elif CXXTRACE_HAVE_PTHREAD_SETNAME_NP_2
+    ::pthread_setname_np(::pthread_self(), name)
+#else
+#error "Unknown platform"
+#endif
+    ;
   if (rc != 0) {
     std::fprintf(
       stderr, "fatal: pthread_setname_np failed: %s\n", std::strerror(errno));

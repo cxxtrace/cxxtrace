@@ -23,10 +23,32 @@
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>
 
+#if defined(__GLIBCXX__) && __GLIBCXX__ <= 20190503
+// libstdc++ version 9.1.0 does not define some overloads of
+// std::reduce.
+#define CXXTRACE_WORK_AROUND_STD_REDUCE 1
+#endif
+
+#if CXXTRACE_WORK_AROUND_STD_REDUCE
+#include <iterator>
+#endif
+
 namespace {
 auto
 assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
   -> void;
+
+template<class Iterator>
+auto
+reduce(Iterator begin, Iterator end) -> auto
+{
+#if CXXTRACE_WORK_AROUND_STD_REDUCE
+  return std::accumulate(
+    begin, end, typename std::iterator_traits<Iterator>::value_type());
+#else
+  return std::reduce(begin, end);
+#endif
+}
 }
 
 namespace cxxtrace {
@@ -563,9 +585,8 @@ private:
 
   auto total_push_size() const noexcept -> size_type
   {
-    return this->initial_push_size +
-           std::reduce(this->producer_push_sizes.begin(),
-                       this->producer_push_sizes.end());
+    return this->initial_push_size + reduce(this->producer_push_sizes.begin(),
+                                            this->producer_push_sizes.end());
   }
 
   auto producer_range(int thread_index) const noexcept

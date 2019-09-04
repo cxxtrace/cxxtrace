@@ -33,6 +33,11 @@
 #include <mach-o/dyld.h>
 #endif
 
+#if CXXTRACE_HAVE_LINUX_PROCFS
+#include <exception>
+#include <unistd.h>
+#endif
+
 namespace {
 cxxtrace_test::detail::concurrency_test* test_to_run{};
 
@@ -433,6 +438,25 @@ retry:
   if (rc == -1) {
     assert(buffer_size > 1);
     assert(buffer_size > old_buffer_size);
+    goto retry;
+  }
+  return buffer;
+#elif CXXTRACE_HAVE_LINUX_PROCFS
+  auto buffer = std::string{ '\0', 1 };
+retry:
+  assert(!buffer.empty());
+  auto rc = ::readlink("/proc/self/exe", buffer.data(), buffer.size());
+  if (rc == -1) {
+    std::perror("fatal: could not get path of current executable");
+    std::terminate();
+  }
+  assert(rc >= 0);
+  auto written_size = std::size_t(rc);
+  assert(written_size <= buffer.size());
+  if (written_size == buffer.size()) {
+    auto new_buffer_size = buffer.size() * 2;
+    assert(new_buffer_size > buffer.size());
+    buffer.resize(new_buffer_size - 1);
     goto retry;
   }
   return buffer;

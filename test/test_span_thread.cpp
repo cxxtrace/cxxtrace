@@ -227,6 +227,10 @@ TYPED_TEST(test_span, taking_snapshot_removes_samples_by_exited_threads)
   EXPECT_EQ(samples_2.size(), 0);
 }
 
+namespace {
+constexpr const auto max_work_size = std::size_t{ 10000 };
+}
+
 TYPED_TEST(test_span_thread_safe,
            span_enter_and_exit_synchronize_across_threads)
 {
@@ -236,7 +240,6 @@ TYPED_TEST(test_span_thread_safe,
   // NOTE(strager): This test relies on dynamic analysis tools or crashes (due
   // to undefined behavior) to detect data races.
 
-  static constexpr const auto max_work_size = std::size_t{ 10000 };
   static const auto work_iteration_count = 400;
   static const auto thread_count = 4;
 
