@@ -1,9 +1,11 @@
 #include "test_span.h"
+#include <algorithm>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <memory>
 
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)

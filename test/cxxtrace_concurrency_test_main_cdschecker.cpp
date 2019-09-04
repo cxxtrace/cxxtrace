@@ -10,7 +10,6 @@
 #include <cerrno>
 #include <charconv>
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/file_descriptor.h>
@@ -18,11 +17,11 @@
 #include <cxxtrace/string.h>
 #include <dlfcn.h>
 #include <iterator>
-#include <ostream>
 #include <spawn.h>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <system_error>
 #include <unistd.h>

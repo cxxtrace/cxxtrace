@@ -7,7 +7,6 @@
 #include <type_traits>                   // IWYU pragma: keep
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <cxxtrace/detail/cdschecker.h>
