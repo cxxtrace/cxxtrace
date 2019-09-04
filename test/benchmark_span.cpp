@@ -26,7 +26,7 @@
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
 namespace cxxtrace_test {
-using clock = cxxtrace::apple_absolute_time_clock;
+using clock = cxxtrace::default_clock;
 using clock_sample = clock::sample;
 
 template<class Storage>

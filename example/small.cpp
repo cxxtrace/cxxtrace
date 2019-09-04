@@ -9,7 +9,7 @@
 int
 main()
 {
-  using clock_type = cxxtrace::apple_absolute_time_clock;
+  using clock_type = cxxtrace::default_clock;
   auto clock = clock_type{};
   auto storage = cxxtrace::ring_queue_storage<1024, clock_type::sample>{};
   auto config = cxxtrace::basic_config{ storage, clock };

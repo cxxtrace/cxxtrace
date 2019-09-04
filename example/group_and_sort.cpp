@@ -25,7 +25,7 @@ sort_grouped_lines(std::map<group_key, std::vector<std::string>>&) noexcept
 auto
 dump_trace() -> void;
 
-using clock_type = cxxtrace::apple_absolute_time_clock;
+using clock_type = cxxtrace::default_clock;
 clock_type clock = clock_type{};
 cxxtrace::ring_queue_storage<1024, clock_type::sample> storage =
   cxxtrace::ring_queue_storage<1024, clock_type::sample>{};

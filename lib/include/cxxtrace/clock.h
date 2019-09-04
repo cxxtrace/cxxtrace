@@ -172,6 +172,8 @@ private:
   sample next_sample;
   sample query_increment;
 };
+
+using default_clock = apple_absolute_time_clock;
 }
 
 #include <cxxtrace/clock_impl.h> // IWYU pragma: export
