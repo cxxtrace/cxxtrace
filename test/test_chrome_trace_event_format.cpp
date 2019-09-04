@@ -385,8 +385,19 @@ TEST_F(test_chrome_trace_event_format,
   for (auto locale_name : { "C", "en_US.UTF-8", "fr_FR.UTF-8" }) {
     SCOPED_TRACE(locale_name);
 
+    auto locale = std::locale{};
+    try {
+      locale = std::locale{ locale_name };
+    } catch (std::runtime_error& error) {
+      std::fprintf(stderr,
+                   "note: ignoring error constructing locale '%s': %s\n",
+                   locale_name,
+                   error.what());
+      continue;
+    }
+
     auto output = std::ostringstream{};
-    output.imbue(std::locale(locale_name));
+    output.imbue(locale);
 
     {
       auto span = CXXTRACE_SPAN("test category", "test span");
