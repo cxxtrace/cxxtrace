@@ -1,0 +1,93 @@
+jobs:
+- job: macos_clang_8_debug
+  displayName: 'Build & test: macOS Clang 8 debug'
+
+  pool:
+    vmImage: macOS-10.13
+
+  variables:
+    # CXXTRACE_SOURCEDIRECTORY
+    cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)
+    # CXXTRACE_BUILDDIRECTORY
+    cxxtrace.BuildDirectory: $(System.DefaultWorkingDirectory)/build
+    # CXXTRACE_TOOLCHAINDIRECTORY
+    cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
+    # CXXTRACE_TOOLCHAINNAME
+    cxxtrace.ToolchainName: clang+llvm-8.0.0-x86_64-apple-darwin
+    # CXXTRACE_TOOLCHAINARCHIVENAME
+    cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
+    cxxtrace.ToolchainPrettyName: Clang 8.0.0
+
+  steps:
+  - script: |
+     set -eux
+     mkdir -p -- "${CXXTRACE_BUILDDIRECTORY}" "${CXXTRACE_TOOLCHAINDIRECTORY}"
+    displayName: Configure checkout
+
+  - task: DownloadPipelineArtifact@2
+    displayName: Download $(cxxtrace.ToolchainPrettyName)
+    inputs:
+      buildType: specific
+      project: $(System.TeamProjectId)
+      definition: 7 # cache-public-packages.yaml
+      buildVersionToDownload: latest
+      artifactName: $(cxxtrace.ToolchainArchiveName)
+      targetPath: $(cxxtrace.ToolchainDirectory)
+    timeoutInMinutes: 120
+
+  - script: |
+     set -eux
+     ls -laR
+     tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
+     ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
+    displayName: Install $(cxxtrace.ToolchainPrettyName)
+    workingDirectory: $(cxxtrace.ToolchainDirectory)
+    timeoutInMinutes: 60
+
+  - script: |
+     set -eux
+     cxxtrace_toolchain_usr="${CXXTRACE_TOOLCHAINDIRECTORY}/usr"
+     PATH="${cxxtrace_toolchain_usr}/bin:${PATH}"
+     cflags="-D_LIBCPP_DISABLE_AVAILABILITY -Wall -Wextra -pedantic -Wno-c99-extensions"
+     ldflags="-L${cxxtrace_toolchain_usr}/lib ${cxxtrace_toolchain_usr}/lib/libc++.a ${cxxtrace_toolchain_usr}/lib/libc++abi.a ${cxxtrace_toolchain_usr}/lib/libc++experimental.a ${cxxtrace_toolchain_usr}/lib/libc++fs.a"
+     cmake \
+       -G 'Unix Makefiles' \
+       -DBUILD_TESTING=ON \
+       -DCMAKE_BUILD_TYPE=Debug \
+       -DCMAKE_C_COMPILER=clang \
+       -DCMAKE_CXX_COMPILER=clang++ \
+       -DCMAKE_C_FLAGS="${cflags}" \
+       -DCMAKE_CXX_FLAGS="${cflags}" \
+       -DCMAKE_EXE_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_SHARED_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+       "${CXXTRACE_SOURCEDIRECTORY}"
+    displayName: Configure
+    workingDirectory: $(cxxtrace.BuildDirectory)
+    timeoutInMinutes: 180
+
+  - script: |
+     set -eux
+     cmake --build . -- -j4
+    displayName: Build
+    workingDirectory: $(cxxtrace.BuildDirectory)
+
+  - script: |
+     set -eux
+     ctest \
+       --no-compress-output \
+       --test-action test \
+       --test-output-size-failed 0 \
+       --test-output-size-passed 0 \
+       --verbose
+    displayName: Test
+    workingDirectory: $(cxxtrace.BuildDirectory)
+
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    inputs:
+      testResultsFormat: CTest
+      testResultsFiles: Testing/*/Test.xml
+      searchFolder: $(cxxtrace.BuildDirectory)
+      failTaskOnFailedTests: true
+    condition: succeededOrFailed()

@@ -1,0 +1,28 @@
+trigger: none
+
+jobs:
+- job: clang_8_macos
+  displayName: 'Cache public packages: Clang 8 macOS'
+
+  pool:
+    vmImage: ubuntu-latest
+
+  variables:
+    # CXXTRACE_TOOLCHAINARCHIVENAME
+    cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
+
+  steps:
+  - checkout: none
+
+  - script: |
+     set -eux
+     curl --output "${CXXTRACE_TOOLCHAINARCHIVENAME}" http://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
+     printf '94ebeb70f17b6384e052c47fef24a6d70d3d949ab27b6c83d4ab7b298278ad6f  clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz\n' \
+       | shasum --algorithm 256 --check
+    displayName: Download Clang 8.0.0 for macOS
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish artifacts
+    inputs:
+      artifact: $(cxxtrace.ToolchainArchiveName)
+      targetPath: $(cxxtrace.ToolchainArchiveName)
