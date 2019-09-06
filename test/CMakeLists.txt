@@ -11,8 +11,6 @@ find_package(Threads REQUIRED)
 add_executable(
   test_cxxtrace
   $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
-  event.cpp
-  exhaustive_rng.cpp
   test_add.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp
@@ -24,13 +22,13 @@ add_executable(
   test_span_thread.cpp
   test_string.cpp
   test_thread.cpp
-  thread.cpp
 )
 target_link_libraries(
   test_cxxtrace
   PRIVATE
   Threads::Threads
   cxxtrace
+  cxxtrace_support
   gmock
   gmock_main
   gtest
@@ -52,7 +50,7 @@ set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_CXX_PREFIX_H
 cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
-target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_memory_resource)
+target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_support)
 
 if (CXXTRACE_CDSCHECKER)
   add_library(
@@ -164,7 +162,6 @@ add_executable(
   benchmark_span.cpp
   benchmark_thread.cpp
   cxxtrace_benchmark.cpp
-  thread.cpp
 )
 target_link_libraries(
   benchmark_cxxtrace
@@ -173,7 +170,15 @@ target_link_libraries(
   benchmark
   benchmark_main
   cxxtrace
-  cxxtrace_memory_resource
+  cxxtrace_support
 )
 
-add_library(cxxtrace_memory_resource memory_resource.cpp)
+add_library(
+  cxxtrace_support
+  STATIC
+  event.cpp
+  exhaustive_rng.cpp
+  memory_resource.cpp
+  thread.cpp
+)
+target_link_libraries(cxxtrace_support PRIVATE Threads::Threads cxxtrace)
