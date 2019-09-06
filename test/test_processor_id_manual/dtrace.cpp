@@ -22,6 +22,91 @@
 #include <vector>
 
 namespace cxxtrace_test {
+class thread_schedule_dtrace_program;
+
+class dtrace_client
+{
+public:
+  explicit dtrace_client(thread_schedule_dtrace_program*) noexcept;
+
+  dtrace_client(const dtrace_client&) = delete;
+  dtrace_client& operator=(const dtrace_client&) = delete;
+
+  auto initialize() -> void;
+  auto start() -> void;
+  auto stop() -> void;
+
+private:
+  auto run() -> void;
+
+  [[noreturn]] auto fatal_error(cxxtrace::czstring message, int error) -> void;
+  [[noreturn]] auto fatal_error(cxxtrace::czstring message) -> void;
+
+  thread_schedule_dtrace_program* program;
+  dtrace_hdl_t* dtrace{ nullptr };
+  std::thread thread;
+
+  event worker_started;
+  std::atomic<bool> should_stop{ false };
+};
+
+class thread_schedule_dtrace_program
+{
+public:
+  struct schedule_event
+  {
+    timestamp timestamp;
+    cxxtrace::thread_id thread_id;
+    bool on_cpu;
+  };
+
+  explicit thread_schedule_dtrace_program(::pid_t);
+
+  auto program_text() const noexcept -> cxxtrace::czstring;
+
+  auto on_probe(const dtrace_probedata_t&) noexcept -> int;
+
+  auto get_thread_executions() const -> thread_executions;
+
+private:
+  enum class probe_kind : std::uint8_t
+  {
+    unknown = 0,
+    on_cpu = 1,
+    off_cpu = 2,
+  };
+
+  struct probe_description
+  {
+    ::dtrace_epid_t epid;
+    probe_kind kind;
+
+    std::uint8_t machtimestamp_offset;
+    std::uint8_t tid_offset;
+
+    auto read_machtimestamp(const char* record_data) noexcept -> timestamp;
+    auto read_tid(const char* record_data) noexcept -> cxxtrace::thread_id;
+  };
+
+  auto get_probe_description(::dtrace_epid_t epid,
+                             const ::dtrace_probedesc& probe,
+                             const ::dtrace_eprobedesc& eprobe)
+    -> probe_description;
+
+  static auto get_probe_description_uncached(::dtrace_epid_t epid,
+                                             const ::dtrace_probedesc& probe,
+                                             const ::dtrace_eprobedesc& eprobe)
+    -> probe_description;
+
+  static auto kind_of_probe(const dtrace_probedesc& probe) noexcept
+    -> probe_kind;
+
+  std::string program_text_;
+  std::vector<probe_description> descriptions_;
+  std::unordered_map<cxxtrace::detail::processor_id, std::deque<schedule_event>>
+    events_by_processor_;
+};
+
 dtrace_client::dtrace_client(thread_schedule_dtrace_program* program) noexcept
   : program{ program }
 {}
@@ -348,32 +433,44 @@ thread_schedule_dtrace_program::kind_of_probe(
   return probe_kind::unknown;
 }
 
+struct thread_schedule_tracer::impl
+{
+  explicit impl(::pid_t process_id)
+    : program{ process_id }
+    , dtrace{ &this->program }
+  {}
+
+  thread_schedule_dtrace_program program;
+  dtrace_client dtrace;
+};
+
 thread_schedule_tracer::thread_schedule_tracer(::pid_t process_id)
-  : program{ process_id }
-  , dtrace{ &this->program }
+  : impl_{ std::make_unique<impl>(process_id) }
 {}
+
+thread_schedule_tracer::~thread_schedule_tracer() = default;
 
 auto
 thread_schedule_tracer::initialize() -> void
 {
-  this->dtrace.initialize();
+  this->impl_->dtrace.initialize();
 }
 
 auto
 thread_schedule_tracer::start() -> void
 {
-  this->dtrace.start();
+  this->impl_->dtrace.start();
 }
 
 auto
 thread_schedule_tracer::get_thread_executions() const -> thread_executions
 {
-  return this->program.get_thread_executions();
+  return this->impl_->program.get_thread_executions();
 }
 
 auto
 thread_schedule_tracer::stop() -> void
 {
-  this->dtrace.stop();
+  this->impl_->dtrace.stop();
 }
 }
