@@ -19,6 +19,29 @@ namespace cxxtrace_test {
 using dtrace_clock = cxxtrace::apple_absolute_time_clock;
 using timestamp = dtrace_clock::sample;
 
+struct thread_executions;
+
+class thread_schedule_tracer
+{
+public:
+  explicit thread_schedule_tracer(::pid_t);
+
+  thread_schedule_tracer(const thread_schedule_tracer&) = delete;
+  thread_schedule_tracer& operator=(const thread_schedule_tracer&) = delete;
+
+  ~thread_schedule_tracer();
+
+  auto initialize() -> void;
+  auto start() -> void;
+  auto get_thread_executions() const -> thread_executions;
+  auto stop() -> void;
+
+private:
+  struct impl;
+
+  std::unique_ptr<impl> impl_;
+};
+
 struct thread_executions
 {
   using processor_id = cxxtrace::detail::processor_id;
@@ -55,27 +78,6 @@ struct processor_id_samples
   {}
 
   std::vector<sample> samples;
-};
-
-class thread_schedule_tracer
-{
-public:
-  explicit thread_schedule_tracer(::pid_t);
-
-  thread_schedule_tracer(const thread_schedule_tracer&) = delete;
-  thread_schedule_tracer& operator=(const thread_schedule_tracer&) = delete;
-
-  ~thread_schedule_tracer();
-
-  auto initialize() -> void;
-  auto start() -> void;
-  auto get_thread_executions() const -> thread_executions;
-  auto stop() -> void;
-
-private:
-  struct impl;
-
-  std::unique_ptr<impl> impl_;
 };
 
 auto
