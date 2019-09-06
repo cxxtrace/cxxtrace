@@ -11,6 +11,8 @@
 using cxxtrace::thread_id;
 using cxxtrace::detail::processor_id;
 
+using timestamp = cxxtrace_test::thread_schedule_tracer::timestamp;
+
 namespace cxxtrace_test {
 sample_checker::sample_checker(const thread_executions& executions)
 {

@@ -16,14 +16,14 @@
 #include <vector>
 
 namespace cxxtrace_test {
-using dtrace_clock = cxxtrace::apple_absolute_time_clock;
-using timestamp = dtrace_clock::sample;
-
 struct thread_executions;
 
 class thread_schedule_tracer
 {
 public:
+  using clock = cxxtrace::apple_absolute_time_clock;
+  using timestamp = clock::sample;
+
   explicit thread_schedule_tracer(::pid_t);
 
   thread_schedule_tracer(const thread_schedule_tracer&) = delete;
@@ -48,8 +48,8 @@ struct thread_executions
 
   struct thread_execution
   {
-    timestamp begin_timestamp;
-    timestamp end_timestamp;
+    thread_schedule_tracer::timestamp begin_timestamp;
+    thread_schedule_tracer::timestamp end_timestamp;
     cxxtrace::thread_id thread_id;
   };
 
@@ -60,8 +60,8 @@ struct processor_id_samples
 {
   struct sample
   {
-    timestamp timestamp_before;
-    timestamp timestamp_after;
+    thread_schedule_tracer::timestamp timestamp_before;
+    thread_schedule_tracer::timestamp timestamp_after;
     cxxtrace::detail::processor_id processor_id;
     cxxtrace::thread_id thread_id;
   };
@@ -84,8 +84,8 @@ auto
 dump_gnuplot(std::ostream&,
              const thread_executions&,
              const processor_id_samples&,
-             timestamp begin_timestamp,
-             timestamp end_timestamp) -> void;
+             thread_schedule_tracer::timestamp begin_timestamp,
+             thread_schedule_tracer::timestamp end_timestamp) -> void;
 }
 
 #endif

@@ -65,7 +65,7 @@ class test_processor_id_manual : public test_processor_id
 TEST_P(test_processor_id_manual,
        current_processor_id_agrees_with_dtrace_scheduler)
 {
-  auto clock = dtrace_clock{};
+  auto clock = thread_schedule_tracer::clock{};
 
   auto tracer = thread_schedule_tracer{ ::getpid() };
   tracer.initialize();
@@ -142,7 +142,7 @@ sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
   auto stop = std::atomic<bool>{ false };
   auto thread_routine =
     [&get_current_processor_id, &samples_by_thread, &stop](int thread_index) {
-      auto clock = dtrace_clock{};
+      auto clock = thread_schedule_tracer::clock{};
       auto thread_id = cxxtrace::get_current_thread_id();
 
       auto samples = std::move(samples_by_thread[thread_index]);

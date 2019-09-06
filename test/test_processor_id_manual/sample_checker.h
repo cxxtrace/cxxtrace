@@ -16,6 +16,8 @@ public:
     -> testing::AssertionResult;
 
 private:
+  using timestamp = thread_schedule_tracer::timestamp;
+
   static constexpr auto invalid_thread_id = ~cxxtrace::thread_id{ 0 };
 
   static auto scheduled_thread_at_time(

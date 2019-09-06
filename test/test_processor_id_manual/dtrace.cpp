@@ -21,6 +21,8 @@
 #include <utility>
 #include <vector>
 
+using timestamp = cxxtrace_test::thread_schedule_tracer::timestamp;
+
 namespace cxxtrace_test {
 class thread_schedule_dtrace_program;
 
@@ -308,8 +310,8 @@ auto
 thread_schedule_dtrace_program::probe_description::read_machtimestamp(
   const char* record_data) noexcept -> timestamp
 {
-  static_assert(
-    std::is_same_v<dtrace_clock, cxxtrace::apple_absolute_time_clock>);
+  static_assert(std::is_same_v<thread_schedule_tracer::clock,
+                               cxxtrace::apple_absolute_time_clock>);
 
   auto machtimestamp = timestamp{};
   std::memcpy(&machtimestamp,
