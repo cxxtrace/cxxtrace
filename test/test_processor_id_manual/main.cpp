@@ -271,7 +271,7 @@ show_usage(cxxtrace::czstring program_name) -> void
     "options:\n"
     "  --test-duration=INTEGERms  how long to sample get_current_processor_id "
     "(default: %jdms)\n"
-    "  --thead-count=INTEGER      how many threads which call "
+    "  --thread-count=INTEGER     how many threads which call "
     "get_current_processor_id (default: %d)\n",
     program_name,
     std::intmax_t{
