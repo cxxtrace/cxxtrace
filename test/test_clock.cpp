@@ -32,6 +32,9 @@ using test_clock_types = ::testing::Types<
   cxxtrace::apple_approximate_time_clock,
 #endif
   cxxtrace::fake_clock,
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+  cxxtrace::posix_clock_gettime_clock<CLOCK_MONOTONIC>,
+#endif
   cxxtrace::posix_gettimeofday_clock,
   cxxtrace::std_high_resolution_clock,
   cxxtrace::std_steady_clock,
@@ -103,6 +106,9 @@ using test_non_decreasing_clock_types = ::testing::Types<
   cxxtrace::apple_approximate_time_clock,
 #endif
   cxxtrace::fake_clock,
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+  cxxtrace::posix_clock_gettime_clock<CLOCK_MONOTONIC>,
+#endif
   cxxtrace::std_steady_clock>;
 TYPED_TEST_CASE(test_non_decreasing_clock, test_non_decreasing_clock_types, );
 
@@ -141,6 +147,9 @@ using test_real_clock_types = ::testing::Types<
 #if CXXTRACE_HAVE_MACH_TIME
   cxxtrace::apple_absolute_time_clock,
   cxxtrace::apple_approximate_time_clock,
+#endif
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+  cxxtrace::posix_clock_gettime_clock<CLOCK_MONOTONIC>,
 #endif
   cxxtrace::posix_gettimeofday_clock,
   cxxtrace::std_high_resolution_clock,

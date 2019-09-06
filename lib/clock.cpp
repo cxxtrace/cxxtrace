@@ -15,6 +15,10 @@
 #include <mach/mach_time.h>
 #endif
 
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+#include <time.h>
+#endif
+
 namespace cxxtrace {
 time_point::time_point(uninitialized_t) noexcept
   : time_point{ std::chrono::nanoseconds::zero() }
@@ -131,6 +135,48 @@ operator!=(posix_gettimeofday_clock::sample x,
 {
   return !(x == y);
 }
+
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+namespace detail {
+auto
+operator==(posix_clock_gettime_clock_sample x,
+           posix_clock_gettime_clock_sample y) noexcept -> bool
+{
+  return x.time.tv_sec == y.time.tv_sec && x.time.tv_nsec == y.time.tv_nsec;
+}
+
+auto
+operator!=(posix_clock_gettime_clock_sample x,
+           posix_clock_gettime_clock_sample y) noexcept -> bool
+{
+  return !(x == y);
+}
+}
+
+template<::clockid_t ClockID>
+auto
+posix_clock_gettime_clock<ClockID>::query() -> sample
+{
+  auto now = sample{};
+  [[maybe_unused]] auto rc = ::clock_gettime(ClockID, &now.time);
+  // TODO(strager): In posix_clock_gettime_clock's constructor, check if the
+  // clock is supported.
+  assert(rc == 0);
+  return now;
+}
+
+template<::clockid_t ClockID>
+auto
+posix_clock_gettime_clock<ClockID>::make_time_point(const sample& sample)
+  -> time_point
+{
+  // TODO(strager): Handle overflow.
+  return time_point{ std::chrono::seconds{ sample.time.tv_sec } +
+                     std::chrono::nanoseconds{ sample.time.tv_nsec } };
+}
+
+template class posix_clock_gettime_clock<CLOCK_MONOTONIC>;
+#endif
 
 auto
 posix_gettimeofday_clock::query() -> sample

@@ -2,6 +2,10 @@
 #define CXXTRACE_DETAIL_HAVE_H
 
 #if defined(__APPLE__)
+#include <AvailabilityMacros.h>
+#endif
+
+#if defined(__APPLE__)
 // _tlv_atexit
 #define CXXTRACE_HAVE_TLV_ATEXIT 1
 #endif
@@ -119,6 +123,15 @@
 // ::get_nprocs_conf(...)
 // <sys/sysinfo.h>
 #define CXXTRACE_HAVE_GET_NPROCS_CONF 1
+#endif
+
+#if (defined(MAC_OS_X_VERSION_MIN_REQUIRED) &&                                 \
+     MAC_OS_X_VERSION_MIN_REQUIRED >= 101200) ||                               \
+  (defined(__linux__) && defined(_GNU_SOURCE))
+// ::clock_gettime
+// <time.h>
+// CLOCK_MONOTONIC
+#define CXXTRACE_HAVE_CLOCK_GETTIME 1
 #endif
 
 #endif
