@@ -59,12 +59,12 @@ struct processor_id_samples
   std::vector<sample> samples;
 };
 
-class thread_schedule_tracer;
+class thread_schedule_dtrace_program;
 
 class dtrace_client
 {
 public:
-  explicit dtrace_client(thread_schedule_tracer*) noexcept;
+  explicit dtrace_client(thread_schedule_dtrace_program*) noexcept;
 
   dtrace_client(const dtrace_client&) = delete;
   dtrace_client& operator=(const dtrace_client&) = delete;
@@ -79,7 +79,7 @@ private:
   [[noreturn]] auto fatal_error(cxxtrace::czstring message, int error) -> void;
   [[noreturn]] auto fatal_error(cxxtrace::czstring message) -> void;
 
-  thread_schedule_tracer* program;
+  thread_schedule_dtrace_program* program;
   dtrace_hdl_t* dtrace{ nullptr };
   std::thread thread;
 
@@ -87,7 +87,7 @@ private:
   std::atomic<bool> should_stop{ false };
 };
 
-class thread_schedule_tracer
+class thread_schedule_dtrace_program
 {
 public:
   struct schedule_event
@@ -97,7 +97,7 @@ public:
     bool on_cpu;
   };
 
-  explicit thread_schedule_tracer(::pid_t);
+  explicit thread_schedule_dtrace_program(::pid_t);
 
   auto program_text() const noexcept -> cxxtrace::czstring;
 
@@ -142,6 +142,21 @@ private:
   std::vector<probe_description> descriptions_;
   std::unordered_map<cxxtrace::detail::processor_id, std::deque<schedule_event>>
     events_by_processor_;
+};
+
+class thread_schedule_tracer
+{
+public:
+  explicit thread_schedule_tracer(::pid_t);
+
+  auto initialize() -> void;
+  auto start() -> void;
+  auto get_thread_executions() const -> thread_executions;
+  auto stop() -> void;
+
+private:
+  thread_schedule_dtrace_program program;
+  dtrace_client dtrace;
 };
 
 auto

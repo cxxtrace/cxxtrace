@@ -68,16 +68,15 @@ TEST_P(test_processor_id_manual,
   auto clock = dtrace_clock{};
 
   auto tracer = thread_schedule_tracer{ ::getpid() };
-  auto dtrace = dtrace_client{ &tracer };
-  dtrace.initialize();
-  dtrace.start();
+  tracer.initialize();
+  tracer.start();
 
   auto begin_timestamp = clock.query();
   auto processor_id_samples_by_thread = sample_processor_id_on_threads(
     [this]() { return this->get_current_processor_id(); });
   auto end_timestamp = clock.query();
 
-  dtrace.stop();
+  tracer.stop();
 
   auto thread_executions = tracer.get_thread_executions();
 

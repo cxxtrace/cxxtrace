@@ -22,7 +22,7 @@
 #include <vector>
 
 namespace cxxtrace_test {
-dtrace_client::dtrace_client(thread_schedule_tracer* program) noexcept
+dtrace_client::dtrace_client(thread_schedule_dtrace_program* program) noexcept
   : program{ program }
 {}
 
@@ -84,7 +84,7 @@ dtrace_client::run() -> void
   auto on_probe =
     [](const ::dtrace_probedata_t* data, void* opaque) noexcept->int
   {
-    auto program = static_cast<thread_schedule_tracer*>(opaque);
+    auto program = static_cast<thread_schedule_dtrace_program*>(opaque);
     return program->on_probe(*data);
   };
 
@@ -139,7 +139,8 @@ dtrace_client::fatal_error(cxxtrace::czstring message) -> void
   this->fatal_error(message, ::dtrace_errno(this->dtrace));
 }
 
-thread_schedule_tracer::thread_schedule_tracer(::pid_t process_id)
+thread_schedule_dtrace_program::thread_schedule_dtrace_program(
+  ::pid_t process_id)
 {
   this->program_text_ = stringify("sched:::on-cpu, sched:::off-cpu\n"
                                   "/pid==",
@@ -150,14 +151,15 @@ thread_schedule_tracer::thread_schedule_tracer(::pid_t process_id)
 }
 
 auto
-thread_schedule_tracer::program_text() const noexcept -> cxxtrace::czstring
+thread_schedule_dtrace_program::program_text() const noexcept
+  -> cxxtrace::czstring
 {
   return this->program_text_.c_str();
 }
 
 auto
-thread_schedule_tracer::on_probe(const dtrace_probedata_t& probe_data) noexcept
-  -> int
+thread_schedule_dtrace_program::on_probe(
+  const dtrace_probedata_t& probe_data) noexcept -> int
 {
   auto description =
     this->get_probe_description(probe_data.dtpda_edesc->dtepd_epid,
@@ -183,13 +185,13 @@ thread_schedule_tracer::on_probe(const dtrace_probedata_t& probe_data) noexcept
 }
 
 auto
-thread_schedule_tracer::get_thread_executions() const
+thread_schedule_dtrace_program::get_thread_executions() const
   -> struct thread_executions
 {
   auto executions = thread_executions{};
   for (const auto& [processor_id, events] : this->events_by_processor_) {
     auto& processor_executions = executions.by_processor[processor_id];
-    const thread_schedule_tracer::schedule_event* last_event = nullptr;
+    const thread_schedule_dtrace_program::schedule_event* last_event = nullptr;
     for (const auto& event : events) {
       if (event.on_cpu) {
         if (last_event) {
@@ -218,7 +220,7 @@ thread_schedule_tracer::get_thread_executions() const
 }
 
 auto
-thread_schedule_tracer::probe_description::read_machtimestamp(
+thread_schedule_dtrace_program::probe_description::read_machtimestamp(
   const char* record_data) noexcept -> timestamp
 {
   static_assert(
@@ -232,7 +234,7 @@ thread_schedule_tracer::probe_description::read_machtimestamp(
 }
 
 auto
-thread_schedule_tracer::probe_description::read_tid(
+thread_schedule_dtrace_program::probe_description::read_tid(
   const char* record_data) noexcept -> cxxtrace::thread_id
 {
   auto tid = cxxtrace::thread_id{};
@@ -241,10 +243,10 @@ thread_schedule_tracer::probe_description::read_tid(
 }
 
 auto
-thread_schedule_tracer::get_probe_description(::dtrace_epid_t epid,
-                                              const ::dtrace_probedesc& probe,
-                                              const ::dtrace_eprobedesc& eprobe)
-  -> probe_description
+thread_schedule_dtrace_program::get_probe_description(
+  ::dtrace_epid_t epid,
+  const ::dtrace_probedesc& probe,
+  const ::dtrace_eprobedesc& eprobe) -> probe_description
 {
   auto it = std::find_if(
     this->descriptions_.begin(),
@@ -260,7 +262,7 @@ thread_schedule_tracer::get_probe_description(::dtrace_epid_t epid,
 }
 
 auto
-thread_schedule_tracer::get_probe_description_uncached(
+thread_schedule_dtrace_program::get_probe_description_uncached(
   ::dtrace_epid_t epid,
   const ::dtrace_probedesc& probe,
   const ::dtrace_eprobedesc& eprobe) -> probe_description
@@ -330,8 +332,8 @@ thread_schedule_tracer::get_probe_description_uncached(
 }
 
 auto
-thread_schedule_tracer::kind_of_probe(const dtrace_probedesc& probe) noexcept
-  -> probe_kind
+thread_schedule_dtrace_program::kind_of_probe(
+  const dtrace_probedesc& probe) noexcept -> probe_kind
 {
   const char(&provider)[DTRACE_PROVNAMELEN] = probe.dtpd_provider;
   const char(&name)[DTRACE_NAMELEN] = probe.dtpd_name;
@@ -344,5 +346,34 @@ thread_schedule_tracer::kind_of_probe(const dtrace_probedesc& probe) noexcept
     }
   }
   return probe_kind::unknown;
+}
+
+thread_schedule_tracer::thread_schedule_tracer(::pid_t process_id)
+  : program{ process_id }
+  , dtrace{ &this->program }
+{}
+
+auto
+thread_schedule_tracer::initialize() -> void
+{
+  this->dtrace.initialize();
+}
+
+auto
+thread_schedule_tracer::start() -> void
+{
+  this->dtrace.start();
+}
+
+auto
+thread_schedule_tracer::get_thread_executions() const -> thread_executions
+{
+  return this->program.get_thread_executions();
+}
+
+auto
+thread_schedule_tracer::stop() -> void
+{
+  this->dtrace.stop();
 }
 }
