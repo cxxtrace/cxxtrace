@@ -3,6 +3,7 @@
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/uninitialized.h>
+#include <ostream>
 #include <stdexcept>
 #include <sys/time.h>
 #include <utility>
@@ -27,6 +28,13 @@ std::chrono::nanoseconds
 time_point::nanoseconds_since_reference() const
 {
   return this->time_since_reference;
+}
+
+auto
+operator<<(std::ostream& out, const time_point& time) -> std::ostream&
+{
+  out << '+' << time.nanoseconds_since_reference().count() << "ns";
+  return out;
 }
 
 auto

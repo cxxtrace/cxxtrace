@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-using timestamp = cxxtrace_test::thread_schedule_tracer::timestamp;
+using apple_absolute_time_sample = cxxtrace::apple_absolute_time_clock::sample;
 
 namespace cxxtrace_test {
 class thread_schedule_dtrace_program;
@@ -57,7 +57,7 @@ class thread_schedule_dtrace_program
 public:
   struct schedule_event
   {
-    timestamp timestamp;
+    apple_absolute_time_sample raw_timestamp;
     cxxtrace::thread_id thread_id;
     bool on_cpu;
   };
@@ -68,7 +68,8 @@ public:
 
   auto on_probe(const dtrace_probedata_t&) noexcept -> int;
 
-  auto get_thread_executions() const -> thread_executions;
+  auto get_thread_executions(thread_schedule_tracer::clock&) const
+    -> thread_executions;
 
 private:
   enum class probe_kind : std::uint8_t
@@ -86,7 +87,8 @@ private:
     std::uint8_t machtimestamp_offset;
     std::uint8_t tid_offset;
 
-    auto read_machtimestamp(const char* record_data) noexcept -> timestamp;
+    auto read_machtimestamp(const char* record_data) noexcept
+      -> apple_absolute_time_sample;
     auto read_tid(const char* record_data) noexcept -> cxxtrace::thread_id;
   };
 
@@ -257,7 +259,7 @@ thread_schedule_dtrace_program::on_probe(
     case probe_kind::off_cpu:
     case probe_kind::on_cpu: {
       auto event = schedule_event{};
-      event.timestamp = description.read_machtimestamp(record);
+      event.raw_timestamp = description.read_machtimestamp(record);
       event.thread_id = description.read_tid(record);
       event.on_cpu = description.kind == probe_kind::on_cpu;
       this->events_by_processor_[probe_data.dtpda_cpu].push_back(event);
@@ -272,8 +274,8 @@ thread_schedule_dtrace_program::on_probe(
 }
 
 auto
-thread_schedule_dtrace_program::get_thread_executions() const
-  -> struct thread_executions
+thread_schedule_dtrace_program::get_thread_executions(
+  thread_schedule_tracer::clock& clock) const -> struct thread_executions
 {
   auto executions = thread_executions{};
   for (const auto& [processor_id, events] : this->events_by_processor_) {
@@ -288,13 +290,12 @@ thread_schedule_dtrace_program::get_thread_executions() const
         if (last_event) {
           assert(event.thread_id == last_event->thread_id);
           assert(last_event->on_cpu);
-          assert(event.timestamp >= last_event->timestamp);
+          assert(event.raw_timestamp >= last_event->raw_timestamp);
 
-          auto execution = thread_executions::thread_execution{};
-          execution.begin_timestamp = last_event->timestamp;
-          execution.end_timestamp = event.timestamp;
-          execution.thread_id = event.thread_id;
-          processor_executions.push_back(execution);
+          processor_executions.emplace_back(thread_executions::thread_execution{
+            clock.make_time_point(last_event->raw_timestamp),
+            clock.make_time_point(event.raw_timestamp),
+            event.thread_id });
         } else {
           // Ignore this off-cpu event. We don't have a corresponding on-cpu
           // event, so we can't determine begin_timestamp.
@@ -308,12 +309,12 @@ thread_schedule_dtrace_program::get_thread_executions() const
 
 auto
 thread_schedule_dtrace_program::probe_description::read_machtimestamp(
-  const char* record_data) noexcept -> timestamp
+  const char* record_data) noexcept -> apple_absolute_time_sample
 {
   static_assert(std::is_same_v<thread_schedule_tracer::clock,
                                cxxtrace::apple_absolute_time_clock>);
 
-  auto machtimestamp = timestamp{};
+  auto machtimestamp = apple_absolute_time_sample{};
   std::memcpy(&machtimestamp,
               record_data + this->machtimestamp_offset,
               sizeof(machtimestamp));
@@ -437,17 +438,21 @@ thread_schedule_dtrace_program::kind_of_probe(
 
 struct thread_schedule_tracer::impl
 {
-  explicit impl(::pid_t process_id)
+  explicit impl(::pid_t process_id, thread_schedule_tracer::clock* clock)
     : program{ process_id }
     , dtrace{ &this->program }
+    , clock{ clock }
   {}
 
   thread_schedule_dtrace_program program;
   dtrace_client dtrace;
+  thread_schedule_tracer::clock* clock;
 };
 
-thread_schedule_tracer::thread_schedule_tracer(::pid_t process_id)
-  : impl_{ std::make_unique<impl>(process_id) }
+thread_schedule_tracer::thread_schedule_tracer(
+  ::pid_t process_id,
+  thread_schedule_tracer::clock* clock)
+  : impl_{ std::make_unique<impl>(process_id, clock) }
 {}
 
 thread_schedule_tracer::~thread_schedule_tracer() = default;
@@ -467,7 +472,7 @@ thread_schedule_tracer::start() -> void
 auto
 thread_schedule_tracer::get_thread_executions() const -> thread_executions
 {
-  return this->impl_->program.get_thread_executions();
+  return this->impl_->program.get_thread_executions(*this->impl_->clock);
 }
 
 auto

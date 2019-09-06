@@ -16,8 +16,8 @@ auto
 dump_gnuplot(std::ostream& output,
              const thread_executions& thread_executions,
              const processor_id_samples& processor_id_samples,
-             thread_schedule_tracer::timestamp begin_timestamp,
-             thread_schedule_tracer::timestamp end_timestamp) -> void
+             cxxtrace::time_point begin_timestamp,
+             cxxtrace::time_point end_timestamp) -> void
 {
   output << R"(# Feed this gnuplot script into gnuplot:
 # $ gnuplot -e 'set term png size 1920, 1080 truecolor; set output "plot.png"' plot.gpl
@@ -71,16 +71,19 @@ thread_y(processor_index, thread_index) = processor_y(processor_index) + (0.5 * 
     assert(it != haystack.end());
     return it - haystack.begin();
   };
-  auto clamped_timestamp = [&](thread_schedule_tracer::timestamp t) noexcept
-                             ->thread_schedule_tracer::timestamp
+  auto clamped_timestamp = [&](cxxtrace::time_point t) noexcept->std::uint64_t
   {
     if (t < begin_timestamp) {
       return 0;
     }
     if (t > end_timestamp) {
-      return end_timestamp - begin_timestamp;
+      return (end_timestamp.nanoseconds_since_reference() -
+              begin_timestamp.nanoseconds_since_reference())
+        .count();
     }
-    return t - begin_timestamp;
+    return (t.nanoseconds_since_reference() -
+            begin_timestamp.nanoseconds_since_reference())
+      .count();
   };
 
   output << "processor_count = " << processor_ids.size() << "\n";
@@ -102,7 +105,10 @@ thread_y(processor_index, thread_index) = processor_y(processor_index) + (0.5 * 
     output << ")\n";
   }
 
-  output << "set xrange [0:" << (end_timestamp - begin_timestamp)
+  output << "set xrange [0:"
+         << (end_timestamp.nanoseconds_since_reference() -
+             begin_timestamp.nanoseconds_since_reference())
+              .count()
          << " * x_scale]\n";
   output << "set yrange [0:processor_count * (processor_height + "
             "spacing_between_processors)]\n";

@@ -16,16 +16,15 @@ public:
     -> testing::AssertionResult;
 
 private:
-  using timestamp = thread_schedule_tracer::timestamp;
-
   static constexpr auto invalid_thread_id = ~cxxtrace::thread_id{ 0 };
 
   static auto scheduled_thread_at_time(
-    const std::map<timestamp, cxxtrace::thread_id>&,
-    timestamp) -> std::map<timestamp, cxxtrace::thread_id>::const_iterator;
+    const std::map<cxxtrace::time_point, cxxtrace::thread_id>&,
+    cxxtrace::time_point)
+    -> std::map<cxxtrace::time_point, cxxtrace::thread_id>::const_iterator;
 
   std::unordered_map<cxxtrace::detail::processor_id,
-                     std::map<timestamp, cxxtrace::thread_id>>
+                     std::map<cxxtrace::time_point, cxxtrace::thread_id>>
     processor_timelines;
 };
 }

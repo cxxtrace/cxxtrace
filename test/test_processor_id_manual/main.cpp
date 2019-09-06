@@ -16,6 +16,7 @@
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
+#include <cxxtrace/uninitialized.h>
 #include <filesystem>
 #include <fstream>
 #include <getopt.h>
@@ -48,7 +49,8 @@ int g_thread_count = 4;
 
 template<class ProcessorIDFunc>
 auto
-sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
+sample_processor_id_on_threads(thread_schedule_tracer::clock& clock,
+                               ProcessorIDFunc get_current_processor_id)
   -> std::vector<processor_id_samples>;
 
 auto
@@ -66,13 +68,13 @@ TEST_P(test_processor_id_manual, current_processor_id_agrees_with_scheduler)
 {
   auto clock = thread_schedule_tracer::clock{};
 
-  auto tracer = thread_schedule_tracer{ ::getpid() };
+  auto tracer = thread_schedule_tracer{ ::getpid(), &clock };
   tracer.initialize();
   tracer.start();
 
   auto begin_timestamp = clock.query();
   auto processor_id_samples_by_thread = sample_processor_id_on_threads(
-    [this]() { return this->get_current_processor_id(); });
+    clock, [this]() { return this->get_current_processor_id(); });
   auto end_timestamp = clock.query();
 
   tracer.stop();
@@ -93,8 +95,8 @@ TEST_P(test_processor_id_manual, current_processor_id_agrees_with_scheduler)
     dump_gnuplot(gnuplot_stream,
                  thread_executions,
                  massaged_processor_id_samples,
-                 begin_timestamp,
-                 end_timestamp);
+                 clock.make_time_point(begin_timestamp),
+                 clock.make_time_point(end_timestamp));
   }
 
   auto checker = sample_checker{ thread_executions };
@@ -121,7 +123,8 @@ INSTANTIATE_TEST_CASE_P(,
 
 template<class ProcessorIDFunc>
 auto
-sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
+sample_processor_id_on_threads(thread_schedule_tracer::clock& clock,
+                               ProcessorIDFunc get_current_processor_id)
   -> std::vector<processor_id_samples>
 {
   // NOTE(strager): On my machine, a single thread can sample about 2.5 million
@@ -139,32 +142,41 @@ sample_processor_id_on_threads(ProcessorIDFunc get_current_processor_id)
   }
 
   auto stop = std::atomic<bool>{ false };
-  auto thread_routine =
-    [&get_current_processor_id, &samples_by_thread, &stop](int thread_index) {
-      auto clock = thread_schedule_tracer::clock{};
-      auto thread_id = cxxtrace::get_current_thread_id();
-
-      auto samples = std::move(samples_by_thread[thread_index]);
-
-      while (!stop.load()) {
-        auto local_sample_count = 100;
-        auto samples_size_before = samples.samples.size();
-        samples.samples.resize(samples_size_before + local_sample_count);
-        auto* local_samples = &samples.samples[samples_size_before];
-        auto last_timestamp = clock.query();
-        for (auto i = 0; i < local_sample_count; ++i) {
-          auto& sample = local_samples[i];
-          sample.timestamp_before = last_timestamp;
-          sample.processor_id = get_current_processor_id();
-          auto timestamp_after = clock.query();
-          sample.timestamp_after = timestamp_after;
-          sample.thread_id = thread_id;
-          last_timestamp = timestamp_after;
-        }
-      }
-
-      samples_by_thread[thread_index] = std::move(samples);
+  auto thread_routine = [&clock,
+                         &get_current_processor_id,
+                         &samples_by_thread,
+                         &stop](int thread_index) {
+    auto stub_sample = processor_id_samples::sample{
+      cxxtrace::time_point{ cxxtrace::uninitialized },
+      cxxtrace::time_point{ cxxtrace::uninitialized },
+      0,
+      0
     };
+
+    auto thread_id = cxxtrace::get_current_thread_id();
+
+    auto samples = std::move(samples_by_thread[thread_index]);
+
+    while (!stop.load()) {
+      auto local_sample_count = 100;
+      auto samples_size_before = samples.samples.size();
+      samples.samples.resize(samples_size_before + local_sample_count,
+                             stub_sample);
+      auto* local_samples = &samples.samples[samples_size_before];
+      auto last_timestamp = clock.make_time_point(clock.query());
+      for (auto i = 0; i < local_sample_count; ++i) {
+        auto& sample = local_samples[i];
+        sample.timestamp_before = last_timestamp;
+        sample.processor_id = get_current_processor_id();
+        auto timestamp_after = clock.make_time_point(clock.query());
+        sample.timestamp_after = timestamp_after;
+        sample.thread_id = thread_id;
+        last_timestamp = timestamp_after;
+      }
+    }
+
+    samples_by_thread[thread_index] = std::move(samples);
+  };
 
   auto threads = std::vector<std::thread>{};
   for (auto thread_index = 0; thread_index < g_thread_count; ++thread_index) {

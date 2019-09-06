@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cxxtrace/clock.h>
 #include <gtest/gtest.h>
 #include <map>
 #include <unordered_map>
@@ -10,8 +11,6 @@
 
 using cxxtrace::thread_id;
 using cxxtrace::detail::processor_id;
-
-using timestamp = cxxtrace_test::thread_schedule_tracer::timestamp;
 
 namespace cxxtrace_test {
 sample_checker::sample_checker(const thread_executions& executions)
@@ -31,8 +30,9 @@ sample_checker::sample_checker(const thread_executions& executions)
 
 auto
 sample_checker::scheduled_thread_at_time(
-  const std::map<timestamp, thread_id>& processor_timeline,
-  timestamp t) -> std::map<timestamp, thread_id>::const_iterator
+  const std::map<cxxtrace::time_point, thread_id>& processor_timeline,
+  cxxtrace::time_point t)
+  -> std::map<cxxtrace::time_point, thread_id>::const_iterator
 {
   auto it = processor_timeline.lower_bound(t);
   if (it == processor_timeline.end()) {
@@ -105,7 +105,7 @@ sample_checker::check_sample(const processor_id_samples::sample& sample)
           found_matching_processor = std::any_of(
             before_it,
             end_it,
-            [&](const std::pair<const timestamp, thread_id>& entry) {
+            [&](const std::pair<const cxxtrace::time_point, thread_id>& entry) {
               return entry.second == sample.thread_id;
             });
         }
@@ -151,8 +151,8 @@ sample_checker::check_sample(const processor_id_samples::sample& sample)
 namespace {
 struct thread_execution
 {
-  timestamp begin_timestamp;
-  timestamp end_timestamp;
+  cxxtrace::time_point begin_timestamp;
+  cxxtrace::time_point end_timestamp;
   cxxtrace::detail::processor_id processor_id;
   cxxtrace::thread_id thread_id;
 };
@@ -161,6 +161,11 @@ template<std::size_t Size>
 auto
 check_sample(const thread_execution (&)[Size],
              const processor_id_samples::sample&) -> testing::AssertionResult;
+
+auto operator""_t(unsigned long long time) -> cxxtrace::time_point
+{
+  return cxxtrace::time_point{ std::chrono::nanoseconds{ time } };
+}
 }
 
 TEST(test_processor_id_manual_sample_checker,
@@ -169,7 +174,7 @@ TEST(test_processor_id_manual_sample_checker,
   auto thread = thread_id{ 1 };
   auto processor = processor_id{ 9 };
   auto checker = sample_checker{ thread_executions{} };
-  EXPECT_FALSE(checker.check_sample({ 30, 70, processor, thread }));
+  EXPECT_FALSE(checker.check_sample({ 30_t, 70_t, processor, thread }));
 }
 
 TEST(test_processor_id_manual_sample_checker,
@@ -181,60 +186,60 @@ TEST(test_processor_id_manual_sample_checker,
   {
     SCOPED_TRACE("thread was always on sampled processor");
     thread_execution thread_executions[] = {
-      { 0, 100, sampled_processor, thread },
+      { 0_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread switched processors between sampled times");
     thread_execution thread_executions[] = {
-      { 0, 49, sampled_processor, thread },
-      { 50, 100, sampled_processor, thread },
+      { 0_t, 49_t, sampled_processor, thread },
+      { 50_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread switched to sampled processor between sampled times");
     thread_execution thread_executions[] = {
-      { 0, 49, other_processor, thread },
-      { 50, 100, sampled_processor, thread },
+      { 0_t, 49_t, other_processor, thread },
+      { 50_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread switched away from sampled processor between sampled times");
     thread_execution thread_executions[] = {
-      { 0, 49, sampled_processor, thread },
-      { 50, 100, other_processor, thread },
+      { 0_t, 49_t, sampled_processor, thread },
+      { 50_t, 100_t, other_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread switched away from sampled processor then back to "
                  "sampled processor");
     thread_execution thread_executions[] = {
-      { 0, 39, sampled_processor, thread },
-      { 40, 59, other_processor, thread },
-      { 60, 100, sampled_processor, thread },
+      { 0_t, 39_t, sampled_processor, thread },
+      { 40_t, 59_t, other_processor, thread },
+      { 60_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread switched to sampled processor then away from sampled processor");
     thread_execution thread_executions[] = {
-      { 0, 39, other_processor, thread },
-      { 40, 59, sampled_processor, thread },
-      { 60, 100, other_processor, thread },
+      { 0_t, 39_t, other_processor, thread },
+      { 40_t, 59_t, sampled_processor, thread },
+      { 60_t, 100_t, other_processor, thread },
     };
-    EXPECT_TRUE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_TRUE(check_sample(thread_executions,
+                             { 30_t, 70_t, sampled_processor, thread }));
   }
 }
 
@@ -249,56 +254,56 @@ TEST(
   {
     SCOPED_TRACE("thread was never on any processor");
     thread_execution thread_executions[] = {
-      { 0, 100, sampled_processor, other_thread },
+      { 0_t, 100_t, sampled_processor, other_thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread was not on any processor during sample period");
     thread_execution thread_executions[] = {
-      { 0, 20, other_processor, thread },
-      { 80, 100, other_processor, thread },
+      { 0_t, 20_t, other_processor, thread },
+      { 80_t, 100_t, other_processor, thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread was scheduled on different processor");
     thread_execution thread_executions[] = {
-      { 0, 100, other_processor, thread },
+      { 0_t, 100_t, other_processor, thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread was scheduled on processor after sample time range");
     thread_execution thread_executions[] = {
-      { 0, 80, other_processor, thread },
-      { 90, 100, sampled_processor, thread },
+      { 0_t, 80_t, other_processor, thread },
+      { 90_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE("thread was scheduled on processor before sample time range");
     thread_execution thread_executions[] = {
-      { 0, 10, sampled_processor, thread },
-      { 20, 100, other_processor, thread },
+      { 0_t, 10_t, sampled_processor, thread },
+      { 20_t, 100_t, other_processor, thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread was scheduled on processor before and after sample time range");
     thread_execution thread_executions[] = {
-      { 0, 10, sampled_processor, thread },
-      { 20, 80, other_processor, thread },
-      { 90, 100, sampled_processor, thread },
+      { 0_t, 10_t, sampled_processor, thread },
+      { 20_t, 80_t, other_processor, thread },
+      { 90_t, 100_t, sampled_processor, thread },
     };
-    EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, sampled_processor, thread }));
+    EXPECT_FALSE(check_sample(thread_executions,
+                              { 30_t, 70_t, sampled_processor, thread }));
   }
 }
 
@@ -310,45 +315,45 @@ TEST(test_processor_id_manual_sample_checker,
   {
     SCOPED_TRACE("thread was scheduled only before timestamp-before");
     thread_execution thread_executions[] = {
-      { 0, 10, processor, thread },
+      { 0_t, 10_t, processor, thread },
     };
     EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, processor, thread }));
+      check_sample(thread_executions, { 30_t, 70_t, processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread was scheduled during timestamp-before but not timestamp-after");
     thread_execution thread_executions[] = {
-      { 0, 50, processor, thread },
+      { 0_t, 50_t, processor, thread },
     };
     EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, processor, thread }));
+      check_sample(thread_executions, { 30_t, 70_t, processor, thread }));
   }
   {
     SCOPED_TRACE("thread was scheduled only after timestamp-after");
     thread_execution thread_executions[] = {
-      { 90, 100, processor, thread },
+      { 90_t, 100_t, processor, thread },
     };
     EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, processor, thread }));
+      check_sample(thread_executions, { 30_t, 70_t, processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread was scheduled during timestamp-after but not timestamp-before");
     thread_execution thread_executions[] = {
-      { 50, 100, processor, thread },
+      { 50_t, 100_t, processor, thread },
     };
     EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, processor, thread }));
+      check_sample(thread_executions, { 30_t, 70_t, processor, thread }));
   }
   {
     SCOPED_TRACE(
       "thread was scheduled between timestamp-before and timestamp-after");
     thread_execution thread_executions[] = {
-      { 40, 60, processor, thread },
+      { 40_t, 60_t, processor, thread },
     };
     EXPECT_FALSE(
-      check_sample(thread_executions, { 30, 70, processor, thread }));
+      check_sample(thread_executions, { 30_t, 70_t, processor, thread }));
   }
 }
 

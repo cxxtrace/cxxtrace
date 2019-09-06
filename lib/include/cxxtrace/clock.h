@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
+#include <iosfwd>
 #include <sys/time.h>
 
 #if CXXTRACE_HAVE_MACH_TIME
@@ -28,6 +29,8 @@ private:
   friend auto operator==(const time_point&, const time_point&) -> bool;
   friend auto operator>(const time_point&, const time_point&) -> bool;
   friend auto operator>=(const time_point&, const time_point&) -> bool;
+
+  friend auto operator<<(std::ostream&, const time_point&) -> std::ostream&;
 
   std::chrono::nanoseconds time_since_reference;
 };
