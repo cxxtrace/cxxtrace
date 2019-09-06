@@ -53,6 +53,7 @@ blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "test" / "test_snapshot.cpp",
     cxxtrace_project_path / "test" / "test_span.cpp",
     cxxtrace_project_path / "test" / "test_span_thread.cpp",
+    cxxtrace_project_path / "test" / "test_string.cpp",
     cxxtrace_project_path / "test" / "test_thread.cpp",
     cxxtrace_project_path / "test" / "thread.cpp",
 }
