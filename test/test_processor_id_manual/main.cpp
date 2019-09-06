@@ -62,8 +62,7 @@ create_world_readable_temporary_file() -> std::string;
 class test_processor_id_manual : public test_processor_id
 {};
 
-TEST_P(test_processor_id_manual,
-       current_processor_id_agrees_with_dtrace_scheduler)
+TEST_P(test_processor_id_manual, current_processor_id_agrees_with_scheduler)
 {
   auto clock = thread_schedule_tracer::clock{};
 
