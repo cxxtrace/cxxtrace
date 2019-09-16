@@ -17,6 +17,7 @@ public:
 
   virtual ~any_processor_id_lookup() = default;
 
+  virtual auto supported() const noexcept -> bool = 0;
   virtual auto get_current_processor_id() const noexcept
     -> cxxtrace::detail::processor_id = 0;
 
@@ -28,8 +29,13 @@ struct type_erased_processor_id_lookup : public any_processor_id_lookup
 {
   using any_processor_id_lookup::any_processor_id_lookup;
 
-  virtual auto get_current_processor_id() const noexcept
-    -> cxxtrace::detail::processor_id
+  auto supported() const noexcept -> bool override
+  {
+    return lookup.supported();
+  }
+
+  auto get_current_processor_id() const noexcept
+    -> cxxtrace::detail::processor_id override
   {
     thread_local auto thread_local_cache =
       typename ProcessorIDLookup::thread_local_cache{ this->lookup };
@@ -75,6 +81,11 @@ public:
   }
 
 protected:
+  auto supported() const noexcept -> bool
+  {
+    return this->GetParam()->supported();
+  }
+
   auto get_current_processor_id() const noexcept
     -> cxxtrace::detail::processor_id
   {

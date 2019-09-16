@@ -66,6 +66,11 @@ class test_processor_id_manual : public test_processor_id
 
 TEST_P(test_processor_id_manual, current_processor_id_agrees_with_scheduler)
 {
+  if (!this->supported()) {
+    ADD_FAILURE() << "This processor ID lookup method is not supported";
+    return;
+  }
+
   auto clock = thread_schedule_tracer::clock{};
 
   auto tracer = thread_schedule_tracer{ ::getpid(), &clock };
