@@ -21,6 +21,20 @@
 #include <sys/sysinfo.h>
 #endif
 
+namespace {
+#if defined(__x86_64__)
+auto
+get_maximum_supported_basic_cpuid() -> std::uint32_t
+{
+  std::uint32_t eax;
+  asm("cpuid" : "=a"(eax) : "a"(0x00) : "ebx", "ecx", "edx");
+  // From Volume 2A:
+  // 0H: EAX: Maximum Input Value for Basic CPUID Information.
+  return eax;
+}
+#endif
+}
+
 namespace cxxtrace {
 namespace detail {
 auto
@@ -59,6 +73,12 @@ get_maximum_processor_id() noexcept(false) -> processor_id
 
 #if defined(__x86_64__)
 auto
+processor_id_lookup_x86_cpuid_01h::supported() noexcept -> bool
+{
+  return get_maximum_supported_basic_cpuid() >= 0x01;
+}
+
+auto
 processor_id_lookup_x86_cpuid_01h::get_current_processor_id() noexcept
   -> processor_id
 {
@@ -71,6 +91,12 @@ processor_id_lookup_x86_cpuid_01h::get_current_processor_id() noexcept
 #endif
 
 #if defined(__x86_64__)
+auto
+processor_id_lookup_x86_cpuid_0bh::supported() noexcept -> bool
+{
+  return get_maximum_supported_basic_cpuid() >= 0x0b;
+}
+
 auto
 processor_id_lookup_x86_cpuid_0bh::get_current_processor_id() noexcept
   -> processor_id
@@ -85,6 +111,12 @@ processor_id_lookup_x86_cpuid_0bh::get_current_processor_id() noexcept
 
 #if defined(__x86_64__)
 auto
+processor_id_lookup_x86_cpuid_1fh::supported() noexcept -> bool
+{
+  return get_maximum_supported_basic_cpuid() >= 0x1f;
+}
+
+auto
 processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
   -> processor_id
 {
@@ -97,6 +129,12 @@ processor_id_lookup_x86_cpuid_1fh::get_current_processor_id() noexcept
 #endif
 
 #if defined(__x86_64__)
+auto
+processor_id_lookup_x86_cpuid_uncached::supported() const noexcept -> bool
+{
+  return this->lookup.supported();
+}
+
 auto
 processor_id_lookup_x86_cpuid_uncached::get_current_processor_id() const
   noexcept -> processor_id
@@ -150,6 +188,13 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::update_cache(
   assert(this->commpage_supported);
   cache.id = this->uncached_lookup.get_current_processor_id();
   cache.scheduler_generation = scheduler_generation;
+}
+
+auto
+processor_id_lookup_x86_cpuid_commpage_preempt_cached::supported() const
+  noexcept -> bool
+{
+  return this->uncached_lookup.supported();
 }
 
 auto

@@ -56,6 +56,13 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
                                      busy_loop_unrolled)
 (benchmark::State& bench)
 {
+  if (!this->processor_id_lookup.supported()) {
+    bench.SkipWithError("This processor ID lookup method is not supported");
+    for (auto _ : bench) {
+    }
+    return;
+  }
+
   using lookup_thread_local_cache =
     typename fixture_type::lookup_thread_local_cache;
   auto cache = lookup_thread_local_cache{ this->processor_id_lookup };

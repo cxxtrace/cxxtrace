@@ -38,6 +38,8 @@ class processor_id_lookup_x86_cpuid_01h
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
 
+  static auto supported() noexcept -> bool;
+
   static auto get_current_processor_id() noexcept -> processor_id;
 };
 #endif
@@ -48,6 +50,8 @@ class processor_id_lookup_x86_cpuid_0bh
 {
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static auto supported() noexcept -> bool;
 
   static auto get_current_processor_id() noexcept -> processor_id;
 };
@@ -60,6 +64,8 @@ class processor_id_lookup_x86_cpuid_1fh
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
 
+  static auto supported() noexcept -> bool;
+
   static auto get_current_processor_id() noexcept -> processor_id;
 };
 #endif
@@ -70,6 +76,8 @@ class processor_id_lookup_x86_cpuid_uncached
 {
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
+
+  auto supported() const noexcept -> bool;
 
   auto get_current_processor_id() const noexcept -> processor_id;
 
@@ -99,6 +107,8 @@ public:
   };
 
   explicit processor_id_lookup_x86_cpuid_commpage_preempt_cached() noexcept;
+
+  auto supported() const noexcept -> bool;
 
   auto get_current_processor_id(thread_local_cache&) const noexcept
     -> processor_id;
