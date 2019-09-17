@@ -1,4 +1,3 @@
-#include "atomic_ref.h"
 #include "linux_proc_cpuinfo.h"
 #include "mmap_mapping.h"
 #include "test_processor_id_manual.h"
@@ -6,6 +5,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstdio>
+#include <cxxtrace/detail/atomic_ref.h>
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/processor.h>
 #include <iomanip>
@@ -282,7 +282,8 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
       auto* ring_buffer = processor_tracer.header();
       auto ring_buffer_size = ring_buffer->data_size;
 
-      auto end_vindex = atomic_ref{ ring_buffer->data_head }.load();
+      auto end_vindex =
+        cxxtrace::detail::atomic_ref{ ring_buffer->data_head }.load();
       auto begin_vindex = end_vindex / ring_buffer_size * ring_buffer_size;
       assert(begin_vindex == 0 &&
              "PROT_WRITE should have prevented data from being overwritten");

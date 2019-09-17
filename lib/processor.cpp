@@ -4,6 +4,14 @@
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/processor.h>
 
+#if CXXTRACE_HAVE_RSEQ
+#include <cxxtrace/detail/rseq.h>
+#endif
+
+#if CXXTRACE_HAVE_LIBRSEQ
+#include <rseq/rseq.h>
+#endif
+
 #if CXXTRACE_HAVE_SYSCTL
 #include <stdexcept>
 #include <sys/sysctl.h>
@@ -326,6 +334,39 @@ processor_id_lookup_x86_rdtscp::get_current_processor_id() noexcept
   auto ecx = std::uint32_t{};
   asm("rdtscp" : "=c"(ecx) : : "eax", "edx");
   return ecx;
+}
+#endif
+
+#if CXXTRACE_HAVE_RSEQ
+processor_id_lookup_rseq::thread_local_cache::thread_local_cache(
+  const processor_id_lookup_rseq& lookup) noexcept
+  : rseq_{ registered_rseq::register_current_thread() }
+  , fallback_cache_{ lookup.fallback_lookup }
+{}
+
+auto
+processor_id_lookup_rseq::supported() const noexcept -> bool
+{
+#if CXXTRACE_HAVE_LIBRSEQ
+  if (!::rseq_available()) {
+    return false;
+  }
+#else
+#error "Unknown platform"
+#endif
+  return this->fallback_lookup.supported();
+}
+
+auto
+processor_id_lookup_rseq::get_current_processor_id(
+  thread_local_cache& cache) const noexcept -> processor_id
+{
+  auto cpu_id = cache.rseq_.read_cpu_id();
+  if (cpu_id < 0) {
+    return this->fallback_lookup.get_current_processor_id(
+      cache.fallback_cache_);
+  }
+  return cpu_id;
 }
 #endif
 }

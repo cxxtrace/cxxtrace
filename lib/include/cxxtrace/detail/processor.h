@@ -5,6 +5,10 @@
 #include <cxxtrace/detail/attribute.h>
 #include <cxxtrace/detail/have.h>
 
+#if CXXTRACE_HAVE_LIBRSEQ
+#include <cxxtrace/detail/rseq.h>
+#endif
+
 #define CXXTRACE_CHECK_COMMPAGE_SIGNATURE_AND_VERSION 1
 
 namespace cxxtrace {
@@ -191,6 +195,37 @@ public:
   static auto supported() noexcept -> bool;
 
   static auto get_current_processor_id() noexcept -> processor_id;
+};
+#endif
+
+#if CXXTRACE_HAVE_RSEQ
+class processor_id_lookup_rseq
+{
+public:
+  class thread_local_cache
+  {
+  public:
+    explicit thread_local_cache(const processor_id_lookup_rseq&) noexcept;
+
+  private:
+    registered_rseq rseq_;
+    CXXTRACE_NO_UNIQUE_ADDRESS
+    processor_id_lookup_sched_getcpu::thread_local_cache fallback_cache_;
+
+    friend class processor_id_lookup_rseq;
+  };
+
+  static constexpr auto id_namespace = processor_id_namespace::linux_getcpu;
+
+  auto supported() const noexcept -> bool;
+
+  auto get_current_processor_id(thread_local_cache&) const noexcept
+    -> processor_id;
+
+private:
+  processor_id_lookup_sched_getcpu fallback_lookup;
+
+  static_assert(decltype(fallback_lookup)::id_namespace == id_namespace);
 };
 #endif
 

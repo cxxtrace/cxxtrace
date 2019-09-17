@@ -1,9 +1,10 @@
-#ifndef CXXTRACE_TEST_ATOMIC_REF_H
-#define CXXTRACE_TEST_ATOMIC_REF_H
+#ifndef CXXTRACE_DETAIL_ATOMIC_REF_H
+#define CXXTRACE_DETAIL_ATOMIC_REF_H
 
 #include <atomic>
 
-namespace cxxtrace_test {
+namespace cxxtrace {
+namespace detail {
 // TODO(strager): Switch to C++20's std::atomic_ref when available.
 template<class T>
 class atomic_ref
@@ -22,7 +23,10 @@ public:
 private:
   auto atomic() const noexcept -> std::atomic<T>&
   {
-    return *reinterpret_cast<std::atomic<T>*>(this->value_);
+    using atomic_type = std::atomic<T>;
+    static_assert(sizeof(atomic_type) == sizeof(T));
+    static_assert(alignof(atomic_type) == alignof(T));
+    return *reinterpret_cast<atomic_type*>(this->value_);
   }
 
   T* value_;
@@ -33,6 +37,7 @@ atomic_ref(const T&)->atomic_ref<T>;
 
 template<class T>
 atomic_ref(T&)->atomic_ref<T>;
+}
 }
 
 #endif

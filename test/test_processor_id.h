@@ -77,6 +77,9 @@ public:
       processor_id_lookup_x86_cpuid_commpage_preempt_cached),
 #endif
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup),
+#if CXXTRACE_HAVE_LIBRSEQ
+    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_rseq),
+#endif
 #if CXXTRACE_HAVE_SCHED_GETCPU
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_sched_getcpu),
 #endif

@@ -148,4 +148,19 @@
 #define CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX 1
 #endif
 
+#if defined(__linux__)
+// ::rseq
+// <linux/rseq.h>
+#define CXXTRACE_HAVE_RSEQ 1
+#endif
+
+// TODO(strager): Propagate presence of librseq from CMake. Otherwise, this
+// check might have false positives, or this check might differ between
+// cxxtrace's translation units and translation units of users.
+#if CXXTRACE_HAVE_RSEQ && __has_include(<rseq/rseq.h>)
+// <rseq/rseq.h>
+// ::rseq_register_current_thread(...)
+#define CXXTRACE_HAVE_LIBRSEQ 1
+#endif
+
 #endif
