@@ -399,6 +399,10 @@ thread_name_set::allocate_name(thread_id id,
 
 backoff::backoff() = default;
 
+auto
+backoff::reset() -> void
+{}
+
 auto backoff::yield(debug_source_location) -> void
 {
   // TODO(strager): Call ::sched_yield or something.

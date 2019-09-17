@@ -13,6 +13,7 @@ add_executable(
   $<TARGET_OBJECTS:test_cxxtrace_nlohmann_json>
   test_add.cpp
   test_clock.cpp
+  test_concurrency_test_runner.cpp
   test_exhaustive_rng.cpp
   test_linux_proc_cpuinfo.cpp
   test_molecular.cpp
@@ -51,7 +52,7 @@ set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_CXX_PREFIX_H
 cxxtrace_cotire(test_cxxtrace_nlohmann_json)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
-target_link_libraries(cxxtrace_concurrency_test PRIVATE cxxtrace_support)
+target_link_libraries(cxxtrace_concurrency_test PUBLIC cxxtrace PRIVATE cxxtrace_support)
 
 if (CXXTRACE_CDSCHECKER)
   add_library(
@@ -133,6 +134,21 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
     # HACK(strager): Work around ASAN internal crashes.
     ENVIRONMENT ASAN_OPTIONS=detect_container_overflow=0
   )
+
+  add_executable(${BASE_NAME}_stress ${SOURCES})
+  target_compile_definitions(
+    ${BASE_NAME}_stress
+    PRIVATE
+    CXXTRACE_ENABLE_CONCURRENCY_STRESS=1
+  )
+  target_link_libraries(
+    ${BASE_NAME}_stress
+    PRIVATE
+    ${BASE_NAME}
+    cxxtrace_concurrency_test
+    cxxtrace_test_concurrency_stress_main
+  )
+  add_test(NAME ${BASE_NAME}_stress COMMAND ${BASE_NAME}_stress)
 endfunction ()
 
 if (CXXTRACE_CDSCHECKER)
@@ -147,6 +163,22 @@ if (CXXTRACE_CDSCHECKER)
     $<TARGET_PROPERTY:cxxtrace,INTERFACE_INCLUDE_DIRECTORIES>
   )
 endif ()
+
+add_library(
+  cxxtrace_test_concurrency_stress_main
+  STATIC
+  cxxtrace_concurrency_test_main_stress.cpp
+)
+target_compile_definitions(
+  cxxtrace_test_concurrency_stress_main
+  PRIVATE
+  CXXTRACE_ENABLE_CONCURRENCY_STRESS=1
+)
+target_link_libraries(
+  cxxtrace_test_concurrency_stress_main
+  PRIVATE
+  cxxtrace
+)
 
 cxxtrace_add_concurrency_tests(
   cxxtrace_test_ring_queue_concurrency
@@ -177,6 +209,7 @@ target_link_libraries(
 add_library(
   cxxtrace_support
   STATIC
+  concurrency_test_runner.cpp
   event.cpp
   exhaustive_rng.cpp
   linux_proc_cpuinfo.cpp

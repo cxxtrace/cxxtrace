@@ -17,6 +17,11 @@
 #include <cxxtrace/detail/cdschecker.h>
 #endif
 
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include <cxxtrace/detail/thread.h>
+#include <cxxtrace/string.h>
+#endif
+
 #if CXXTRACE_ENABLE_RELACY
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
@@ -44,6 +49,16 @@
 #define CXXTRACE_ASSERT(...)                                                   \
   ::cxxtrace::detail::cdschecker::model_assert(                                \
     (__VA_ARGS__), __FILE__, __LINE__)
+#endif
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#define CXXTRACE_ASSERT(...)                                                   \
+  do {                                                                         \
+    if (!(__VA_ARGS__)) {                                                      \
+      ::cxxtrace_test::detail::concurrency_stress_assert(                      \
+        #__VA_ARGS__, __FILE__, __LINE__);                                     \
+    }                                                                          \
+  } while (false)
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -148,6 +163,8 @@ private:
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 using backoff = cdschecker_backoff;
+#elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
+using backoff = cxxtrace::detail::backoff;
 #elif CXXTRACE_ENABLE_RELACY
 using backoff = relacy_backoff;
 #else
@@ -171,6 +188,15 @@ concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
     },
     &func,
     caller);
+}
+
+namespace detail {
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+auto
+concurrency_stress_assert(cxxtrace::czstring message,
+                          cxxtrace::czstring file_name,
+                          int line_number) -> void;
+#endif
 }
 }
 

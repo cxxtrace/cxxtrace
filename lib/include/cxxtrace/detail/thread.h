@@ -68,6 +68,7 @@ class backoff
 public:
   explicit backoff();
 
+  auto reset() -> void;
   auto yield(debug_source_location) -> void;
 };
 }

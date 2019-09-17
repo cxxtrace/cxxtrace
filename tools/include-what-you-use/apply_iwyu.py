@@ -36,12 +36,14 @@ top_level_cxxtrace_source_directories = (
 # blacklist when they stop crashing IWYU.
 blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "example" / "group_and_sort_parallel.cpp",
+    cxxtrace_project_path / "test" / "concurrency_test_runner.cpp",
     cxxtrace_project_path / "test" / "event.cpp",
     cxxtrace_project_path / "test" / "exhaustive_rng.cpp",
     cxxtrace_project_path / "test" / "nlohmann_json.cpp",
     cxxtrace_project_path / "test" / "test_add.cpp",
     cxxtrace_project_path / "test" / "test_chrome_trace_event_format.cpp",
     cxxtrace_project_path / "test" / "test_clock.cpp",
+    cxxtrace_project_path / "test" / "test_concurrency_test_runner.cpp",
     cxxtrace_project_path / "test" / "test_exhaustive_rng.cpp",
     cxxtrace_project_path / "test" / "test_molecular.cpp",
     cxxtrace_project_path / "test" / "test_processor_id.cpp",

@@ -39,8 +39,6 @@ std::experimental::pmr::memory_resource* concurrency_tests_memory =
   &registered_concurrency_tests_memory;
 #endif
 
-concurrency_test::~concurrency_test() = default;
-
 auto
 register_concurrency_test(concurrency_test* test) -> void
 {
