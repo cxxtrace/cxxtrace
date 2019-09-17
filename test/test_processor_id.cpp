@@ -10,6 +10,12 @@ namespace cxxtrace_test {
 TEST_P(test_processor_id,
        current_processor_id_is_no_greater_than_maximum_processor_id)
 {
+  if (!this->supported()) {
+    std::cerr << "warning: this processor ID lookup method is not supported. "
+                 "skipping test...\n";
+    return;
+  }
+
   // TODO(strager): Investigate CPU hot-plugging.
   auto maximum_processor_id = cxxtrace::detail::get_maximum_processor_id();
   std::fprintf(stderr,

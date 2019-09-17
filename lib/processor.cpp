@@ -37,6 +37,16 @@ get_maximum_supported_basic_cpuid() -> std::uint32_t
   // 0H: EAX: Maximum Input Value for Basic CPUID Information.
   return eax;
 }
+
+auto
+get_maximum_supported_extended_cpuid() -> std::uint32_t
+{
+  std::uint32_t eax;
+  asm("cpuid" : "=a"(eax) : "a"(0x80000000) : "ebx", "ecx", "edx");
+  // From Volume 2A:
+  // 0H: EAX: Maximum Input Value for Extended Function CPUID Information.
+  return eax;
+}
 #endif
 }
 
@@ -266,6 +276,54 @@ processor_id_lookup_x86_cpuid_commpage_preempt_cached::thread_local_cache::
     apple_commpage::sched_gen->load(std::memory_order_seq_cst)
   };
   lookup.update_cache(*this, scheduler_generation);
+}
+#endif
+
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+auto
+processor_id_lookup_x86_rdpid::supported() noexcept -> bool
+{
+  if (get_maximum_supported_basic_cpuid() < 0x07) {
+    return false;
+  }
+  std::uint32_t ecx;
+  asm("cpuid" : "=c"(ecx) : "a"(0x07) : "ebx", "edx");
+  // From Volume 2A:
+  // 07H: ECX: Bit 22: RDPID and IA32_TSC_AUX are available if 1.
+  return ecx & (1 << 22);
+}
+
+auto
+processor_id_lookup_x86_rdpid::get_current_processor_id() noexcept
+  -> processor_id
+{
+  auto id = std::uint64_t{};
+  asm("rdpid %[id]" : [ id ] "=r"(id));
+  return id;
+}
+#endif
+
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+auto
+processor_id_lookup_x86_rdtscp::supported() noexcept -> bool
+{
+  if (get_maximum_supported_extended_cpuid() < 0x80000001) {
+    return false;
+  }
+  std::uint32_t edx;
+  asm("cpuid" : "=d"(edx) : "a"(0x80000001) : "ebx", "ecx");
+  // From Volume 2A:
+  // 80000001H: EDX: Bit 27: RDTSCP and IA32_TSC_AUX are available if 1.
+  return edx & (1 << 27);
+}
+
+auto
+processor_id_lookup_x86_rdtscp::get_current_processor_id() noexcept
+  -> processor_id
+{
+  auto ecx = std::uint32_t{};
+  asm("rdtscp" : "=c"(ecx) : : "eax", "edx");
+  return ecx;
 }
 #endif
 }

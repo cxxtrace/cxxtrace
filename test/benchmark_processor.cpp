@@ -52,6 +52,10 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   processor_id_lookup_x86_cpuid_01h,
   processor_id_lookup_x86_cpuid_0bh,
   processor_id_lookup_x86_cpuid_1fh,
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+  processor_id_lookup_x86_rdpid,
+  processor_id_lookup_x86_rdtscp,
+#endif
   processor_id_lookup_x86_cpuid_uncached);
 #pragma clang diagnostic pop
 

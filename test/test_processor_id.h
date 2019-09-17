@@ -83,6 +83,10 @@ public:
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_rdpid),
+    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_rdtscp),
+#endif
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_uncached));
 #undef CXXTRACE_PROCESSOR_ID_LOOKUP
 

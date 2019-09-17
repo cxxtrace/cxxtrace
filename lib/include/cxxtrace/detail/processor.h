@@ -21,6 +21,7 @@ enum class processor_id_namespace
 #endif
 #if defined(__x86_64__)
   initial_apic_id,
+  tsc_aux,
 #endif
 };
 
@@ -163,11 +164,43 @@ private:
 };
 #endif
 
-#if CXXTRACE_HAVE_SCHED_GETCPU
-using processor_id_lookup = processor_id_lookup_sched_getcpu;
-#elif defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+class processor_id_lookup_x86_rdpid
+  : public cacheless_processor_id_lookup<processor_id_lookup_x86_rdpid>
+{
+public:
+  using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static auto supported() noexcept -> bool;
+
+  static constexpr auto id_namespace = processor_id_namespace::tsc_aux;
+
+  static auto get_current_processor_id() noexcept -> processor_id;
+};
+#endif
+
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+class processor_id_lookup_x86_rdtscp
+  : public cacheless_processor_id_lookup<processor_id_lookup_x86_rdtscp>
+{
+public:
+  using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static constexpr auto id_namespace = processor_id_namespace::tsc_aux;
+
+  static auto supported() noexcept -> bool;
+
+  static auto get_current_processor_id() noexcept -> processor_id;
+};
+#endif
+
+#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 using processor_id_lookup =
   processor_id_lookup_x86_cpuid_commpage_preempt_cached;
+#elif defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
+using processor_id_lookup = processor_id_lookup_x86_rdtscp;
+#elif CXXTRACE_HAVE_SCHED_GETCPU
+using processor_id_lookup = processor_id_lookup_sched_getcpu;
 #elif defined(__x86_64__)
 using processor_id_lookup = processor_id_lookup_x86_cpuid_0bh;
 #else

@@ -167,6 +167,7 @@ struct thread_schedule_tracer::impl
   {
     switch (this->processor_id_namespace) {
       case cxxtrace::detail::processor_id_namespace::linux_getcpu:
+      case cxxtrace::detail::processor_id_namespace::tsc_aux:
         return number;
       case cxxtrace::detail::processor_id_namespace::initial_apic_id:
         return this->cpuinfo.get_initial_apicid(number).value();

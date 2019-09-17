@@ -144,4 +144,8 @@
 // <cxxabi.h>
 #define CXXTRACE_HAVE_CXA_DEMANGLE 1
 
+#if defined(__linux__)
+#define CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX 1
+#endif
+
 #endif
