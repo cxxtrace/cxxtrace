@@ -73,7 +73,9 @@ TEST_P(test_processor_id_manual, current_processor_id_agrees_with_scheduler)
 
   auto clock = thread_schedule_tracer::clock{};
 
-  auto tracer = thread_schedule_tracer{ ::getpid(), &clock };
+  auto tracer = thread_schedule_tracer{ ::getpid(),
+                                        &clock,
+                                        this->get_processor_id_namespace() };
   tracer.initialize();
   tracer.start();
 

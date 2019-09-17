@@ -451,7 +451,8 @@ struct thread_schedule_tracer::impl
 
 thread_schedule_tracer::thread_schedule_tracer(
   ::pid_t process_id,
-  thread_schedule_tracer::clock* clock)
+  thread_schedule_tracer::clock* clock,
+  cxxtrace::detail::processor_id_namespace)
   : impl_{ std::make_unique<impl>(process_id, clock) }
 {}
 

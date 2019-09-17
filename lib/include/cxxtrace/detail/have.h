@@ -134,4 +134,10 @@
 #define CXXTRACE_HAVE_CLOCK_GETTIME 1
 #endif
 
+#if defined(__linux__) && defined(_GNU_SOURCE)
+// ::sched_getcpu(...)
+// <sched.h>
+#define CXXTRACE_HAVE_SCHED_GETCPU 1
+#endif
+
 #endif

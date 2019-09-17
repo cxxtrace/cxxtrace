@@ -46,6 +46,9 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   processor_id_lookup_x86_cpuid_commpage_preempt_cached,
 #endif
   processor_id_lookup,
+#if CXXTRACE_HAVE_SCHED_GETCPU
+  processor_id_lookup_sched_getcpu,
+#endif
   processor_id_lookup_x86_cpuid_01h,
   processor_id_lookup_x86_cpuid_0bh,
   processor_id_lookup_x86_cpuid_1fh,

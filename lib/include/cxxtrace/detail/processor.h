@@ -14,6 +14,16 @@ using processor_id = std::uint32_t;
 auto
 get_maximum_processor_id() noexcept(false) -> processor_id;
 
+enum class processor_id_namespace
+{
+#if CXXTRACE_HAVE_SCHED_GETCPU
+  linux_getcpu,
+#endif
+#if defined(__x86_64__)
+  initial_apic_id,
+#endif
+};
+
 template<class ProcessorIDLookup>
 class cacheless_processor_id_lookup
 {
@@ -31,12 +41,29 @@ public:
   }
 };
 
+#if CXXTRACE_HAVE_SCHED_GETCPU
+class processor_id_lookup_sched_getcpu
+  : public cacheless_processor_id_lookup<processor_id_lookup_sched_getcpu>
+{
+public:
+  using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static constexpr auto id_namespace = processor_id_namespace::linux_getcpu;
+
+  static auto supported() noexcept -> bool;
+
+  static auto get_current_processor_id() noexcept -> processor_id;
+};
+#endif
+
 #if defined(__x86_64__)
 class processor_id_lookup_x86_cpuid_01h
   : public cacheless_processor_id_lookup<processor_id_lookup_x86_cpuid_01h>
 {
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static constexpr auto id_namespace = processor_id_namespace::initial_apic_id;
 
   static auto supported() noexcept -> bool;
 
@@ -51,6 +78,8 @@ class processor_id_lookup_x86_cpuid_0bh
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
 
+  static constexpr auto id_namespace = processor_id_namespace::initial_apic_id;
+
   static auto supported() noexcept -> bool;
 
   static auto get_current_processor_id() noexcept -> processor_id;
@@ -64,6 +93,8 @@ class processor_id_lookup_x86_cpuid_1fh
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
 
+  static constexpr auto id_namespace = processor_id_namespace::initial_apic_id;
+
   static auto supported() noexcept -> bool;
 
   static auto get_current_processor_id() noexcept -> processor_id;
@@ -76,6 +107,8 @@ class processor_id_lookup_x86_cpuid_uncached
 {
 public:
   using cacheless_processor_id_lookup::get_current_processor_id;
+
+  static constexpr auto id_namespace = processor_id_namespace::initial_apic_id;
 
   auto supported() const noexcept -> bool;
 
@@ -106,6 +139,8 @@ public:
     friend class processor_id_lookup_x86_cpuid_commpage_preempt_cached;
   };
 
+  static constexpr auto id_namespace = processor_id_namespace::initial_apic_id;
+
   explicit processor_id_lookup_x86_cpuid_commpage_preempt_cached() noexcept;
 
   auto supported() const noexcept -> bool;
@@ -128,7 +163,9 @@ private:
 };
 #endif
 
-#if defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
+#if CXXTRACE_HAVE_SCHED_GETCPU
+using processor_id_lookup = processor_id_lookup_sched_getcpu;
+#elif defined(__x86_64__) && CXXTRACE_HAVE_APPLE_COMMPAGE
 using processor_id_lookup =
   processor_id_lookup_x86_cpuid_commpage_preempt_cached;
 #elif defined(__x86_64__)

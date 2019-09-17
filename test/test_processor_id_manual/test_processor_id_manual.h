@@ -30,7 +30,9 @@ public:
 #endif
   using timestamp = clock::sample;
 
-  explicit thread_schedule_tracer(::pid_t, clock*);
+  explicit thread_schedule_tracer(::pid_t,
+                                  clock*,
+                                  cxxtrace::detail::processor_id_namespace);
 
   thread_schedule_tracer(const thread_schedule_tracer&) = delete;
   thread_schedule_tracer& operator=(const thread_schedule_tracer&) = delete;

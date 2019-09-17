@@ -47,9 +47,12 @@ struct thread_schedule_tracer::impl
 {
   using processor_number = linux_proc_cpuinfo::processor_number;
 
-  explicit impl(::pid_t process_id, thread_schedule_tracer::clock* clock)
+  explicit impl(::pid_t process_id,
+                thread_schedule_tracer::clock* clock,
+                cxxtrace::detail::processor_id_namespace processor_id_namespace)
     : process_id{ process_id }
     , clock{ clock }
+    , processor_id_namespace{ processor_id_namespace }
   {}
 
   struct processor_tracer
@@ -162,11 +165,18 @@ struct thread_schedule_tracer::impl
   auto get_processor_id_from_processor_number(processor_number number)
     -> cxxtrace::detail::processor_id
   {
-    return this->cpuinfo.get_initial_apicid(number).value();
+    switch (this->processor_id_namespace) {
+      case cxxtrace::detail::processor_id_namespace::linux_getcpu:
+        return number;
+      case cxxtrace::detail::processor_id_namespace::initial_apic_id:
+        return this->cpuinfo.get_initial_apicid(number).value();
+    }
+    __builtin_unreachable();
   }
 
   ::pid_t process_id;
   thread_schedule_tracer::clock* clock;
+  cxxtrace::detail::processor_id_namespace processor_id_namespace;
 
   linux_proc_cpuinfo cpuinfo{ linux_proc_cpuinfo::parse() };
   std::unordered_map<processor_number, processor_tracer> processor_tracers;
@@ -174,8 +184,9 @@ struct thread_schedule_tracer::impl
 
 thread_schedule_tracer::thread_schedule_tracer(
   ::pid_t process_id,
-  thread_schedule_tracer::clock* clock)
-  : impl_{ std::make_unique<impl>(process_id, clock) }
+  thread_schedule_tracer::clock* clock,
+  cxxtrace::detail::processor_id_namespace processor_id_namespace)
+  : impl_{ std::make_unique<impl>(process_id, clock, processor_id_namespace) }
 {}
 
 thread_schedule_tracer::~thread_schedule_tracer() = default;

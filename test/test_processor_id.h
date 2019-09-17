@@ -21,6 +21,9 @@ public:
   virtual auto get_current_processor_id() const noexcept
     -> cxxtrace::detail::processor_id = 0;
 
+  virtual auto get_processor_id_namespace() const noexcept
+    -> cxxtrace::detail::processor_id_namespace = 0;
+
   cxxtrace::czstring name;
 };
 
@@ -40,6 +43,12 @@ struct type_erased_processor_id_lookup : public any_processor_id_lookup
     thread_local auto thread_local_cache =
       typename ProcessorIDLookup::thread_local_cache{ this->lookup };
     return lookup.get_current_processor_id(thread_local_cache);
+  }
+
+  auto get_processor_id_namespace() const noexcept
+    -> cxxtrace::detail::processor_id_namespace override
+  {
+    return ProcessorIDLookup::id_namespace;
   }
 
   static auto instance(cxxtrace::czstring name)
@@ -68,6 +77,9 @@ public:
       processor_id_lookup_x86_cpuid_commpage_preempt_cached),
 #endif
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup),
+#if CXXTRACE_HAVE_SCHED_GETCPU
+    CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_sched_getcpu),
+#endif
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_01h),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_0bh),
     CXXTRACE_PROCESSOR_ID_LOOKUP(processor_id_lookup_x86_cpuid_1fh),
@@ -90,6 +102,12 @@ protected:
     -> cxxtrace::detail::processor_id
   {
     return this->GetParam()->get_current_processor_id();
+  }
+
+  auto get_processor_id_namespace() const noexcept
+    -> cxxtrace::detail::processor_id_namespace
+  {
+    return this->GetParam()->get_processor_id_namespace();
   }
 };
 }

@@ -21,6 +21,11 @@
 #include <sys/sysinfo.h>
 #endif
 
+#if CXXTRACE_HAVE_SCHED_GETCPU
+#include <cassert>
+#include <sched.h>
+#endif
+
 namespace {
 #if defined(__x86_64__)
 auto
@@ -70,6 +75,24 @@ get_maximum_processor_id() noexcept(false) -> processor_id
 #error "Unknown platform"
 #endif
 }
+
+#if CXXTRACE_HAVE_SCHED_GETCPU
+auto
+processor_id_lookup_sched_getcpu::supported() noexcept -> bool
+{
+  auto rc = ::sched_getcpu();
+  return rc != -1;
+}
+
+auto
+processor_id_lookup_sched_getcpu::get_current_processor_id() noexcept
+  -> processor_id
+{
+  auto processor_id = ::sched_getcpu();
+  assert(processor_id != -1);
+  return processor_id;
+}
+#endif
 
 #if defined(__x86_64__)
 auto
