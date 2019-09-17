@@ -34,8 +34,12 @@ sample_checker::scheduled_thread_at_time(
   cxxtrace::time_point t)
   -> std::map<cxxtrace::time_point, thread_id>::const_iterator
 {
+  if (processor_timeline.empty()) {
+    return processor_timeline.end();
+  }
   auto it = processor_timeline.lower_bound(t);
   if (it == processor_timeline.end()) {
+    assert(it != processor_timeline.begin());
     --it;
   }
   for (;;) {

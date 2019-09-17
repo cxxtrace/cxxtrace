@@ -11,6 +11,7 @@ class file_descriptor
 public:
   static inline constexpr auto invalid_fd = int{ -1 };
 
+  /* implicit */ file_descriptor() noexcept = default;
   explicit file_descriptor(int fd) noexcept;
 
   file_descriptor(const file_descriptor&) = delete;
@@ -21,6 +22,7 @@ public:
   auto close() noexcept(false) -> void;
   auto get() const noexcept -> int;
   auto reset() noexcept(false) -> void;
+  auto reset(int new_fd) noexcept(false) -> void;
   auto valid() const noexcept -> bool;
 
 private:

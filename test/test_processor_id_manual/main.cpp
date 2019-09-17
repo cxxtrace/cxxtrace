@@ -204,7 +204,7 @@ sample_processor_id_on_threads(thread_schedule_tracer::clock& clock,
       std::fprintf(
         stderr,
         "Thread %ju collected %zu samples (%.2f MiB; %.1f%% of estimate)\n",
-        std::uintmax_t{ samples.samples.front().thread_id },
+        std::uintmax_t(samples.samples.front().thread_id),
         sample_count,
         sample_count * sizeof(samples.samples[0]) / (1024.0 * 1024.0),
         100.0 * sample_count / estimated_sample_count_per_thread);

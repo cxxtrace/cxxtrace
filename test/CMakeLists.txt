@@ -14,6 +14,7 @@ add_executable(
   test_add.cpp
   test_clock.cpp
   test_exhaustive_rng.cpp
+  test_linux_proc_cpuinfo.cpp
   test_molecular.cpp
   test_processor_id.cpp
   test_ring_queue.cpp
@@ -178,6 +179,7 @@ add_library(
   STATIC
   event.cpp
   exhaustive_rng.cpp
+  linux_proc_cpuinfo.cpp
   memory_resource.cpp
   thread.cpp
 )

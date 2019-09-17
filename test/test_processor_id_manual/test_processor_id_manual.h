@@ -1,7 +1,6 @@
 #ifndef CXXTRACE_TEST_PROCESSOR_ID_MANUAL_H
 #define CXXTRACE_TEST_PROCESSOR_ID_MANUAL_H
 
-#include "event.h"
 #include <cstdint>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/processor.h>
@@ -21,7 +20,14 @@ struct thread_executions;
 class thread_schedule_tracer
 {
 public:
+#if defined(__APPLE__)
   using clock = cxxtrace::apple_absolute_time_clock;
+#elif defined(__linux__)
+  static constexpr auto clock_id = CLOCK_MONOTONIC;
+  using clock = cxxtrace::posix_clock_gettime_clock<clock_id>;
+#else
+#error "Unknown platform"
+#endif
   using timestamp = clock::sample;
 
   explicit thread_schedule_tracer(::pid_t, clock*);

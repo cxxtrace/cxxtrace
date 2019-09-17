@@ -3,6 +3,7 @@
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/have.h>
 #include <system_error>
+#include <utility>
 
 #if CXXTRACE_HAVE_POSIX_FD
 #include <unistd.h>
@@ -46,6 +47,17 @@ file_descriptor::reset() noexcept(false) -> void
   if (this->valid()) {
     this->close();
   }
+}
+
+auto
+file_descriptor::reset(int new_fd) noexcept(false) -> void
+{
+  if (this->valid()) {
+    // TODO(strager): If this fails, should we close new_fd?
+    this->close();
+  }
+  [[maybe_unused]] auto old_fd = std::exchange(this->fd_, new_fd);
+  assert(old_fd == this->invalid_fd);
 }
 
 auto
