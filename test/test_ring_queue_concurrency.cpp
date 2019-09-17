@@ -23,7 +23,7 @@
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>
 
-#if defined(__GLIBCXX__) && __GLIBCXX__ <= 20190503
+#if defined(__GLIBCXX__)
 // libstdc++ version 9.1.0 does not define some overloads of
 // std::reduce.
 #define CXXTRACE_WORK_AROUND_STD_REDUCE 1
