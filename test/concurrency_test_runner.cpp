@@ -115,6 +115,7 @@ private:
       case round::tock:
         return round::tick;
     }
+    __builtin_trap();
   }
 
   struct worker
