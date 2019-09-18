@@ -143,9 +143,6 @@ struct posix_clock_gettime_clock_sample
 }
 
 template<::clockid_t ClockID>
-class posix_clock_gettime_clock;
-
-template<::clockid_t ClockID>
 class posix_clock_gettime_clock : public clock_base
 {
 public:

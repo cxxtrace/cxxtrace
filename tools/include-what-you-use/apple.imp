@@ -3,5 +3,6 @@
   {"include": ["<mach/i386/vm_types.h>", "private", "<mach/vm_types.h>", "public"]},
   {"include": ["<sys/_types/_mach_port_t.h>", "private", "<mach/port.h>", "public"]},
   {"include": ["<sys/_types/_pid_t.h>", "private", "<unistd.h>", "public"]},
+  {"include": ["<sys/_types/_timespec.h>", "private", "<sys/time.h>", "public"]},
   {"include": ["<sys/errno.h>", "private", "<errno.h>", "public"]},
 ]

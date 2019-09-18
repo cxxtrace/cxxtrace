@@ -1,8 +1,10 @@
 #include "linux_proc_cpuinfo.h"
 #include <algorithm>
 #include <charconv>
+#include <cstdio>
 #include <cxxtrace/string.h>
 #include <fstream>
+#include <istream>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
