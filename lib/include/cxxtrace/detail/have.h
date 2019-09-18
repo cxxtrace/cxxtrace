@@ -140,4 +140,8 @@
 #define CXXTRACE_HAVE_SCHED_GETCPU 1
 #endif
 
+// ::abi::cxa_demangle(...)
+// <cxxabi.h>
+#define CXXTRACE_HAVE_CXA_DEMANGLE 1
+
 #endif

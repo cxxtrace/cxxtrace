@@ -210,10 +210,12 @@ add_library(
   cxxtrace_support
   STATIC
   concurrency_test_runner.cpp
+  cxxtrace_concurrency_test_base.cpp
   event.cpp
   exhaustive_rng.cpp
   linux_proc_cpuinfo.cpp
   memory_resource.cpp
+  pretty_type_name.cpp
   thread.cpp
 )
 target_link_libraries(cxxtrace_support PRIVATE Threads::Threads cxxtrace)

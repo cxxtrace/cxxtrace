@@ -1,9 +1,7 @@
 #ifndef CXXTRACE_CONCURRENCY_TEST_BASE_H
 #define CXXTRACE_CONCURRENCY_TEST_BASE_H
 
-#include <cxxtrace/string.h>
-#include <memory>
-#include <typeinfo>
+#include <string>
 #include <vector>
 
 namespace cxxtrace_test {
@@ -30,10 +28,7 @@ public:
   virtual auto test_depth() const noexcept -> concurrency_test_depth = 0;
   virtual auto thread_count() const noexcept -> int = 0;
 
-  virtual auto name() const noexcept -> cxxtrace::czstring
-  {
-    return typeid(*this).name();
-  }
+  virtual auto name() const -> std::string;
 };
 
 auto
