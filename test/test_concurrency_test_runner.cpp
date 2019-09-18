@@ -126,6 +126,7 @@ TEST(test_concurrency_test_runner, test_threads_execute_concurrently)
                 break;
             }
           }
+          break;
         }
 
         case 1: {
@@ -149,6 +150,7 @@ TEST(test_concurrency_test_runner, test_threads_execute_concurrently)
                 break;
             }
           }
+          break;
         }
       }
     }
