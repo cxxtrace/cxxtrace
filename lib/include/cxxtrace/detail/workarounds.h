@@ -7,11 +7,17 @@
 #include <ciso646> // IWYU pragma: export
 #endif
 
-#if defined(__clang__) && (__clang_major__ == 7 || __clang_major__ == 8) &&    \
-  defined(__APPLE__)
+#if (defined(__clang__) && (__clang_major__ == 7 || __clang_major__ == 8) &&   \
+     defined(__APPLE__)) ||                                                    \
+  (defined(__GNUC__) && defined(__linux__))
 // Clang 7.0 and Clang 8.0.0 with -O2 targeting macOS 10.11 or macOS 10.12
-// generate many redundant calls to _tlv_get_addr. Attempt to avoid redundant
-// calls to _tlv_get_addr, preferring to reuse registers instead.
+// generate many redundant calls to _tlv_get_addr.
+//
+// Similarly, GCC 9.2.0 with -O3 targeting x86_64 GNU/Linux generates many
+// redundant accesses to thread-local variables.
+//
+// Attempt to avoid redundant TLS address calculations, preferring to reuse
+// registers instead.
 #define CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER 1
 #endif
 

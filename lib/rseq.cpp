@@ -11,6 +11,7 @@
 #if CXXTRACE_HAVE_LIBRSEQ
 #include <cassert>
 #include <cstdio>
+#include <cxxtrace/detail/workarounds.h>
 #include <rseq/rseq.h>
 #endif
 
@@ -26,6 +27,9 @@ registered_rseq::register_current_thread() noexcept -> registered_rseq
 {
 #if CXXTRACE_HAVE_LIBRSEQ
   auto* rseq = &::__rseq_abi;
+#if CXXTRACE_WORK_AROUND_THREAD_LOCAL_OPTIMIZER
+  asm volatile("" : "+r"(rseq));
+#endif
   auto rc = ::rseq_register_current_thread();
   if (rc == -1) {
     assert(read_cpu_id(*rseq) < 0);
