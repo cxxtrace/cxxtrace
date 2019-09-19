@@ -77,7 +77,17 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(get_current_processor_id_benchmark,
     typename fixture_type::lookup_thread_local_cache;
   auto cache = lookup_thread_local_cache{ this->processor_id_lookup };
   for (auto _ : bench) {
+    // TODO(strager): GCC does weird things to this loop for
+    // processor_id_lookup_x86_rdtscp (with #pragma GCC unroll). GCC behaves as
+    // if samples_per_iteration == 1. Hypothesis: GCC thinks that two adjacent
+    // rdtscp instructions can return the same value; rdtscp is
+    // __attribute__((pure)). Figure out how to fix GCC's code generation to
+    // make benchmark comparisons more fair.
+#if defined(__clang__)
 #pragma clang loop unroll(full)
+#elif defined(__GNUC__)
+#pragma GCC unroll 65534
+#endif
     for (auto i = 0; i < this->samples_per_iteration; ++i) {
       benchmark::DoNotOptimize(this->get_current_processor_id(cache));
     }
