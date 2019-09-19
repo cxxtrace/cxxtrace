@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_CLOCK_H
 #define CXXTRACE_CLOCK_H
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
@@ -217,7 +218,7 @@ public:
   auto set_next_time_point(std::chrono::nanoseconds) noexcept -> void;
 
 private:
-  sample next_sample;
+  std::atomic<sample> next_sample;
   sample query_increment;
 };
 

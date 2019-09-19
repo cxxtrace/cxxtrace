@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cassert>
 #include <chrono>
 #include <cxxtrace/clock.h>
@@ -6,7 +7,6 @@
 #include <ostream>
 #include <stdexcept>
 #include <sys/time.h>
-#include <utility>
 // IWYU pragma: no_include <ratio>
 
 #if CXXTRACE_HAVE_MACH_TIME
@@ -203,10 +203,7 @@ fake_clock::fake_clock() noexcept
 auto
 fake_clock::query() -> sample
 {
-  return std::exchange(this->next_sample,
-                       (std::chrono::nanoseconds{ this->next_sample } +
-                        std::chrono::nanoseconds{ this->query_increment })
-                         .count());
+  return this->next_sample.fetch_add(this->query_increment);
 }
 
 auto
