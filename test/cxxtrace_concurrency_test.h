@@ -2,6 +2,7 @@
 #define CXXTRACE_CONCURRENCY_TEST_H
 
 #include "cxxtrace_concurrency_test_base.h" // IWYU pragma: export
+#include "pretty_type_name.h"
 #include <cassert>
 #include <cxxtrace/detail/atomic.h>
 #include <exception>
@@ -118,6 +119,11 @@ register_concurrency_test(int thread_count,
     auto thread_count() const noexcept -> int override
     {
       return this->thread_count_;
+    }
+
+    auto name() const -> std::string override
+    {
+      return pretty_type_name(typeid(Test));
     }
 
   private:
