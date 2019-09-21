@@ -54,6 +54,8 @@ private:
   detail::processor_id_lookup processor_id_lookup;
   std::vector<processor_samples> samples_by_processor;
 
+  std::mutex pop_samples_mutex;
+
   std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 

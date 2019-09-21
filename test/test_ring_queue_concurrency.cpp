@@ -6,7 +6,6 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
@@ -384,126 +383,6 @@ private:
 };
 
 template<class RingQueue>
-class ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test
-  : public ring_queue_relacy_test_base<RingQueue>
-{
-public:
-  using size_type = typename RingQueue::size_type;
-
-  explicit ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test(
-    size_type initial_push_size,
-    size_type concurrent_push_size,
-    int thread_count) noexcept
-    : initial_push_size{ initial_push_size }
-    , concurrent_push_size{ concurrent_push_size }
-    , items_popped_per_thread{ &this->memory }
-  {
-    this->push_range(0, this->initial_push_size);
-    assert(this->total_push_size() <= RingQueue::capacity);
-
-    this->items_popped_per_thread.reserve(thread_count);
-    for (auto i = 0; i < thread_count; ++i) {
-      auto& thread_items = this->items_popped_per_thread.emplace_back(
-        std::experimental::pmr::vector<int>{ &this->memory });
-      thread_items.reserve(this->total_push_size());
-    }
-  }
-
-  auto run_thread(int thread_index) -> void
-  {
-    if (thread_index == 0) {
-      this->push_range(this->initial_push_size, this->total_push_size());
-    } else {
-      char buffer[1024];
-      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
-
-      auto thread_items = std::experimental::pmr::vector<int>{ &memory };
-      auto backoff = cxxtrace_test::backoff{};
-      while (this->popped_item_count.load(CXXTRACE_HERE) <
-             this->total_push_size()) {
-        auto old_size = thread_items.size();
-        this->queue.pop_all_into(thread_items);
-        auto just_popped_item_count = thread_items.size() - old_size;
-        if (just_popped_item_count == 0) {
-          backoff.yield(CXXTRACE_HERE);
-        } else {
-          this->popped_item_count.fetch_add(just_popped_item_count,
-                                            CXXTRACE_HERE);
-          backoff.reset();
-        }
-      }
-      CXXTRACE_ASSERT(thread_items.size() <=
-                      static_cast<std::size_t>(this->total_push_size()));
-      if (thread_items.size() <=
-          static_cast<std::size_t>(this->total_push_size())) {
-        // N.B. Avoid allocating when moving into this->items_popped_per_thread.
-        // Its allocator is not thread-safe.
-        auto& shared_thread_items = this->items_popped_per_thread[thread_index];
-        assert(shared_thread_items.empty());
-        assert(shared_thread_items.capacity() >= thread_items.size());
-        shared_thread_items.insert(
-          shared_thread_items.end(), thread_items.begin(), thread_items.end());
-      }
-    }
-  }
-
-  auto tear_down() -> void
-  {
-    char buffer[1024];
-    auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
-
-    auto expected_items = this->expected_items(&memory);
-    assert(std::is_sorted(expected_items.begin(), expected_items.end()));
-
-    auto all_popped_items = std::experimental::pmr::vector<int>{ &memory };
-    all_popped_items.reserve(expected_items.size());
-    for (const auto& thread_items : this->items_popped_per_thread) {
-      CXXTRACE_ASSERT(std::is_sorted(thread_items.begin(), thread_items.end()));
-      all_popped_items.insert(
-        all_popped_items.end(), thread_items.begin(), thread_items.end());
-    }
-    std::sort(all_popped_items.begin(), all_popped_items.end());
-    CXXTRACE_ASSERT(all_popped_items == expected_items);
-  }
-
-private:
-  auto total_push_size() const noexcept -> size_type
-  {
-    return this->initial_push_size + this->concurrent_push_size;
-  }
-
-  auto expected_items(std::experimental::pmr::memory_resource* memory) const
-    -> std::experimental::pmr::vector<int>
-  {
-    return this->items_for_range(0, this->total_push_size(), memory);
-  }
-
-  // HACK(strager): Model checkers want to think that popped_item_count
-  // is an atomic variable under test. This isn't true, and if we do nothing,
-  // execution time suffers. Try to hide popped_item_count from the checkers.
-#if CXXTRACE_ENABLE_CDSCHECKER
-  // HACK(strager): CDSChecker shadows std::atomic anyway, so use our wrapper.
-  // (Our wrapper works around bugs in CDSChecker's implementation of
-  // std::atomic.)
-  template<class T>
-  using atomic = cxxtrace::detail::cdschecker_atomic<T>;
-#else
-  template<class T>
-  using atomic = cxxtrace::detail::real_atomic<T>;
-#endif
-
-  size_type initial_push_size;
-  size_type concurrent_push_size;
-
-  atomic<int> popped_item_count{ 0 };
-
-  char buffer[1024];
-  monotonic_buffer_resource memory{ this->buffer, sizeof(this->buffer) };
-  std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
-    items_popped_per_thread;
-};
-
-template<class RingQueue>
 class pushing_is_atomic_or_fails_with_multiple_producers
   : public ring_queue_relacy_test_base<RingQueue>
 {
@@ -697,27 +576,6 @@ register_single_producer_ring_queue_concurrency_tests() -> void
 template<template<class T, std::size_t Capacity, class Index = int>
          class RingQueue>
 auto
-register_multiple_consumer_ring_queue_concurrency_tests() -> void
-{
-  for (auto [initial_push_size, concurrent_push_size] : { std::pair{ 1, 0 },
-                                                          std::pair{ 2, 0 },
-                                                          std::pair{ 0, 1 },
-                                                          std::pair{ 3, 1 } }) {
-    auto thread_count = 3;
-    // TODO(strager): Optimize this test and check with concurrent_push_size>=2.
-    register_concurrency_test<
-      ring_queue_concurrent_pops_read_all_items_exactly_once_relacy_test<
-        RingQueue<int, 4>>>(thread_count,
-                            concurrency_test_depth::shallow,
-                            initial_push_size,
-                            concurrent_push_size,
-                            thread_count);
-  }
-}
-
-template<template<class T, std::size_t Capacity, class Index = int>
-         class RingQueue>
-auto
 register_multiple_producer_ring_queue_concurrency_tests() -> void
 {
   {
@@ -771,8 +629,6 @@ register_concurrency_tests() -> void
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
-    cxxtrace::detail::mpsc_ring_queue>();
-  register_multiple_consumer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();
   register_multiple_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();

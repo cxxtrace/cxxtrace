@@ -84,8 +84,11 @@ mpsc_ring_queue_storage<Capacity, ClockSample>::take_all_samples(
   {
     return detail::snapshot_sample{ sample, clock };
   };
-  this->samples.pop_all_into(
-    detail::transform_vector_queue_sink{ samples, make_sample });
+  {
+    auto guard = std::lock_guard<std::mutex>{ this->pop_samples_mutex };
+    this->samples.pop_all_into(
+      detail::transform_vector_queue_sink{ samples, make_sample });
+  }
 
   auto named_threads = std::vector<thread_id>{};
   auto thread_names = this->take_remembered_thread_names();

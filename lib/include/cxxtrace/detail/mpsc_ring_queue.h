@@ -12,7 +12,6 @@
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/molecular.h>
-#include <cxxtrace/detail/mutex.h>
 #include <limits>
 #include <optional>
 #include <type_traits> // IWYU pragma: keep
@@ -27,7 +26,7 @@ enum class mpsc_ring_queue_push_result : bool
   pushed = true,
 };
 
-// A special-purpose, lossy, bounded, MPMC FIFO container optimized for
+// A special-purpose, lossy, bounded, MPSC FIFO container optimized for
 // uncontended writes.
 //
 // Special-purpose: Items in a mpsc_ring_queue must be trivial. Constructors and
@@ -38,8 +37,8 @@ enum class mpsc_ring_queue_push_result : bool
 // Bounded: The maximum number of items allowed in a mpsc_ring_queue is fixed.
 // Operations on a mpsc_ring_queue will never allocate memory.
 //
-// MPMC: Zero or more threads can push items ("Multiple Producer"), and zero or
-// more threads can concurrently pop items ("Multiple Consumer").
+// MPSC: Zero or more threads can push items ("Multiple Producer"), and one
+// thread can pop items ("Single Consumer").
 //
 // FIFO: Items are read First In, First Out.
 //
@@ -89,8 +88,6 @@ public:
   {
     // TODO(strager): Consolidate duplication with spsc_ring_queue.
     // TODO(strager): Relax memory ordering as appropriate.
-    auto guard = lock_guard<mutex>{ this->consumer_mutex, CXXTRACE_HERE };
-
     auto read_vindex = this->read_vindex.load(CXXTRACE_HERE);
 
     auto get_begin_vindex = [&read_vindex](
@@ -211,8 +208,6 @@ private:
   nonatomic<size_type> read_vindex{ 0 };
   atomic<size_type> write_begin_vindex{ 0 };
   atomic<size_type> write_end_vindex{ 0 };
-
-  mutex consumer_mutex;
 
   std::array<molecular<value_type>, capacity> storage
     /* uninitialized */;

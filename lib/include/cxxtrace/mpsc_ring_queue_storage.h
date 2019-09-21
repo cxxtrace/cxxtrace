@@ -41,6 +41,8 @@ private:
 
   detail::mpsc_ring_queue<sample, Capacity> samples;
 
+  std::mutex pop_samples_mutex;
+
   std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 };
