@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/string.h>
 #include <experimental/memory_resource>
@@ -54,13 +54,13 @@ reduce(Iterator begin, Iterator end) -> auto
 namespace cxxtrace {
 namespace detail {
 auto
-operator<<(std::ostream& out, mpmc_ring_queue_push_result x) -> std::ostream&
+operator<<(std::ostream& out, mpsc_ring_queue_push_result x) -> std::ostream&
 {
   switch (x) {
-    case mpmc_ring_queue_push_result::pushed:
+    case mpsc_ring_queue_push_result::pushed:
       out << "pushed";
       break;
-    case mpmc_ring_queue_push_result::not_pushed_due_to_contention:
+    case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
       out << "not_pushed_due_to_contention";
       break;
   }
@@ -771,11 +771,11 @@ register_concurrency_tests() -> void
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
-    cxxtrace::detail::mpmc_ring_queue>();
+    cxxtrace::detail::mpsc_ring_queue>();
   register_multiple_consumer_ring_queue_concurrency_tests<
-    cxxtrace::detail::mpmc_ring_queue>();
+    cxxtrace::detail::mpsc_ring_queue>();
   register_multiple_producer_ring_queue_concurrency_tests<
-    cxxtrace::detail::mpmc_ring_queue>();
+    cxxtrace::detail::mpsc_ring_queue>();
 }
 }
 

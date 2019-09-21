@@ -2,7 +2,7 @@
 #define CXXTRACE_RING_QUEUE_WRAPPER_H
 
 #include "void_t.h"
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/queue_sink.h>
 #include <type_traits>
 
@@ -24,7 +24,7 @@ class ring_queue_wrapper<
   void_t<decltype(std::declval<RingQueue&>().push(1, nullptr))>>
 {
 public:
-  using push_result = cxxtrace::detail::mpmc_ring_queue_push_result;
+  using push_result = cxxtrace::detail::mpsc_ring_queue_push_result;
   using size_type = typename RingQueue::size_type;
   using value_type = typename RingQueue::value_type;
 

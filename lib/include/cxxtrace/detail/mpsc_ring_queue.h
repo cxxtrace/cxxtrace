@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_MPMC_RING_QUEUE_H
-#define CXXTRACE_DETAIL_MPMC_RING_QUEUE_H
+#ifndef CXXTRACE_DETAIL_MPSC_RING_QUEUE_H
+#define CXXTRACE_DETAIL_MPSC_RING_QUEUE_H
 
 #include <algorithm>
 #include <array>
@@ -21,7 +21,7 @@
 
 namespace cxxtrace {
 namespace detail {
-enum class mpmc_ring_queue_push_result : bool
+enum class mpsc_ring_queue_push_result : bool
 {
   not_pushed_due_to_contention = false,
   pushed = true,
@@ -30,13 +30,13 @@ enum class mpmc_ring_queue_push_result : bool
 // A special-purpose, lossy, bounded, MPMC FIFO container optimized for
 // uncontended writes.
 //
-// Special-purpose: Items in a mpmc_ring_queue must be trivial. Constructors and
-// destructors are not called on a mpmc_ring_queue's items.
+// Special-purpose: Items in a mpsc_ring_queue must be trivial. Constructors and
+// destructors are not called on a mpsc_ring_queue's items.
 //
 // Lossy: If a writer pushes too many items, older items are discarded.
 //
-// Bounded: The maximum number of items allowed in a mpmc_ring_queue is fixed.
-// Operations on a mpmc_ring_queue will never allocate memory.
+// Bounded: The maximum number of items allowed in a mpsc_ring_queue is fixed.
+// Operations on a mpsc_ring_queue will never allocate memory.
 //
 // MPMC: Zero or more threads can push items ("Multiple Producer"), and zero or
 // more threads can concurrently pop items ("Multiple Consumer").
@@ -48,7 +48,7 @@ enum class mpmc_ring_queue_push_result : bool
 // @see ring_queue
 // @see spsc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
-class mpmc_ring_queue
+class mpsc_ring_queue
 {
 public:
   static_assert(Capacity > 0);
@@ -60,7 +60,7 @@ public:
 
   using size_type = Index;
   using value_type = T;
-  using push_result = mpmc_ring_queue_push_result;
+  using push_result = mpsc_ring_queue_push_result;
 
   static inline constexpr const auto capacity = size_type{ Capacity };
 
@@ -165,7 +165,7 @@ private:
     std::array<molecular<value_type>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
-    friend class mpmc_ring_queue;
+    friend class mpsc_ring_queue;
   };
 
   auto begin_push(size_type count) noexcept

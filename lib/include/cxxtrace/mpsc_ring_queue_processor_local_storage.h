@@ -1,9 +1,9 @@
-#ifndef CXXTRACE_MPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
-#define CXXTRACE_MPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
+#ifndef CXXTRACE_MPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
+#define CXXTRACE_MPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
 
 #include <cstddef>
 #include <cxxtrace/detail/lazy_thread_local.h>
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
@@ -15,20 +15,20 @@ namespace cxxtrace {
 class samples_snapshot;
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
-class mpmc_ring_queue_processor_local_storage
+class mpsc_ring_queue_processor_local_storage
 {
 public:
-  explicit mpmc_ring_queue_processor_local_storage() noexcept(false);
-  ~mpmc_ring_queue_processor_local_storage() noexcept;
+  explicit mpsc_ring_queue_processor_local_storage() noexcept(false);
+  ~mpsc_ring_queue_processor_local_storage() noexcept;
 
-  mpmc_ring_queue_processor_local_storage(
-    const mpmc_ring_queue_processor_local_storage&) = delete;
-  mpmc_ring_queue_processor_local_storage& operator=(
-    const mpmc_ring_queue_processor_local_storage&) = delete;
-  mpmc_ring_queue_processor_local_storage(
-    mpmc_ring_queue_processor_local_storage&&) = delete;
-  mpmc_ring_queue_processor_local_storage& operator=(
-    mpmc_ring_queue_processor_local_storage&&) = delete;
+  mpsc_ring_queue_processor_local_storage(
+    const mpsc_ring_queue_processor_local_storage&) = delete;
+  mpsc_ring_queue_processor_local_storage& operator=(
+    const mpsc_ring_queue_processor_local_storage&) = delete;
+  mpsc_ring_queue_processor_local_storage(
+    mpsc_ring_queue_processor_local_storage&&) = delete;
+  mpsc_ring_queue_processor_local_storage& operator=(
+    mpsc_ring_queue_processor_local_storage&&) = delete;
 
   auto reset() noexcept -> void;
 
@@ -44,7 +44,7 @@ public:
 private:
   using sample = detail::global_sample<ClockSample>;
   using processor_samples =
-    detail::mpmc_ring_queue<sample, CapacityPerProcessor>;
+    detail::mpsc_ring_queue<sample, CapacityPerProcessor>;
 
   using processor_id_lookup_thread_local_cache =
     typename detail::processor_id_lookup::thread_local_cache;
@@ -65,6 +65,6 @@ private:
 };
 }
 
-#include <cxxtrace/mpmc_ring_queue_processor_local_storage_impl.h> // IWYU pragma: export
+#include <cxxtrace/mpsc_ring_queue_processor_local_storage_impl.h> // IWYU pragma: export
 
 #endif

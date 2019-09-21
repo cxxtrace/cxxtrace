@@ -33,10 +33,10 @@ class test_snapshot : public test_span<Storage>
 {};
 
 using test_snapshot_types = ::testing::Types<
-  cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
+  cxxtrace::mpsc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
-  mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
+  mpsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;

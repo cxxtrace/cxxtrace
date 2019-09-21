@@ -1,15 +1,15 @@
-#ifndef CXXTRACE_MPMC_RING_QUEUE_STORAGE_IMPL_H
-#define CXXTRACE_MPMC_RING_QUEUE_STORAGE_IMPL_H
+#ifndef CXXTRACE_MPSC_RING_QUEUE_STORAGE_IMPL_H
+#define CXXTRACE_MPSC_RING_QUEUE_STORAGE_IMPL_H
 
-#if !defined(CXXTRACE_MPMC_RING_QUEUE_STORAGE_H)
+#if !defined(CXXTRACE_MPSC_RING_QUEUE_STORAGE_H)
 #error                                                                         \
-  "Include <cxxtrace/mpmc_ring_queue_storage.h> instead of including <cxxtrace/mpmc_ring_queue_storage_impl.h> directly."
+  "Include <cxxtrace/mpsc_ring_queue_storage.h> instead of including <cxxtrace/mpsc_ring_queue_storage_impl.h> directly."
 #endif
 
 #include <algorithm>
 #include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
@@ -22,30 +22,30 @@
 
 namespace cxxtrace {
 template<std::size_t Capacity, class ClockSample>
-mpmc_ring_queue_storage<Capacity,
-                        ClockSample>::mpmc_ring_queue_storage() noexcept =
+mpsc_ring_queue_storage<Capacity,
+                        ClockSample>::mpsc_ring_queue_storage() noexcept =
   default;
 
 template<std::size_t Capacity, class ClockSample>
-mpmc_ring_queue_storage<Capacity,
-                        ClockSample>::~mpmc_ring_queue_storage() noexcept =
+mpsc_ring_queue_storage<Capacity,
+                        ClockSample>::~mpsc_ring_queue_storage() noexcept =
   default;
 
 template<std::size_t Capacity, class ClockSample>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::reset() noexcept -> void
+mpsc_ring_queue_storage<Capacity, ClockSample>::reset() noexcept -> void
 {
   this->samples.reset();
 }
 
 template<std::size_t Capacity, class ClockSample>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::add_sample(
+mpsc_ring_queue_storage<Capacity, ClockSample>::add_sample(
   detail::sample_site_local_data site,
   ClockSample time_point,
   thread_id thread_id) noexcept -> void
 {
-  using detail::mpmc_ring_queue_push_result;
+  using detail::mpsc_ring_queue_push_result;
 
   auto backoff = detail::backoff{};
 retry:
@@ -54,17 +54,17 @@ retry:
       data.set(0, sample{ site, thread_id, time_point });
     });
   switch (result) {
-    case mpmc_ring_queue_push_result::not_pushed_due_to_contention:
+    case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
       backoff.yield(CXXTRACE_HERE);
       goto retry;
-    case mpmc_ring_queue_push_result::pushed:
+    case mpsc_ring_queue_push_result::pushed:
       break;
   }
 }
 
 template<std::size_t Capacity, class ClockSample>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::add_sample(
+mpsc_ring_queue_storage<Capacity, ClockSample>::add_sample(
   detail::sample_site_local_data site,
   ClockSample time_point) noexcept -> void
 {
@@ -74,7 +74,7 @@ mpmc_ring_queue_storage<Capacity, ClockSample>::add_sample(
 template<std::size_t Capacity, class ClockSample>
 template<class Clock>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::take_all_samples(
+mpsc_ring_queue_storage<Capacity, ClockSample>::take_all_samples(
   Clock& clock) noexcept(false) -> samples_snapshot
 {
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
@@ -103,7 +103,7 @@ mpmc_ring_queue_storage<Capacity, ClockSample>::take_all_samples(
 
 template<std::size_t Capacity, class ClockSample>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::
+mpsc_ring_queue_storage<Capacity, ClockSample>::
   remember_current_thread_name_for_next_snapshot() -> void
 {
   auto guard = std::lock_guard{ this->remembered_thread_names_mutex };
@@ -112,7 +112,7 @@ mpmc_ring_queue_storage<Capacity, ClockSample>::
 
 template<std::size_t Capacity, class ClockSample>
 auto
-mpmc_ring_queue_storage<Capacity, ClockSample>::take_remembered_thread_names()
+mpsc_ring_queue_storage<Capacity, ClockSample>::take_remembered_thread_names()
   -> detail::thread_name_set
 {
   auto guard = std::lock_guard{ this->remembered_thread_names_mutex };

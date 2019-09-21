@@ -37,7 +37,7 @@ namespace detail {
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
 // @see ring_queue
-// @see mpmc_ring_queue
+// @see mpsc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
 class spsc_ring_queue
 {
@@ -72,7 +72,7 @@ public:
   template<class Sink>
   auto pop_all_into(Sink&& output) -> void
   {
-    // TODO(strager): Consolidate duplication with mpmc_ring_queue.
+    // TODO(strager): Consolidate duplication with mpsc_ring_queue.
     auto read_vindex = this->read_vindex.load(CXXTRACE_HERE);
 
     auto get_begin_vindex = [&read_vindex](

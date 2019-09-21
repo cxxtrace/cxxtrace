@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
-#include <cxxtrace/mpmc_ring_queue_processor_local_storage.h>
-#include <cxxtrace/mpmc_ring_queue_storage.h>
+#include <cxxtrace/mpsc_ring_queue_processor_local_storage.h>
+#include <cxxtrace/mpsc_ring_queue_storage.h>
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/ring_queue_thread_local_storage.h>
 #include <cxxtrace/ring_queue_unsafe_storage.h>
@@ -16,13 +16,13 @@
 #include <cxxtrace/unbounded_unsafe_storage.h>
 
 namespace cxxtrace_test {
-struct mpmc_ring_queue_processor_local_test_storage_tag
+struct mpsc_ring_queue_processor_local_test_storage_tag
 {};
 template<std::size_t CapacityPerProcessor, class ClockSample>
-using mpmc_ring_queue_processor_local_test_storage =
-  cxxtrace::mpmc_ring_queue_processor_local_storage<
+using mpsc_ring_queue_processor_local_test_storage =
+  cxxtrace::mpsc_ring_queue_processor_local_storage<
     CapacityPerProcessor,
-    mpmc_ring_queue_processor_local_test_storage_tag,
+    mpsc_ring_queue_processor_local_test_storage_tag,
     ClockSample>;
 
 struct ring_queue_thread_local_test_storage_tag
@@ -91,12 +91,12 @@ private:
 };
 
 using test_span_types = ::testing::Types<
-  cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
+  cxxtrace::mpsc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_unsafe_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
   cxxtrace::unbounded_unsafe_storage<clock_sample>,
-  mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
+  mpsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
@@ -107,10 +107,10 @@ class test_span_thread_safe : public test_span<Storage>
 {};
 
 using test_span_thread_safe_types = ::testing::Types<
-  cxxtrace::mpmc_ring_queue_storage<1024, clock_sample>,
+  cxxtrace::mpsc_ring_queue_storage<1024, clock_sample>,
   cxxtrace::ring_queue_storage<1024, clock_sample>,
   cxxtrace::unbounded_storage<clock_sample>,
-  mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
+  mpsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;

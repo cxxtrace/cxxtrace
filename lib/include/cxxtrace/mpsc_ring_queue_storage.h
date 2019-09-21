@@ -1,8 +1,8 @@
-#ifndef CXXTRACE_MPMC_RING_QUEUE_STORAGE_H
-#define CXXTRACE_MPMC_RING_QUEUE_STORAGE_H
+#ifndef CXXTRACE_MPSC_RING_QUEUE_STORAGE_H
+#define CXXTRACE_MPSC_RING_QUEUE_STORAGE_H
 
 #include <cstddef>
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
@@ -12,16 +12,16 @@ namespace cxxtrace {
 class samples_snapshot;
 
 template<std::size_t Capacity, class ClockSample>
-class mpmc_ring_queue_storage
+class mpsc_ring_queue_storage
 {
 public:
-  explicit mpmc_ring_queue_storage() noexcept;
-  ~mpmc_ring_queue_storage() noexcept;
+  explicit mpsc_ring_queue_storage() noexcept;
+  ~mpsc_ring_queue_storage() noexcept;
 
-  mpmc_ring_queue_storage(const mpmc_ring_queue_storage&) = delete;
-  mpmc_ring_queue_storage& operator=(const mpmc_ring_queue_storage&) = delete;
-  mpmc_ring_queue_storage(mpmc_ring_queue_storage&&) = delete;
-  mpmc_ring_queue_storage& operator=(mpmc_ring_queue_storage&&) = delete;
+  mpsc_ring_queue_storage(const mpsc_ring_queue_storage&) = delete;
+  mpsc_ring_queue_storage& operator=(const mpsc_ring_queue_storage&) = delete;
+  mpsc_ring_queue_storage(mpsc_ring_queue_storage&&) = delete;
+  mpsc_ring_queue_storage& operator=(mpsc_ring_queue_storage&&) = delete;
 
   auto reset() noexcept -> void;
 
@@ -39,13 +39,13 @@ private:
 
   auto take_remembered_thread_names() -> detail::thread_name_set;
 
-  detail::mpmc_ring_queue<sample, Capacity> samples;
+  detail::mpsc_ring_queue<sample, Capacity> samples;
 
   std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 };
 }
 
-#include <cxxtrace/mpmc_ring_queue_storage_impl.h> // IWYU pragma: export
+#include <cxxtrace/mpsc_ring_queue_storage_impl.h> // IWYU pragma: export
 
 #endif

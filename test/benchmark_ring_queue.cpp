@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/have.h>
-#include <cxxtrace/detail/mpmc_ring_queue.h>
+#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
@@ -39,7 +39,7 @@ protected:
 
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   ring_queue_benchmark,
-  (cxxtrace::detail::mpmc_ring_queue<int, 1024>),
+  (cxxtrace::detail::mpsc_ring_queue<int, 1024>),
   (cxxtrace::detail::ring_queue<int, 1024>),
   (cxxtrace::detail::spsc_ring_queue<int, 1024>));
 
