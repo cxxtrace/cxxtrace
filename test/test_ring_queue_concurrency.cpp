@@ -9,7 +9,7 @@
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpmc_ring_queue.h>
-#include <cxxtrace/detail/spmc_ring_queue.h>
+#include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/string.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
@@ -763,7 +763,7 @@ auto
 register_concurrency_tests() -> void
 {
   register_single_producer_ring_queue_concurrency_tests<
-    cxxtrace::detail::spmc_ring_queue>();
+    cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpmc_ring_queue>();
   register_multiple_producer_ring_queue_concurrency_tests<

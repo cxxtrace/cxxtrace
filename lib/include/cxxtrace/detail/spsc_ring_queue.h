@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
-#define CXXTRACE_DETAIL_SPMC_RING_QUEUE_H
+#ifndef CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
+#define CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
 
 #include <algorithm>
 #include <array>
@@ -22,13 +22,13 @@ namespace cxxtrace {
 namespace detail {
 // A special-purpose, lossy, bounded, SPMC FIFO container optimized for writes.
 //
-// Special-purpose: Items in a spmc_ring_queue must be trivial. Constructors and
-// destructors are not called on a spmc_ring_queue's items.
+// Special-purpose: Items in a spsc_ring_queue must be trivial. Constructors and
+// destructors are not called on a spsc_ring_queue's items.
 //
 // Lossy: If a writer pushes too many items, older items are discarded.
 //
-// Bounded: The maximum number of items allowed in a spmc_ring_queue is fixed.
-// Operations on a spmc_ring_queue will never allocate memory.
+// Bounded: The maximum number of items allowed in a spsc_ring_queue is fixed.
+// Operations on a spsc_ring_queue will never allocate memory.
 //
 // SPMC: A single thread can push items ("Single Producer"), and zero or more
 // threads can concurrently pop items ("Multiple Consumer").
@@ -40,7 +40,7 @@ namespace detail {
 // @see ring_queue
 // @see mpmc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
-class spmc_ring_queue
+class spsc_ring_queue
 {
 public:
   static_assert(Capacity > 0);
@@ -147,7 +147,7 @@ private:
     std::array<molecular<value_type>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
-    friend class spmc_ring_queue;
+    friend class spsc_ring_queue;
   };
 
   auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>

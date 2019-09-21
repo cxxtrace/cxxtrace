@@ -1,9 +1,9 @@
-#ifndef CXXTRACE_SPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_IMPL_H
-#define CXXTRACE_SPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_IMPL_H
+#ifndef CXXTRACE_SPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_IMPL_H
+#define CXXTRACE_SPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_IMPL_H
 
-#if !defined(CXXTRACE_SPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H)
+#if !defined(CXXTRACE_SPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H)
 #error                                                                         \
-  "Include <cxxtrace/spmc_ring_queue_processor_local_storage.h> instead of including <cxxtrace/spmc_ring_queue_processor_local_storage_impl.h> directly."
+  "Include <cxxtrace/spsc_ring_queue_processor_local_storage.h> instead of including <cxxtrace/spsc_ring_queue_processor_local_storage_impl.h> directly."
 #endif
 
 #include <algorithm>
@@ -26,22 +26,22 @@
 
 namespace cxxtrace {
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
-  ClockSample>::spmc_ring_queue_processor_local_storage() noexcept(false)
+  ClockSample>::spsc_ring_queue_processor_local_storage() noexcept(false)
   : samples_by_processor{ detail::get_maximum_processor_id() + 1 }
 {}
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
-  ClockSample>::~spmc_ring_queue_processor_local_storage() noexcept = default;
+  ClockSample>::~spsc_ring_queue_processor_local_storage() noexcept = default;
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 auto
-spmc_ring_queue_processor_local_storage<CapacityPerProcessor,
+spsc_ring_queue_processor_local_storage<CapacityPerProcessor,
                                         Tag,
                                         ClockSample>::reset() noexcept -> void
 {
@@ -55,7 +55,7 @@ spmc_ring_queue_processor_local_storage<CapacityPerProcessor,
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 auto
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
   ClockSample>::add_sample(detail::sample_site_local_data site,
@@ -86,7 +86,7 @@ retry:
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 auto
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
   ClockSample>::add_sample(detail::sample_site_local_data site,
@@ -98,7 +98,7 @@ spmc_ring_queue_processor_local_storage<
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 template<class Clock>
 auto
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
   ClockSample>::take_all_samples(Clock& clock) noexcept(false)
@@ -148,7 +148,7 @@ spmc_ring_queue_processor_local_storage<
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 auto
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
   ClockSample>::remember_current_thread_name_for_next_snapshot() -> void
@@ -159,7 +159,7 @@ spmc_ring_queue_processor_local_storage<
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 auto
-spmc_ring_queue_processor_local_storage<
+spsc_ring_queue_processor_local_storage<
   CapacityPerProcessor,
   Tag,
   ClockSample>::take_remembered_thread_names() -> detail::thread_name_set

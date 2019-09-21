@@ -38,8 +38,8 @@ using test_snapshot_types = ::testing::Types<
   cxxtrace::unbounded_storage<clock_sample>,
   mpmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
   ring_queue_thread_local_test_storage<1024, clock_sample>,
-  spmc_ring_queue_processor_local_test_storage<1024, clock_sample>,
-  spmc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
+  spsc_ring_queue_processor_local_test_storage<1024, clock_sample>,
+  spsc_ring_queue_thread_local_test_storage<1024, clock_sample>>;
 TYPED_TEST_CASE(test_snapshot, test_snapshot_types, );
 
 TYPED_TEST(test_snapshot, name_of_live_threads)

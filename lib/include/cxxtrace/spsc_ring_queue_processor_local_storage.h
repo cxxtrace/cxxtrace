@@ -1,12 +1,12 @@
-#ifndef CXXTRACE_SPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
-#define CXXTRACE_SPMC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
+#ifndef CXXTRACE_SPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
+#define CXXTRACE_SPSC_RING_QUEUE_PROCESSOR_LOCAL_STORAGE_H
 
 #include <cstddef>
 #include <cxxtrace/detail/lazy_thread_local.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/spin_lock.h>
-#include <cxxtrace/detail/spmc_ring_queue.h>
+#include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
@@ -16,20 +16,20 @@ namespace cxxtrace {
 class samples_snapshot;
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
-class spmc_ring_queue_processor_local_storage
+class spsc_ring_queue_processor_local_storage
 {
 public:
-  explicit spmc_ring_queue_processor_local_storage() noexcept(false);
-  ~spmc_ring_queue_processor_local_storage() noexcept;
+  explicit spsc_ring_queue_processor_local_storage() noexcept(false);
+  ~spsc_ring_queue_processor_local_storage() noexcept;
 
-  spmc_ring_queue_processor_local_storage(
-    const spmc_ring_queue_processor_local_storage&) = delete;
-  spmc_ring_queue_processor_local_storage& operator=(
-    const spmc_ring_queue_processor_local_storage&) = delete;
-  spmc_ring_queue_processor_local_storage(
-    spmc_ring_queue_processor_local_storage&&) = delete;
-  spmc_ring_queue_processor_local_storage& operator=(
-    spmc_ring_queue_processor_local_storage&&) = delete;
+  spsc_ring_queue_processor_local_storage(
+    const spsc_ring_queue_processor_local_storage&) = delete;
+  spsc_ring_queue_processor_local_storage& operator=(
+    const spsc_ring_queue_processor_local_storage&) = delete;
+  spsc_ring_queue_processor_local_storage(
+    spsc_ring_queue_processor_local_storage&&) = delete;
+  spsc_ring_queue_processor_local_storage& operator=(
+    spsc_ring_queue_processor_local_storage&&) = delete;
 
   auto reset() noexcept -> void;
 
@@ -48,7 +48,7 @@ private:
   struct processor_samples
   {
     detail::spin_lock mutex;
-    detail::spmc_ring_queue<sample, CapacityPerProcessor> samples;
+    detail::spsc_ring_queue<sample, CapacityPerProcessor> samples;
   };
 
   using processor_id_lookup_thread_local_cache =
@@ -70,6 +70,6 @@ private:
 };
 }
 
-#include <cxxtrace/spmc_ring_queue_processor_local_storage_impl.h> // IWYU pragma: export
+#include <cxxtrace/spsc_ring_queue_processor_local_storage_impl.h> // IWYU pragma: export
 
 #endif

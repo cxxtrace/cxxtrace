@@ -103,7 +103,7 @@ mpmc_ring_queue_processor_local_storage<
   -> samples_snapshot
 {
   // TODO(strager): Deduplicate code with
-  // spmc_ring_queue_processor_local_storage.
+  // spsc_ring_queue_processor_local_storage.
 
   static_assert(std::is_same_v<typename Clock::sample, ClockSample>);
 

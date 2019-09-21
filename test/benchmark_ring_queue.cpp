@@ -9,7 +9,7 @@
 #include <cxxtrace/detail/mpmc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
-#include <cxxtrace/detail/spmc_ring_queue.h>
+#include <cxxtrace/detail/spsc_ring_queue.h>
 #include <mutex>
 // IWYU pragma: no_forward_declare cxxtrace_test::wrapped_mutex
 
@@ -41,7 +41,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   ring_queue_benchmark,
   (cxxtrace::detail::mpmc_ring_queue<int, 1024>),
   (cxxtrace::detail::ring_queue<int, 1024>),
-  (cxxtrace::detail::spmc_ring_queue<int, 1024>));
+  (cxxtrace::detail::spsc_ring_queue<int, 1024>));
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(ring_queue_benchmark, individual_pushes)
 (benchmark::State& bench)
@@ -60,8 +60,8 @@ CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(ring_queue_benchmark, individual_pushes)
   ->Arg(400);
 
 template<class Mutex>
-class locked_spmc_ring_queue_benchmark
-  : public ring_queue_benchmark<cxxtrace::detail::spmc_ring_queue<int, 1024>>
+class locked_spsc_ring_queue_benchmark
+  : public ring_queue_benchmark<cxxtrace::detail::spsc_ring_queue<int, 1024>>
 {
 protected:
   Mutex mutex;
@@ -72,7 +72,7 @@ protected:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wembedded-directive"
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
-  locked_spmc_ring_queue_benchmark,
+  locked_spsc_ring_queue_benchmark,
 #if CXXTRACE_HAVE_OS_SPIN_LOCK
   wrapped_mutex<apple_os_spin_lock>,
 #endif
@@ -97,7 +97,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   wrapped_mutex<std::mutex>);
 #pragma clang diagnostic pop
 
-CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spmc_ring_queue_benchmark,
+CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
                                      individual_pushes)
 (benchmark::State& bench)
 {
@@ -114,7 +114,7 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spmc_ring_queue_benchmark,
     benchmark::DoNotOptimize(this->queue);
   }
 }
-CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(locked_spmc_ring_queue_benchmark,
+CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
                                        individual_pushes)
   ->Arg(400);
 }

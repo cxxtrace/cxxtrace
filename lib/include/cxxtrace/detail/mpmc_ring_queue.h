@@ -46,7 +46,7 @@ enum class mpmc_ring_queue_push_result : bool
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
 // @see ring_queue
-// @see spmc_ring_queue
+// @see spsc_ring_queue
 template<class T, std::size_t Capacity, class Index = int>
 class mpmc_ring_queue
 {
@@ -87,7 +87,7 @@ public:
   template<class Sink>
   auto pop_all_into(Sink&& output) -> void
   {
-    // TODO(strager): Consolidate duplication with spmc_ring_queue.
+    // TODO(strager): Consolidate duplication with spsc_ring_queue.
     // TODO(strager): Relax memory ordering as appropriate.
     auto guard = lock_guard<mutex>{ this->consumer_mutex, CXXTRACE_HERE };
 
