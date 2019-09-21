@@ -146,7 +146,11 @@ run_all_tests_in_child_processes(
   auto executable = current_executable_path();
   for (auto test_index = decltype(tests.size()){ 0 }; test_index < tests.size();
        ++test_index) {
-    std::fprintf(stderr, "Running test #%d\n", static_cast<int>(test_index));
+    auto* test = tests[test_index];
+    std::fprintf(stderr,
+                 "Running test #%d %s...\n",
+                 static_cast<int>(test_index),
+                 test->name().c_str());
 
     auto test_argv = argv;
     const auto select_argument =
