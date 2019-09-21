@@ -692,7 +692,13 @@ register_single_producer_ring_queue_concurrency_tests() -> void
       initial_push_size,
       concurrent_push_size);
   }
+}
 
+template<template<class T, std::size_t Capacity, class Index = int>
+         class RingQueue>
+auto
+register_multiple_consumer_ring_queue_concurrency_tests() -> void
+{
   for (auto [initial_push_size, concurrent_push_size] : { std::pair{ 1, 0 },
                                                           std::pair{ 2, 0 },
                                                           std::pair{ 0, 1 },
@@ -765,6 +771,8 @@ register_concurrency_tests() -> void
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
+    cxxtrace::detail::mpmc_ring_queue>();
+  register_multiple_consumer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpmc_ring_queue>();
   register_multiple_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpmc_ring_queue>();

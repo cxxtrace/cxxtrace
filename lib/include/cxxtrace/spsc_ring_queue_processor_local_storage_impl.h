@@ -120,16 +120,19 @@ spsc_ring_queue_processor_local_storage<
   {
     return x.timestamp < y.timestamp;
   };
-  // TODO(strager): Avoid excessive copying caused by vector resizes and
-  // repeated calls to inplace_merge.
-  for (auto& processor_samples : this->samples_by_processor) {
-    auto size_before = samples.size();
-    processor_samples.samples.pop_all_into(
-      detail::transform_vector_queue_sink{ samples, make_sample });
-    std::inplace_merge(samples.begin(),
-                       samples.begin() + size_before,
-                       samples.end(),
-                       snapshot_sample_less_by_clock);
+  {
+    auto guard = std::lock_guard<std::mutex>{ this->pop_samples_mutex };
+    // TODO(strager): Avoid excessive copying caused by vector resizes and
+    // repeated calls to inplace_merge.
+    for (auto& processor_samples : this->samples_by_processor) {
+      auto size_before = samples.size();
+      processor_samples.samples.pop_all_into(
+        detail::transform_vector_queue_sink{ samples, make_sample });
+      std::inplace_merge(samples.begin(),
+                         samples.begin() + size_before,
+                         samples.end(),
+                         snapshot_sample_less_by_clock);
+    }
   }
 
   auto named_threads = std::vector<thread_id>{};

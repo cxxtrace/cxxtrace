@@ -62,6 +62,9 @@ private:
   std::mutex remembered_thread_names_mutex;
   detail::thread_name_set remembered_thread_names;
 
+  // Synchronizes consuming samples_by_processor[n].processor_samples.samples.
+  std::mutex pop_samples_mutex;
+
   // TODO(strager): Only create this thread-local variable if it's actually used
   // by processor_id_lookup.
   inline static detail::
