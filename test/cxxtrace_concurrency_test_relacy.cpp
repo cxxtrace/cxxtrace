@@ -90,6 +90,7 @@ run_concurrency_test_with_relacy_with_threads(concurrency_test* test) -> void
   options.search_type = relacy_search_type(test->test_depth());
 
   test_wrapper::test = test;
+  *options.output_stream << "Testing " << test->name() << "...\n";
   auto succeeded = rl::simulate<test_wrapper>(options);
   test_wrapper::test = nullptr;
 
