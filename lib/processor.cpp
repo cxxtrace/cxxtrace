@@ -37,7 +37,9 @@ get_maximum_supported_basic_cpuid() -> std::uint32_t
   // 0H: EAX: Maximum Input Value for Basic CPUID Information.
   return eax;
 }
+#endif
 
+#if defined(__x86_64__) && CXXTRACE_HAVE_PROCESSOR_ID_IN_X86_TSC_AUX
 auto
 get_maximum_supported_extended_cpuid() -> std::uint32_t
 {
