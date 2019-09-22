@@ -1,0 +1,26 @@
+steps:
+- script: |
+   set -eux
+   cmake --build . -- -j4
+  displayName: Build
+  workingDirectory: $(cxxtrace.BuildDirectory)
+
+- script: |
+   set -eux
+   ctest \
+     --no-compress-output \
+     --test-action test \
+     --test-output-size-failed 0 \
+     --test-output-size-passed 0 \
+     --verbose
+  displayName: Test
+  workingDirectory: $(cxxtrace.BuildDirectory)
+
+- task: PublishTestResults@2
+  displayName: Publish test results
+  inputs:
+    testResultsFormat: CTest
+    testResultsFiles: Testing/*/Test.xml
+    searchFolder: $(cxxtrace.BuildDirectory)
+    failTaskOnFailedTests: true
+  condition: succeededOrFailed()

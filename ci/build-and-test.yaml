@@ -66,28 +66,44 @@ jobs:
     workingDirectory: $(cxxtrace.BuildDirectory)
     timeoutInMinutes: 180
 
+  - template: build-and-test-steps.template.yaml
+
+- job: ubuntu_gcc_8_debug
+  displayName: 'Build & test: Ubuntu GCC 8 debug'
+
+  pool:
+    vmImage: ubuntu-16.04
+  container:
+    # See cxxtrace-ubuntu-19.04-gcc-8.Dockerfile and rebuild-docker-images.sh.
+    image: strager/cxxtrace-ubuntu-19.04-gcc-8:latest
+
+  variables:
+    # CXXTRACE_SOURCEDIRECTORY
+    cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)
+    # CXXTRACE_BUILDDIRECTORY
+    cxxtrace.BuildDirectory: $(System.DefaultWorkingDirectory)/build
+
+  steps:
   - script: |
      set -eux
-     cmake --build . -- -j4
-    displayName: Build
-    workingDirectory: $(cxxtrace.BuildDirectory)
+     mkdir -p -- "${CXXTRACE_BUILDDIRECTORY}"
+    displayName: Configure checkout
 
   - script: |
      set -eux
-     ctest \
-       --no-compress-output \
-       --test-action test \
-       --test-output-size-failed 0 \
-       --test-output-size-passed 0 \
-       --verbose
-    displayName: Test
+     cflags='-Wall -Wextra'
+     cmake \
+       -G 'Unix Makefiles' \
+       -DBUILD_TESTING=ON \
+       -DCMAKE_BUILD_TYPE=Debug \
+       -DCMAKE_C_COMPILER=gcc-8 \
+       -DCMAKE_CXX_COMPILER=g++-8 \
+       -DCMAKE_C_FLAGS="${cflags}" \
+       -DCMAKE_CXX_FLAGS="${cflags}" \
+       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+       "${CXXTRACE_SOURCEDIRECTORY}"
+    displayName: Configure
     workingDirectory: $(cxxtrace.BuildDirectory)
+    timeoutInMinutes: 180
 
-  - task: PublishTestResults@2
-    displayName: Publish test results
-    inputs:
-      testResultsFormat: CTest
-      testResultsFiles: Testing/*/Test.xml
-      searchFolder: $(cxxtrace.BuildDirectory)
-      failTaskOnFailedTests: true
-    condition: succeededOrFailed()
+  - template: build-and-test-steps.template.yaml
