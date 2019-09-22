@@ -43,7 +43,7 @@ struct stringifier<const char (&)[Size]>
 
   static auto append(const char (&x)[Size],
                      char* out,
-                     char* buffer_end) noexcept -> char*
+                     [[maybe_unused]] char* buffer_end) noexcept -> char*
   {
     assert(buffer_end >= out);
     assert(std::size_t(buffer_end - out) >= max_length);
