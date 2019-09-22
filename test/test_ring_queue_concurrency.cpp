@@ -486,7 +486,7 @@ private:
   {
     using std::experimental::pmr::vector;
 
-    auto producer_thread_indexes = vector<int>{};
+    auto producer_thread_indexes = vector<int>{ memory };
     for (auto thread_index = 0;
          thread_index < int(producer_push_results.size());
          ++thread_index) {
