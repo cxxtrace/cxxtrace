@@ -30,6 +30,7 @@ public:
   ~samples_snapshot() noexcept;
 
   auto at(size_type index) const noexcept(false) -> sample_ref;
+  auto empty() const noexcept -> bool;
   auto size() const noexcept -> size_type;
 
   auto thread_name(thread_id) const noexcept -> czstring;

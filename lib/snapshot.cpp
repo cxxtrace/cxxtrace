@@ -37,6 +37,12 @@ samples_snapshot::at(size_type index) const noexcept(false) -> sample_ref
 }
 
 auto
+samples_snapshot::empty() const noexcept -> bool
+{
+  return this->samples.empty();
+}
+
+auto
 samples_snapshot::size() const noexcept -> size_type
 {
   return size_type{ this->samples.size() };
