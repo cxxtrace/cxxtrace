@@ -153,7 +153,7 @@ parse_integer_value(std::string_view value_string) -> std::optional<T>
     return std::nullopt;
   }
 
-  T value /* uninitialized */;
+  auto value = T{};
   auto result = std::from_chars(
     value_string.data(), value_string.data() + value_string.size(), value);
   if (result.ptr == value_string.data()) {

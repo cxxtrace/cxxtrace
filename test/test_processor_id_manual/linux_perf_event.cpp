@@ -8,6 +8,7 @@
 #include <cxxtrace/detail/atomic_ref.h>
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/processor.h>
+#include <cxxtrace/detail/warning.h>
 #include <iomanip>
 #include <iostream>
 #include <linux/perf_event.h>
@@ -59,6 +60,8 @@ struct thread_schedule_tracer::impl
   {
     explicit processor_tracer(processor_number processor_number)
     {
+      CXXTRACE_WARNING_PUSH
+      CXXTRACE_WARNING_IGNORE_GCC("-Wmissing-field-initializers")
       auto event_attributes = ::perf_event_attr{
         .type = PERF_TYPE_SOFTWARE,
         .size = sizeof(::perf_event_attr),
@@ -85,6 +88,7 @@ struct thread_schedule_tracer::impl
         .namespaces = false,
         .clockid = clock_id,
       };
+      CXXTRACE_WARNING_POP
       // TODO(strager): If we track specific pids, can we call perf_event_open
       // and run test_processor_id_manual as non-root?
       auto pid = ::pid_t{ -1 };
@@ -196,8 +200,9 @@ auto
 thread_schedule_tracer::initialize() -> void
 {
   for (auto processor_number : this->impl_->cpuinfo.get_processor_numbers()) {
-    auto [it, inserted] = this->impl_->processor_tracers.emplace(
-      processor_number, processor_number);
+    [[maybe_unused]] auto [it, inserted] =
+      this->impl_->processor_tracers.emplace(processor_number,
+                                             processor_number);
     assert(inserted);
   }
 }
@@ -231,7 +236,6 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
   };
 
   auto process_id = this->impl_->process_id;
-  auto& clock = *this->impl_->clock;
 
   auto executions = thread_executions{};
   for (const auto& [processor_number, processor_tracer] :
@@ -251,7 +255,9 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
             constexpr auto deemphasize = ECMA_048_SGR_FAINT "   ";
             auto& out = std::clog;
             auto old_flags = out.setf(out.left, out.adjustfield);
-            out << (s->sample_id.pid == process_id ? emphasize : deemphasize)
+            out << (static_cast<::pid_t>(s->sample_id.pid) == process_id
+                      ? emphasize
+                      : deemphasize)
                 << '@' << s->sample_id.time << ": #" << processor_number
                 << "(id=" << processor_id << ") " << (off_cpu ? "off" : "on ")
                 << "  pid=" << std::setw(8)
@@ -307,33 +313,28 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
     };
 
     auto& processor_executions = executions.by_processor[processor_id];
-    auto last_event = std::optional<scheduler_event>{};
-    for (auto& event : decode_scheduler_events()) {
+    auto events = decode_scheduler_events();
+    // If events[0] is an off-cpu event, ignore it. It doesn't have a
+    // corresponding on-cpu event, so we can't determine begin_timestamp.
+    for (auto i = std::size_t{ 1 }; i < events.size(); ++i) {
+      const auto& event = events[i];
+      const auto& last_event = events[i - 1];
       if (event.on_cpu) {
-        if (last_event) {
-          assert(!last_event->on_cpu);
-        }
+        assert(!last_event.on_cpu);
       } else {
-        if (last_event) {
-          assert(last_event->on_cpu);
-          assert(event.timestamp >= last_event->timestamp);
+        assert(last_event.on_cpu);
+        assert(event.timestamp >= last_event.timestamp);
 
-          auto thread_exited = event.thread_id == -1;
-          if (!thread_exited) {
-            assert(event.thread_id == last_event->thread_id);
-          }
-          auto thread_id = last_event->thread_id;
-          if (last_event->process_id == process_id) {
-            processor_executions.emplace_back(
-              thread_executions::thread_execution{
-                last_event->timestamp, event.timestamp, thread_id });
-          }
-        } else {
-          // Ignore this off-cpu event. We don't have a corresponding on-cpu
-          // event, so we can't determine begin_timestamp.
+        auto thread_exited = event.thread_id == -1;
+        if (!thread_exited) {
+          assert(event.thread_id == last_event.thread_id);
+        }
+        auto thread_id = last_event.thread_id;
+        if (last_event.process_id == process_id) {
+          processor_executions.emplace_back(thread_executions::thread_execution{
+            last_event.timestamp, event.timestamp, thread_id });
         }
       }
-      last_event = event;
     }
   }
 

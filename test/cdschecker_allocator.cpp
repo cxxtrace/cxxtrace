@@ -5,11 +5,12 @@
 #include "cdschecker_allocator.h"
 #include <array>
 #include <cstddef>
+#include <cxxtrace/detail/warning.h>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-parameter")
 #include "mymemory.h"
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 
 namespace cxxtrace_test {
 // CDSChecker's realloc() fails before CDSChecker's main() is called. (malloc()

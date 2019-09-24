@@ -50,6 +50,12 @@ target_link_libraries(test_cxxtrace_nlohmann_json PRIVATE cxxtrace gmock gtest g
 set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 set_target_properties(test_cxxtrace_nlohmann_json PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch_nlohmann_json.h)
 cxxtrace_cotire(test_cxxtrace_nlohmann_json)
+set_property(
+  SOURCE nlohmann_json.cpp
+  APPEND_STRING PROPERTY
+  COMPILE_FLAGS
+  " -Wno-sign-compare"
+)
 
 add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
 target_link_libraries(cxxtrace_concurrency_test PUBLIC cxxtrace PRIVATE cxxtrace_support)

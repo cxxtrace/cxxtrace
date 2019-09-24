@@ -9,6 +9,8 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
+#include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/warning.h>
 #include <exception>
 #include <experimental/memory_resource>
 #include <experimental/string>
@@ -19,15 +21,20 @@
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <type_traits>
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#pragma clang diagnostic ignored "-Wextra-semi"
-#pragma clang diagnostic ignored "-Winline-new-delete"
-#pragma clang diagnostic ignored "-Wmissing-field-initializers"
-#pragma clang diagnostic ignored "-Wunused-parameter"
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated-declarations")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdollar-in-identifier-extension")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wextra-semi")
+CXXTRACE_WARNING_IGNORE_CLANG("-Winline-new-delete")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wmissing-field-initializers")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-parameter")
+CXXTRACE_WARNING_IGNORE_GCC("-Wmissing-field-initializers")
+CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
+CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
-#include <cxxtrace/detail/debug_source_location.h>
+// Needed by <relacy/context_base.hpp>.
+#include <relacy/thread_local_ctx.hpp>
+
 #include <relacy/backoff.hpp>
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
@@ -35,7 +42,7 @@
 #include <relacy/test_params.hpp>
 #include <relacy/test_suite.hpp>
 
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 
 namespace cxxtrace_test {
 namespace detail {
