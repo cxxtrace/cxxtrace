@@ -12,7 +12,7 @@ mmap_mapping::mmap_mapping(void* data, std::size_t size) noexcept
   , size_{ size }
 {}
 
-mmap_mapping::mmap_mapping(mmap_mapping&& other) noexcept
+mmap_mapping::mmap_mapping(mmap_mapping&&) noexcept
 {
   __builtin_trap(); // TODO(strager): Implement.
 }

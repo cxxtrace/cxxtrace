@@ -324,7 +324,7 @@ thread_name_set::fetch_and_remember_thread_name_for_id_procfs(
                  std::strerror(error));
     return;
   }
-  assert(thread_name_length <= thread_name.size());
+  assert(std::size_t(thread_name_length) <= thread_name.size());
   auto end_of_line_index = thread_name.find('\n');
   if (end_of_line_index != thread_name.npos) {
     thread_name_length = end_of_line_index;

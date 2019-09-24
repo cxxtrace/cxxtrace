@@ -163,4 +163,11 @@
 #define CXXTRACE_HAVE_LIBRSEQ 1
 #endif
 
+#if defined(__has_attribute)
+#if __has_attribute(no_unique_address)
+// [[no_unique_address]]
+#define CXXTRACE_HAVE_NO_UNIQUE_ADDRESS 1
+#endif
+#endif
+
 #endif

@@ -92,15 +92,24 @@ if (CXXTRACE_CDSCHECKER)
     -Wno-gnu-zero-variadic-macro-arguments
     -Wno-ignored-qualifiers
     -Wno-implicit-exception-spec-mismatch
+    -Wno-implicit-fallthrough
+    -Wno-unknown-warning-option
+    -Wno-unused-but-set-variable
     -Wno-unused-parameter
     -Wno-unused-private-field
     -Wno-vla-extension
   )
   set_property(
+    SOURCE CDSChecker/mymemory.cc
+    APPEND_STRING PROPERTY
+    COMPILE_FLAGS
+    " -Wno-sized-deallocation"
+  )
+  set_property(
     SOURCE CDSChecker/malloc.c
     APPEND_STRING PROPERTY
     COMPILE_FLAGS
-    " -Wno-expansion-to-defined -Wno-null-pointer-arithmetic -Wno-sign-compare -Wno-unknown-warning-option -Wno-unused-variable"
+    " -Wno-empty-body -Wno-expansion-to-defined -Wno-null-pointer-arithmetic -Wno-sign-compare -Wno-unknown-warning-option -Wno-unused-variable"
   )
   # Allow dynamic exception specifications (deprecated in C++17).
   set_property(

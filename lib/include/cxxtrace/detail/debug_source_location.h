@@ -2,14 +2,18 @@
 #define CXXTRACE_DETAIL_DEBUG_SOURCE_LOCATION_H
 
 #if CXXTRACE_ENABLE_RELACY
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#include <cxxtrace/detail/warning.h>
+
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated-declarations")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdollar-in-identifier-extension")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-parameter")
+CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
+CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
 #include <relacy/base.hpp>
 
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 #endif
 
 namespace cxxtrace {

@@ -10,6 +10,7 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spin_lock.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/warning.h>
 #include <mutex>
 // IWYU pragma: no_forward_declare cxxtrace_test::wrapped_mutex
 
@@ -48,7 +49,9 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(ring_queue_benchmark, individual_pushes)
 {
   for (auto _ : bench) {
     this->queue.reset();
+#if defined(__clang__)
 #pragma clang loop unroll_count(1)
+#endif
     for (auto i = 0; i < this->items_per_iteration; ++i) {
       this->queue.push(
         1, [i](auto data) noexcept { data.set(0, i); });
@@ -69,8 +72,8 @@ protected:
 
 // TODO(strager): Allow CXXTRACE_BENCHMARK_REGISTER_TEMPLATE_F to be called
 // multiple times or something to avoid #if in macro arguments.
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wembedded-directive"
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wembedded-directive")
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   locked_spsc_ring_queue_benchmark,
 #if CXXTRACE_HAVE_OS_SPIN_LOCK
@@ -95,7 +98,7 @@ CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   wrapped_mutex<compare_exchange_strong_spin_lock<std::uint64_t>>,
   wrapped_mutex<compare_exchange_strong_spin_lock<std::uint8_t>>,
   wrapped_mutex<std::mutex>);
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
                                      individual_pushes)
@@ -103,7 +106,9 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
 {
   for (auto _ : bench) {
     this->queue.reset();
+#if defined(__clang__)
 #pragma clang loop unroll_count(1)
+#endif
     for (auto i = 0; i < this->items_per_iteration; ++i) {
       if (this->mutex.try_lock(CXXTRACE_HERE)) {
         this->queue.push(

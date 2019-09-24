@@ -25,6 +25,10 @@
 #define CXXTRACE_WORK_AROUND_CLANG_24883 1
 #endif
 
+#if CXXTRACE_WORK_AROUND_CLANG_24883
+#include <cxxtrace/detail/warning.h>
+#endif
+
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)
 
@@ -246,12 +250,12 @@ TYPED_TEST(test_span_thread_safe,
   struct workload
   {
 #if CXXTRACE_WORK_AROUND_CLANG_24883
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-local-typedef"
+    CXXTRACE_WARNING_PUSH
+    CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-local-typedef")
 #endif
     using item_type = int;
 #if CXXTRACE_WORK_AROUND_CLANG_24883
-#pragma clang diagnostic pop
+    CXXTRACE_WARNING_POP
 #endif
 
     auto do_work() noexcept -> void

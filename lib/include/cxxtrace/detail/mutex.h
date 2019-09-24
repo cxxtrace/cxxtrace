@@ -9,16 +9,19 @@
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#pragma clang diagnostic ignored "-Wdollar-in-identifier-extension"
-#pragma clang diagnostic ignored "-Wextra-semi"
-#pragma clang diagnostic ignored "-Winline-new-delete"
-#pragma clang diagnostic ignored "-Wunused-parameter"
+#include <cxxtrace/detail/warning.h>
+
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated-declarations")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdollar-in-identifier-extension")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wextra-semi")
+CXXTRACE_WARNING_IGNORE_CLANG("-Winline-new-delete")
+CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-parameter")
+CXXTRACE_WARNING_IGNORE_GCC("-Wmissing-field-initializers")
 
 #include <relacy/stdlib/mutex.hpp>
 
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 #endif
 
 namespace cxxtrace {

@@ -12,6 +12,7 @@
 #include <utility>
 
 #if CXXTRACE_HAVE_OS_SPIN_LOCK
+#include <cxxtrace/detail/warning.h>
 #include <libkern/OSSpinLockDeprecated.h>
 #endif
 
@@ -81,8 +82,8 @@ private:
 };
 
 #if CXXTRACE_HAVE_OS_SPIN_LOCK
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated"
+CXXTRACE_WARNING_PUSH
+CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated")
 class apple_os_spin_lock
 {
 public:
@@ -93,7 +94,7 @@ public:
 private:
   ::OSSpinLock lock{ OS_SPINLOCK_INIT };
 };
-#pragma clang diagnostic pop
+CXXTRACE_WARNING_POP
 #endif
 
 #if CXXTRACE_HAVE_OS_UNFAIR_LOCK
