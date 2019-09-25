@@ -352,7 +352,7 @@ processor_id_lookup_rseq::supported() const noexcept -> bool
     return false;
   }
 #else
-#error "Unknown platform"
+  return false;
 #endif
   return this->fallback_lookup.supported();
 }

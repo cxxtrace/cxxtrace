@@ -15,6 +15,10 @@
 #include <rseq/rseq.h>
 #endif
 
+#if CXXTRACE_HAVE_RSEQ && !CXXTRACE_HAVE_LIBRSEQ
+#include <cxxtrace/detail/warning.h>
+#endif
+
 namespace cxxtrace {
 namespace detail {
 #if CXXTRACE_HAVE_RSEQ
@@ -40,7 +44,13 @@ registered_rseq::register_current_thread() noexcept -> registered_rseq
   // available.
   // TODO(strager): When an ABI is agreed upon, implement registration using
   // syscalls directly.
-#error "Unknown platform"
+  CXXTRACE_WARNING_PUSH
+  CXXTRACE_WARNING_IGNORE_GCC("-Wmissing-field-initializers")
+  static auto fake_rseq = ::rseq{
+    .cpu_id = static_cast<std::uint32_t>(RSEQ_CPU_ID_UNINITIALIZED),
+  };
+  CXXTRACE_WARNING_POP
+  return registered_rseq{ &fake_rseq };
 #endif
 }
 
@@ -55,8 +65,6 @@ registered_rseq::~registered_rseq()
       // ::rseq_unregister_current_thread only fails if the ref count is already
       // zero, which is a programmer error.
     }
-#else
-#error "Unknown platform"
 #endif
   }
 }

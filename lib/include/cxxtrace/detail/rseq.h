@@ -10,7 +10,6 @@ struct rseq;
 
 namespace cxxtrace {
 namespace detail {
-#if CXXTRACE_HAVE_RSEQ
 class registered_rseq
 {
 public:
@@ -36,7 +35,6 @@ private:
 
   ::rseq* rseq;
 };
-#endif
 }
 }
 

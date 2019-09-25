@@ -5,7 +5,7 @@
 #include <cxxtrace/detail/attribute.h>
 #include <cxxtrace/detail/have.h>
 
-#if CXXTRACE_HAVE_LIBRSEQ
+#if CXXTRACE_HAVE_RSEQ
 #include <cxxtrace/detail/rseq.h>
 #endif
 
