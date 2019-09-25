@@ -3,13 +3,21 @@ cmake_minimum_required(VERSION 3.10)
 include(FindPackageHandleStandardArgs)
 include(cxxtrace_check_cxx_source_compiles)
 
-add_library(CxxtraceStdFilesystem INTERFACE)
+function (CXXTRACE_FIND_AND_ADD_LIBRARY)
+  if (TARGET CxxtraceStdFilesystem)
+    set(ADD_LIBRARY FALSE)
+  else ()
+    set(ADD_LIBRARY TRUE)
+  endif ()
 
-function (CXXTRACE_FIND)
   if (CxxtraceStdFilesystem_FIND_QUIETLY)
     set(QUIET_OPTIONS QUIET)
   else ()
     set(QUIET_OPTIONS)
+  endif ()
+
+  if (ADD_LIBRARY)
+    add_library(CxxtraceStdFilesystem INTERFACE)
   endif ()
 
   set(STD_FILESYSTEM_SOURCE "#include <cstdio>
@@ -49,13 +57,15 @@ int main() {
   )
   if (CXXTRACE_HAS_STD_FILESYSTEM_WITH_LIBSTDCXXFS)
     set(CxxtraceStdFilesystem_FOUND TRUE PARENT_SCOPE)
-    target_link_libraries(CxxtraceStdFilesystem INTERFACE stdc++fs)
+    if (ADD_LIBRARY)
+      target_link_libraries(CxxtraceStdFilesystem INTERFACE stdc++fs)
+    endif ()
     return ()
   endif ()
 
   set(CxxtraceStdFilesystem_FOUND FALSE PARENT_SCOPE)
 endfunction ()
-cxxtrace_find()
+cxxtrace_find_and_add_library()
 
 find_package_handle_standard_args(
   CxxtraceStdFilesystem

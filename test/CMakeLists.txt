@@ -3,6 +3,8 @@ enable_language(ASM)
 
 include(cxxtrace_cotire)
 
+find_package(CxxtraceStdFilesystem REQUIRED)
+
 add_subdirectory(test_processor_id_manual)
 add_subdirectory(test_ring_queue)
 
@@ -224,4 +226,10 @@ add_library(
   pretty_type_name.cpp
   thread.cpp
 )
-target_link_libraries(cxxtrace_support PRIVATE Threads::Threads cxxtrace)
+target_link_libraries(
+  cxxtrace_support
+  PRIVATE
+  CxxtraceStdFilesystem
+  Threads::Threads
+  cxxtrace
+)

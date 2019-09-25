@@ -428,7 +428,7 @@ TEST(test_thread_name, dead_threads_have_no_name)
   auto thread =
     std::thread{ [&] { thread_id = cxxtrace::get_current_thread_id(); } };
   thread.join();
-  await_thread_exit(thread);
+  await_thread_exit(thread, thread_id);
 
   auto thread_names = cxxtrace::detail::thread_name_set{};
   thread_names.fetch_and_remember_thread_name_for_id(thread_id);
@@ -516,7 +516,7 @@ TEST(test_thread_name, getting_name_of_dead_thread_does_not_update_set)
 
   kill_thread.set();
   thread.join();
-  await_thread_exit(thread);
+  await_thread_exit(thread, thread_id);
 
   names.fetch_and_remember_thread_name_for_id(thread_id);
   EXPECT_STREQ(names.name_of_thread_by_id(thread_id), "original name")
