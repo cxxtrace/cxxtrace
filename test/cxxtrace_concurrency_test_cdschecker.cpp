@@ -4,8 +4,10 @@
 
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
+#include <cstring>
 #include <cxxtrace/detail/cdschecker.h>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/string.h>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
@@ -61,6 +63,26 @@ concurrency_log(void (*make_message)(std::ostream&, void* opaque),
   auto& out = std::cout;
   make_message(out, opaque);
   out << '\n';
+}
+
+namespace detail {
+auto
+cdschecker_assert_failure(cxxtrace::czstring file_name, int line_number) -> void
+{
+  // HACK(strager): model_assert's assertion message buffer has a fixed size,
+  // and CDSChecker uses an unchecked sprintf to write the message. To avoid
+  // undefined behavior, truncate the file name to hopefully fit the assertion
+  // message within the buffer's bounds.
+  constexpr auto max_file_name_length = 40;
+  auto file_name_length = std::strlen(file_name);
+  auto truncated_file_name =
+    file_name_length > max_file_name_length
+      ? file_name + file_name_length - max_file_name_length
+      : file_name;
+
+  cxxtrace::detail::cdschecker::model_assert(
+    false, truncated_file_name, line_number);
+}
 }
 }
 

@@ -17,6 +17,7 @@
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include <cxxtrace/detail/cdschecker.h>
+#include <cxxtrace/string.h>
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
@@ -54,8 +55,11 @@ CXXTRACE_WARNING_POP
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 #define CXXTRACE_ASSERT(...)                                                   \
-  ::cxxtrace::detail::cdschecker::model_assert(                                \
-    (__VA_ARGS__), __FILE__, __LINE__)
+  do {                                                                         \
+    if (!(__VA_ARGS__)) {                                                      \
+      ::cxxtrace_test::detail::cdschecker_assert_failure(__FILE__, __LINE__);  \
+    }                                                                          \
+  } while (false)
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
@@ -203,6 +207,12 @@ concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
 }
 
 namespace detail {
+#if CXXTRACE_ENABLE_CDSCHECKER
+auto
+cdschecker_assert_failure(cxxtrace::czstring file_name, int line_number)
+  -> void;
+#endif
+
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
 auto
 concurrency_stress_assert(cxxtrace::czstring message,
