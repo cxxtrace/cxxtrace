@@ -95,7 +95,7 @@ public:
 
   explicit real_atomic() noexcept /* data uninitialized */ = default;
 
-  explicit real_atomic(T value) noexcept
+  real_atomic(T value) noexcept
     : data{ value }
   {}
 
@@ -158,7 +158,7 @@ class real_nonatomic : public nonatomic_base
 public:
   explicit real_nonatomic() noexcept /* data uninitialized */ = default;
 
-  explicit real_nonatomic(T value) noexcept
+  real_nonatomic(T value) noexcept
     : data{ value }
   {}
 
@@ -237,7 +237,7 @@ public:
 
   explicit cdschecker_atomic() noexcept /* data uninitialized */ = default;
 
-  explicit cdschecker_atomic(T value) noexcept
+  cdschecker_atomic(T value) noexcept
   {
     cdschecker::model_init_action(&this->data, this->from_t(value));
   }
@@ -390,7 +390,7 @@ private:
 public:
   explicit cdschecker_nonatomic() /* data uninitialized */ = default;
 
-  explicit cdschecker_nonatomic(T value) noexcept
+  cdschecker_nonatomic(T value) noexcept
     : storage{ this->value_to_storage(value) }
   {}
 
@@ -467,7 +467,7 @@ public:
 
   explicit relacy_atomic() /* data uninitialized */ = default;
 
-  explicit relacy_atomic(T value) noexcept
+  relacy_atomic(T value) noexcept
     : data{ value }
   {}
 
@@ -515,7 +515,7 @@ class relacy_nonatomic : public nonatomic_base
 public:
   explicit relacy_nonatomic() /* data uninitialized */ = default;
 
-  explicit relacy_nonatomic(T value) noexcept
+  relacy_nonatomic(T value) noexcept
     : data{ value }
   {}
 

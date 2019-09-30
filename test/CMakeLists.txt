@@ -100,12 +100,12 @@ if (CXXTRACE_CDSCHECKER)
 endif ()
 
 function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
-  cmake_parse_arguments("" "" "" "" ${ARGN})
+  cmake_parse_arguments("" NO_CDSCHECKER "" "" ${ARGN})
   set(SOURCES ${_UNPARSED_ARGUMENTS})
 
   add_library(${BASE_NAME} INTERFACE)
 
-  if (CXXTRACE_CDSCHECKER)
+  if (CXXTRACE_CDSCHECKER AND NOT _NO_CDSCHECKER)
     add_executable(
       ${BASE_NAME}_cdschecker
       ${SOURCES}
@@ -134,6 +134,7 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
     # cxxtrace_concurrency_test_main_relacy.cpp into their own library.
     cxxtrace_concurrency_test_main_relacy.cpp
     cxxtrace_concurrency_test_relacy.cpp
+    rseq_scheduler.cpp
     ${SOURCES}
   )
   target_compile_definitions(
@@ -192,6 +193,7 @@ add_library(
   cxxtrace_test_concurrency_stress_main
   STATIC
   cxxtrace_concurrency_test_main_stress.cpp
+  rseq_scheduler.cpp
 )
 target_compile_definitions(
   cxxtrace_test_concurrency_stress_main
@@ -209,6 +211,20 @@ cxxtrace_add_concurrency_tests(
   test_ring_queue_concurrency.cpp
 )
 target_link_libraries(cxxtrace_test_ring_queue_concurrency INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_rseq_scheduler
+  test_rseq_scheduler.cpp
+  NO_CDSCHECKER
+)
+target_link_libraries(cxxtrace_test_rseq_scheduler INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_rseq_scheduler_examples
+  test_rseq_scheduler_examples.cpp
+  NO_CDSCHECKER
+)
+target_link_libraries(cxxtrace_test_rseq_scheduler_examples INTERFACE cxxtrace)
 
 cxxtrace_add_concurrency_tests(
   cxxtrace_test_thread_local_var_concurrency

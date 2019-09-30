@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_DETAIL_MUTEX_H
 #define CXXTRACE_DETAIL_MUTEX_H
 
+#include <cassert>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <mutex>
 
@@ -75,6 +76,13 @@ template<class Mutex>
 class unique_lock
 {
 public:
+  explicit unique_lock(Mutex& mutex, debug_source_location caller)
+    : mutex_{ mutex }
+    , caller_{ caller }
+  {
+    this->lock(caller);
+  }
+
   explicit unique_lock(Mutex& mutex,
                        try_to_lock_t,
                        debug_source_location caller) noexcept
@@ -97,6 +105,20 @@ public:
   auto owns_lock() const noexcept -> bool { return this->owns_lock_; }
 
   explicit operator bool() const noexcept { return this->owns_lock(); }
+
+  auto lock(debug_source_location caller) -> void
+  {
+    assert(!this->owns_lock());
+    this->mutex_.lock(caller);
+    this->owns_lock_ = true;
+  }
+
+  auto unlock(debug_source_location caller) -> void
+  {
+    assert(this->owns_lock());
+    this->mutex_.unlock(caller);
+    this->owns_lock_ = false;
+  }
 
 private:
   Mutex& mutex_;

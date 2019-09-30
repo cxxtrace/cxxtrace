@@ -4,11 +4,9 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
-#include <cxxtrace/detail/workarounds.h>
 #include <string>
 
 #if CXXTRACE_ENABLE_RELACY
-#include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #endif
 
@@ -26,9 +24,6 @@ public:
 #endif
 
     *this->var = 1;
-#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
-    // If this->var is not reset between iterations, the assert above will fail.
-#endif
   }
 
   auto tear_down() -> void {}
