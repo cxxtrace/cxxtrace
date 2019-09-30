@@ -102,7 +102,8 @@ register_concurrency_test(int thread_count,
 
     auto set_up() -> void override
     {
-      assert(!this->test_object.has_value());
+      // assert(!this->test_object.has_value()); // @@@
+      new (&this->test_object) std::optional<Test>{}; // @@@
       std::apply(
         [this](const Args&... args) { this->test_object.emplace(args...); },
         this->args);
@@ -205,6 +206,17 @@ concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
     &func,
     caller);
 }
+
+auto
+concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int;
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+using concurrency_stress_generation = std::int64_t;
+
+auto
+current_concurrency_stress_generation() noexcept
+  -> concurrency_stress_generation;
+#endif
 
 namespace detail {
 #if CXXTRACE_ENABLE_CDSCHECKER

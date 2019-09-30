@@ -1,6 +1,7 @@
 #include "concurrency_test_runner.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <condition_variable>
 #include <cxxtrace/string.h>
@@ -40,7 +41,7 @@ public:
       this->failures_.clear();
     }
 
-    this->run_count_ += 1;
+    this->run_count_.store(this->run_count_.load() + 1);
     this->test_->set_up();
 
     {
@@ -86,7 +87,7 @@ public:
     this->current_round_ = round::tick;
   }
 
-  auto run_count() -> long { return this->run_count_; }
+  auto run_count() -> long { return this->run_count_.load(); }
 
   auto add_failure(cxxtrace::czstring message) -> void
   {
@@ -154,7 +155,7 @@ private:
   detail::concurrency_test* test_;
 
   std::vector<worker> workers_{};
-  long run_count_{ 0 };
+  std::atomic<long> run_count_{ 0 };
 
   // mutex_ protects worker::finished_round (in workers_), exit_workers_,
   // current_round_, and failures_.

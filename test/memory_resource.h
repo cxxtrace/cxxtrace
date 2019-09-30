@@ -1,9 +1,10 @@
 #ifndef CXXTRACE_MEMORY_RESOURCE_H
 #define CXXTRACE_MEMORY_RESOURCE_H
 
-#include <experimental/memory_resource>
-
 #include <cstddef>
+#include <experimental/memory_resource>
+#include <new>
+#include <utility>
 
 namespace cxxtrace_test {
 // TODO(strager): Use the standard library's monotonic_buffer_resource
@@ -30,6 +31,38 @@ private:
   void* buffer;
   std::size_t buffer_size;
   void* free_space;
+};
+
+// TODO(strager): Use the standard library's polymorphic_allocator
+// implementation instead.
+template<class T = std::byte>
+class polymorphic_allocator
+  : public std::experimental::pmr::polymorphic_allocator<T>
+{
+public:
+  using std::experimental::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+
+  template<class U, class... Args>
+  auto new_object(Args&&... args) -> U*
+  {
+    auto* resource = this->resource();
+    auto* object =
+      reinterpret_cast<U*>(resource->allocate(sizeof(U), alignof(U)));
+    try {
+      new (object) U(std::forward<Args>(args)...);
+      return object;
+    } catch (...) {
+      resource->deallocate(object, sizeof(U), alignof(U));
+      throw;
+    }
+  }
+
+  template<class U>
+  auto delete_object(U* object) -> void
+  {
+    object->~U();
+    this->resource()->deallocate(object, sizeof(U), alignof(U));
+  }
 };
 }
 

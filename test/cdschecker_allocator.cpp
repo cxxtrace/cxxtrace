@@ -9,7 +9,9 @@
 
 CXXTRACE_WARNING_PUSH
 CXXTRACE_WARNING_IGNORE_CLANG("-Wunused-parameter")
+CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 #include "mymemory.h"
+
 CXXTRACE_WARNING_POP
 
 namespace cxxtrace_test {

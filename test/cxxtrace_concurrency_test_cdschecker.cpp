@@ -100,7 +100,7 @@ spawn_thread(Func&& routine) -> cxxtrace::detail::cdschecker::thrd_t
   };
 
   auto thread = cxxtrace::detail::cdschecker::thrd_t{};
-  [[maybe_unused]] auto rc = cxxtrace::detail::cdschecker::thrd_create(
+  auto rc = cxxtrace::detail::cdschecker::thrd_create(
     &thread, call_routine, unique_routine.get());
   if (rc != 0) {
     throw std::runtime_error{ "thrd_create failed" };

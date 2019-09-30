@@ -3,6 +3,7 @@
 #endif
 
 #include "cdschecker_allocator.h"
+#include "cdschecker_exhaustive_rng.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "stringify.h" // IWYU pragma: keep
 #include <algorithm>
@@ -120,7 +121,12 @@ main(int argc, char** argv) -> int
 
     auto test_index = parse_select_test_argument(argv_vector[1]);
     auto test_argv = argv_vector;
-    test_argv.erase(test_argv.begin() + 1);
+    // Replace --cxxtrace-concurrency-test-index=N with --analysis=PLUGIN.
+    // TODO(strager): Find a better way to always register our plugins.
+    const auto plugins_argument = cxxtrace_test::stringify(
+      "--analysis=", cxxtrace_test::cdschecker_exhaustive_rng_plugin_name());
+    test_argv[1] = plugins_argument.c_str();
+
     run_single_cdschecker_test(tests.at(test_index), test_argv);
   } else {
     cxxtrace_test::configure_default_allocator();

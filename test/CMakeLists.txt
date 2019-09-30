@@ -70,7 +70,9 @@ if (CXXTRACE_CDSCHECKER)
     cxxtrace_cdschecker_extra_internal
     STATIC
     cdschecker_allocator.cpp
+    cdschecker_exhaustive_rng.cpp
     cdschecker_mutex.cpp
+    cdschecker_thread.cpp
   )
   target_compile_definitions(
     cxxtrace_cdschecker_extra_internal
@@ -83,11 +85,14 @@ if (CXXTRACE_CDSCHECKER)
     CDSChecker_common
     CDSChecker_model
     cxxtrace
+    cxxtrace_cdschecker_extra
+    cxxtrace_support
   )
 
   add_library(
     cxxtrace_cdschecker_extra
     STATIC
+    cdschecker_model_memory_resource.cpp
     cxxtrace_concurrency_test_cdschecker.cpp
   )
   target_compile_definitions(
@@ -208,6 +213,18 @@ cxxtrace_add_concurrency_tests(
   test_ring_queue_concurrency.cpp
 )
 target_link_libraries(cxxtrace_test_ring_queue_concurrency INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_rseq_scheduler
+  test_rseq_scheduler.cpp
+)
+target_link_libraries(cxxtrace_test_rseq_scheduler INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_concurrency_thread_local_var
+  test_concurrency_thread_local_var.cpp
+)
+target_link_libraries(cxxtrace_test_concurrency_thread_local_var INTERFACE cxxtrace)
 
 add_executable(
   benchmark_cxxtrace
