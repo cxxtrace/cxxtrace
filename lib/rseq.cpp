@@ -1,4 +1,4 @@
-#include <cxxtrace/detail/have.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 
 #if CXXTRACE_HAVE_RSEQ
 #include <cstring>

@@ -33,7 +33,7 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
 CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
 // Needed by <relacy/context_base.hpp>.
-#include <relacy/thread_local_ctx.hpp>
+#include <relacy/thread_local_ctx.hpp> // IWYU pragma: keep
 
 #include <relacy/backoff.hpp>
 #include <relacy/context.hpp>
