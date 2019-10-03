@@ -27,6 +27,7 @@ struct thread_local_context_iface
     virtual void        thread_local_free           (int index) = 0;
     virtual void        thread_local_set            (int index, intptr_t value) = 0;
     virtual intptr_t    thread_local_get            (int index) = 0;
+    virtual void        thread_local_exit           () = 0;
     virtual             ~thread_local_context_iface () {} // to calm down g++
 };
 
@@ -112,6 +113,19 @@ private:
         entry& ent = entries_[index];
         RL_VERIFY(ent.alive_);
         return ent.value_[current_thread()];
+    }
+
+protected: // @@@
+    virtual void        thread_local_exit           ()
+    {
+        thread_id_t thread = current_thread();
+        for (size_t index = 0; index != entries_.size(); index += 1)
+        {
+            entry& ent = entries_[index];
+            if (ent.alive_ && ent.dtor_) {
+                ent.dtor_(ent.value_[thread]);
+            }
+        }
     }
 };
 

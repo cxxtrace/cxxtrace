@@ -493,6 +493,7 @@ public:
             RL_VERIFY(threadx_->temp_switch_from_ == -1);
             RL_VERIFY(threadx_->saved_disable_preemption_ == -1);
 
+            this->thread_local_exit();
             param->on_finish();
 
             thread_finish_result res = sched_.thread_finished();
