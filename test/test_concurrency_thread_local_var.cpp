@@ -16,6 +16,36 @@
 #endif
 
 namespace cxxtrace_test {
+class test_rand
+{
+public:
+  auto run_thread(int thread_index) -> void
+  {
+    if (thread_index == 0) {
+      // @@@ # of stores should be >= number of bits loaded. (This constraint is
+      // based on the worst case for the reader: 1010101010...)
+      this->rng_bit.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+      this->rng_bit.store(0, std::memory_order_relaxed, CXXTRACE_HERE);
+      this->rng_bit.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+      this->rng_bit.store(0, std::memory_order_relaxed, CXXTRACE_HERE);
+      this->rng_bit.store(1, std::memory_order_relaxed, CXXTRACE_HERE);
+      this->rng_bit.store(0, std::memory_order_relaxed, CXXTRACE_HERE);
+    } else {
+      for (auto i = 0; i < 4; ++i) {
+        auto tick = this->rng_bit.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        std::fprintf(stderr, "tick[%d] = %d ", i, tick);
+      }
+      std::fprintf(stderr, "\n");
+    }
+  }
+
+  auto tear_down() -> void {
+  }
+
+  cxxtrace::detail::atomic<int> rng_bit{0};
+};
+
+#if 0
 class test_thread_local_variable_is_zero_on_thread_entry
 {
 public:
@@ -30,7 +60,9 @@ public:
     // If this->var is not reset between iterations, the assert above will fail.
   }
 
-  auto tear_down() -> void {}
+  auto tear_down() -> void {
+    CXXTRACE_ASSERT(false);
+  }
 
   // NOTE(strager): var is intentionally not a class member variable. The test
   // framework resets member variables automatically, but does not necessarily
@@ -126,10 +158,14 @@ public:
 
   thread_local_var<data> var{};
 };
+#endif
 
 auto
 register_concurrency_tests() -> void
 {
+  register_concurrency_test<test_rand>(
+    2, concurrency_test_depth::full);
+#if 0
   register_concurrency_test<test_thread_local_variable_is_zero_on_thread_entry>(
     1, concurrency_test_depth::full);
   register_concurrency_test<
@@ -142,5 +178,6 @@ register_concurrency_tests() -> void
     3, concurrency_test_depth::full);
   register_concurrency_test<test_thread_local_variables_can_be_large>(
     1, concurrency_test_depth::full);
+#endif
 }
 }

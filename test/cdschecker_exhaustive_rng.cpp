@@ -21,6 +21,8 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 #include <plugins.h>
 #include <stl-model.h>
 #include <traceanalysis.h>
+#include <cdsannotate.h> // @@@
+#include <threads.h> // @@@
 // IWYU pragma: no_forward_declare ModelExecution
 CXXTRACE_WARNING_POP
 
@@ -87,7 +89,11 @@ public:
 auto
 concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int
 {
-  model->set_inspect_plugin(exhaustive_rng_cdschecker_plugin::instance());
+  auto analysis_type = std::uint64_t{42};
+  void* annotation = (void*)1;
+  ::cdsannotate(analysis_type, annotation);
+  ::thrd_yield();
+  //model->set_inspect_plugin(exhaustive_rng_cdschecker_plugin::instance());
   return exhaustive_rng_cdschecker_plugin::instance()->rng.next_integer_0(
     max_plus_one);
 }
