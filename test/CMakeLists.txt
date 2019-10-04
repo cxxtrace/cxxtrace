@@ -96,7 +96,6 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
       # library.
       cxxtrace_concurrency_test_cdschecker.cpp
       ${SOURCES}
-      $<TARGET_OBJECTS:cxxtrace_test_concurrency_cdschecker_main>
     )
     target_compile_definitions(
       ${BASE_NAME}_cdschecker
@@ -107,10 +106,10 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
       ${BASE_NAME}_cdschecker
       PRIVATE
       ${BASE_NAME}
-      ${CMAKE_DL_LIBS}
       CDSChecker_model
       cxxtrace_cdschecker_extra
       cxxtrace_concurrency_test
+      cxxtrace_test_concurrency_cdschecker_main
     )
     add_test(NAME ${BASE_NAME}_cdschecker COMMAND ${BASE_NAME}_cdschecker)
   endif ()
@@ -162,13 +161,15 @@ endfunction ()
 if (CXXTRACE_CDSCHECKER)
   add_library(
     cxxtrace_test_concurrency_cdschecker_main
-    OBJECT
+    STATIC
     cxxtrace_concurrency_test_main_cdschecker.cpp
   )
-  target_include_directories(
+  target_link_libraries(
     cxxtrace_test_concurrency_cdschecker_main
     PRIVATE
-    $<TARGET_PROPERTY:cxxtrace,INTERFACE_INCLUDE_DIRECTORIES>
+    ${CMAKE_DL_LIBS}
+    cxxtrace
+    cxxtrace_cdschecker_extra
   )
 endif ()
 
