@@ -87,10 +87,33 @@ public:
 auto
 concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int
 {
+  model->set_inspect_plugin(exhaustive_rng_cdschecker_plugin::instance());
   return exhaustive_rng_cdschecker_plugin::instance()->rng.next_integer_0(
     max_plus_one);
 }
 }
+
+#if defined(__APPLE__)
+auto
+my_register_plugins() -> void
+{
+  fprintf(stderr, "my_register_plugins!\n");
+}
+
+/// @@@ doesn't work. delete.
+#include "/Users/strager/Downloads/dyld-interposing.h"
+DYLD_INTERPOSE(my_register_plugins, register_plugins)
+#if 0
+__attribute__((used))
+__attribute__((section("__DATA,interpose")))
+static struct {
+  void *replacement;
+  void *original;
+} interpossie[] = {
+  { .replacement = (void*)&my_register_plugins, .original = (void*)&register_plugins },
+};
+#endif
+#else
 
 namespace {
 auto
@@ -112,3 +135,4 @@ register_plugins() -> void
   getRegisteredTraceAnalysis()->push_back(
     cxxtrace_test::exhaustive_rng_cdschecker_plugin::instance());
 }
+#endif
