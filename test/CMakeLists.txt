@@ -63,24 +63,39 @@ add_library(cxxtrace_concurrency_test cxxtrace_concurrency_test.cpp)
 target_link_libraries(cxxtrace_concurrency_test PUBLIC cxxtrace PRIVATE cxxtrace_support)
 
 if (CXXTRACE_CDSCHECKER)
+  # cxxtrace_cdschecker_extra_internal uses CDSChecker headers (via
+  # CDSChecker_common). cxxtrace_cdschecker_extra does not use CDSChecker
+  # headers.
   add_library(
-    cxxtrace_cdschecker_extra
+    cxxtrace_cdschecker_extra_internal
     STATIC
     cdschecker_allocator.cpp
     cdschecker_mutex.cpp
+  )
+  target_compile_definitions(
+    cxxtrace_cdschecker_extra_internal
+    PRIVATE
+    CXXTRACE_ENABLE_CDSCHECKER=1
+  )
+  target_link_libraries(
+    cxxtrace_cdschecker_extra_internal
+    PRIVATE
+    CDSChecker_common
+    CDSChecker_model
+    cxxtrace
+  )
+
+  add_library(
+    cxxtrace_cdschecker_extra
+    STATIC
+    cxxtrace_concurrency_test_cdschecker.cpp
   )
   target_compile_definitions(
     cxxtrace_cdschecker_extra
     PRIVATE
     CXXTRACE_ENABLE_CDSCHECKER=1
   )
-  target_link_libraries(
-    cxxtrace_cdschecker_extra
-    PRIVATE
-    CDSChecker_common
-    CDSChecker_model
-    cxxtrace
-  )
+  target_link_libraries(cxxtrace_cdschecker_extra PRIVATE cxxtrace)
 endif ()
 
 function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
@@ -92,9 +107,6 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
   if (CXXTRACE_CDSCHECKER)
     add_executable(
       ${BASE_NAME}_cdschecker
-      # TODO(strager): Put cxxtrace_concurrency_test_cdschecker.cpp into its own
-      # library.
-      cxxtrace_concurrency_test_cdschecker.cpp
       ${SOURCES}
     )
     target_compile_definitions(
@@ -108,6 +120,7 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
       ${BASE_NAME}
       CDSChecker_model
       cxxtrace_cdschecker_extra
+      cxxtrace_cdschecker_extra_internal
       cxxtrace_concurrency_test
       cxxtrace_test_concurrency_cdschecker_main
     )
@@ -170,6 +183,7 @@ if (CXXTRACE_CDSCHECKER)
     ${CMAKE_DL_LIBS}
     cxxtrace
     cxxtrace_cdschecker_extra
+    cxxtrace_cdschecker_extra_internal
   )
 endif ()
 
