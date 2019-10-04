@@ -146,3 +146,4 @@ if (APPLE)
   # Allow including <ucontext.h>, and fix the definition of ucontext_t.
   target_compile_definitions(relacy INTERFACE _XOPEN_SOURCE=700)
 endif ()
+target_compile_definitions(relacy INTERFACE RL_DO_ASSERT)
