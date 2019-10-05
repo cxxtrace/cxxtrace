@@ -27,7 +27,7 @@ public:
     static_assert(std::is_default_constructible_v<T>);
     auto* storage = get_thread_data_storage();
     if (!storage->is_initialized) {
-      initialize_no_inline(storage);
+      return initialize_no_inline(storage);
     }
     return storage->data_pointer_unsafe();
   }
@@ -37,7 +37,8 @@ public:
   {
     auto* storage = get_thread_data_storage();
     if (!storage->is_initialized) {
-      initialize_no_inline(storage, std::forward<Initialize>(initialize_data));
+      return initialize_no_inline(storage,
+                                  std::forward<Initialize>(initialize_data));
     }
     return storage->data_pointer_unsafe();
   }
@@ -47,7 +48,7 @@ private:
   {
     auto data_pointer_unsafe() noexcept -> T*
     {
-      return reinterpret_cast<T*>(&this->storage);
+      return std::launder(reinterpret_cast<T*>(&this->storage));
     }
 
     bool is_initialized /* uninitialized */;
@@ -61,25 +62,26 @@ private:
   template<class Initialize>
   __attribute__((noinline)) static auto initialize_no_inline(
     data_storage* storage,
-    Initialize&& initialize_data) -> void
+    Initialize&& initialize_data) -> T*
   {
-    initialize(storage, std::forward<Initialize>(initialize_data));
+    return initialize(storage, std::forward<Initialize>(initialize_data));
   }
 
   __attribute__((noinline)) static auto initialize_no_inline(
-    data_storage* storage) -> void
+    data_storage* storage) -> T*
   {
-    initialize(storage, [](T* data) { new (data) T{}; });
+    return initialize(storage, [](T* data) { return new (data) T{}; });
   }
 
   template<class Initialize>
   static auto initialize(data_storage* storage, Initialize&& initialize_data)
-    -> void
+    -> T*
   {
     auto* data = storage->data_pointer_unsafe();
-    std::forward<Initialize>(initialize_data)(data);
+    auto* object = std::forward<Initialize>(initialize_data)(data);
     storage->is_initialized = true;
-    destroy_object_on_thread_exit(data);
+    destroy_object_on_thread_exit(object);
+    return object;
   }
 
   static auto on_thread_exit(void* object) noexcept -> void

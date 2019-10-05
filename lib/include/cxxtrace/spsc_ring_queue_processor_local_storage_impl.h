@@ -64,7 +64,7 @@ spsc_ring_queue_processor_local_storage<
 {
   auto& processor_id_cache = *this->processor_id_cache.get(
     [this](processor_id_lookup_thread_local_cache* uninitialized_cache) {
-      new (uninitialized_cache)
+      return new (uninitialized_cache)
         processor_id_lookup_thread_local_cache{ this->processor_id_lookup };
     });
   auto backoff = detail::backoff{};
