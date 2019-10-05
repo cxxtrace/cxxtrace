@@ -1,9 +1,8 @@
 #ifndef CXXTRACE_MEMORY_RESOURCE_H
 #define CXXTRACE_MEMORY_RESOURCE_H
 
-#include <experimental/memory_resource>
-
 #include <cstddef>
+#include <experimental/memory_resource>
 
 namespace cxxtrace_test {
 // TODO(strager): Use the standard library's monotonic_buffer_resource
