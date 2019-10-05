@@ -60,6 +60,7 @@ run_concurrency_test_with_relacy(concurrency_test* test) -> void
     run_concurrency_test_with_relacy_with_threads<(thread_count)>(test);       \
     break;
   switch (test->thread_count()) {
+    CASE(1)
     CASE(2)
     CASE(3)
     default:
@@ -185,5 +186,11 @@ concurrency_log(void (*make_message)(std::ostream&, void* opaque),
   relacy_context.exec_log(
     caller,
     rl::user_msg_event{ { message_string.begin(), message_string.end() } });
+}
+
+auto
+concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int
+{
+  return rl::rand(max_plus_one);
 }
 }

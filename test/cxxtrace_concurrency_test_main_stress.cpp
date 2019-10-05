@@ -6,12 +6,15 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include <atomic>
+#include <cassert>
 #include <chrono>
 #include <cstdlib>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/string.h>
 #include <exception>
 #include <iostream>
+#include <mutex>
+#include <random>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -90,6 +93,62 @@ concurrency_log([[maybe_unused]] void (*make_message)(std::ostream&,
   // TODO(strager): Log into a temporary buffer, and dump the buffer on failure.
   // We should probably do this probabilistically to avoid interfering with the
   // execution of the test.
+}
+
+auto
+concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int
+{
+  static auto shared_rng = std::mt19937{};
+  static auto shared_rng_mutex = std::mutex{};
+
+  struct thread_rng
+  {
+    explicit thread_rng() noexcept
+      : generation{ current_concurrency_stress_generation() }
+    {
+      this->reseed();
+    }
+
+    auto reseed_if_necessary() noexcept -> void
+    {
+      auto current_generation = current_concurrency_stress_generation();
+      if (this->generation != current_generation) {
+        this->reseed();
+        this->generation = current_generation;
+      }
+    }
+
+    auto reseed() noexcept -> void
+    {
+      using seed_type = decltype(rng)::result_type;
+      auto new_seed = [] {
+        auto guard = std::lock_guard{ shared_rng_mutex };
+        return std::uniform_int_distribution<seed_type>{}(shared_rng);
+      }();
+      this->rng.seed(new_seed);
+    }
+
+    std::mt19937 rng{};
+    concurrency_stress_generation generation;
+  };
+
+  thread_local auto rng = thread_rng{};
+
+  assert(max_plus_one > 0);
+  rng.reseed_if_necessary();
+  return std::uniform_int_distribution<int>{ 0, max_plus_one - 1 }(rng.rng);
+}
+
+auto
+current_concurrency_stress_generation() noexcept
+  -> concurrency_stress_generation
+{
+  if (current_test_runner) {
+    return current_test_runner->run_count();
+  } else {
+    std::cerr << "fatal: " << __func__ << " called when not running a test\n";
+    std::terminate();
+  }
 }
 
 namespace detail {

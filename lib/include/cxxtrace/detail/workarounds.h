@@ -80,4 +80,9 @@
 #define CXXTRACE_WORK_AROUND_LIBCXX_42166 1
 #endif
 
+#if CXXTRACE_ENABLE_CDSCHECKER
+// Work around CDSChecker lacking support for non-determinism (like std::rand).
+#define CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM 1
+#endif
+
 #endif

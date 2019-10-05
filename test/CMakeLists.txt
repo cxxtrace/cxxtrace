@@ -71,6 +71,7 @@ if (CXXTRACE_CDSCHECKER)
     STATIC
     cdschecker_allocator.cpp
     cdschecker_mutex.cpp
+    cdschecker_thread.cpp
   )
   target_compile_definitions(
     cxxtrace_cdschecker_extra_internal
@@ -208,6 +209,12 @@ cxxtrace_add_concurrency_tests(
   test_ring_queue_concurrency.cpp
 )
 target_link_libraries(cxxtrace_test_ring_queue_concurrency INTERFACE cxxtrace)
+
+cxxtrace_add_concurrency_tests(
+  cxxtrace_test_thread_local_var_concurrency
+  test_thread_local_var_concurrency.cpp
+)
+target_link_libraries(cxxtrace_test_thread_local_var_concurrency INTERFACE cxxtrace)
 
 add_executable(
   benchmark_cxxtrace

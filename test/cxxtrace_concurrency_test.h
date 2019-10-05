@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/workarounds.h>
 #include <exception>
 #include <experimental/memory_resource>
 #include <iosfwd>
@@ -205,6 +206,19 @@ concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
     &func,
     caller);
 }
+
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+auto
+concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int;
+#endif
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+using concurrency_stress_generation = std::int64_t;
+
+auto
+current_concurrency_stress_generation() noexcept
+  -> concurrency_stress_generation;
+#endif
 
 namespace detail {
 #if CXXTRACE_ENABLE_CDSCHECKER
