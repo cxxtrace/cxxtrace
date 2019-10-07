@@ -34,6 +34,8 @@ public:
   dtrace_client(const dtrace_client&) = delete;
   dtrace_client& operator=(const dtrace_client&) = delete;
 
+  ~dtrace_client();
+
   auto initialize() -> void;
   auto start() -> void;
   auto stop() -> void;
@@ -114,6 +116,19 @@ private:
 dtrace_client::dtrace_client(thread_schedule_dtrace_program* program) noexcept
   : program{ program }
 {}
+
+dtrace_client::~dtrace_client()
+{
+  if (this->dtrace) {
+    if (this->thread.joinable()) {
+      std::fprintf(stderr,
+                   "fatal: cannot destroy dtrace_client: dtrace_client::start "
+                   "was called but dtrace_client::stop was not called\n");
+      std::terminate();
+    }
+    ::dtrace_close(this->dtrace);
+  }
+}
 
 auto
 dtrace_client::initialize() -> void
