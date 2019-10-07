@@ -34,6 +34,9 @@ public:
   dtrace_client(const dtrace_client&) = delete;
   dtrace_client& operator=(const dtrace_client&) = delete;
 
+  dtrace_client(dtrace_client&&) = delete;
+  dtrace_client& operator=(dtrace_client&&) = delete;
+
   ~dtrace_client();
 
   auto initialize() -> void;
