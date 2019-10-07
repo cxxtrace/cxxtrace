@@ -101,6 +101,9 @@ public:
     : port{ port }
   {}
 
+  mach_port(const mach_port&) noexcept = delete;
+  mach_port& operator=(const mach_port&) noexcept = delete;
+
   mach_port(mach_port&& other) noexcept
     : port{ std::exchange(other.port, MACH_PORT_NULL) }
   {}
