@@ -876,7 +876,7 @@ public:
 
   auto run_producer_thread() -> void
   {
-    auto did_store_data = false;
+    volatile auto did_store_data = false;
     cxxtrace::detail::processor_id processor_id;
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);

@@ -34,6 +34,19 @@ namespace cxxtrace_test {
 //   // rseq_scheduler's default constructor each test iteration.
 //   rseq_scheduler my_rseq{};
 //
+//   // If you want to write to an automatic variable within a critical section
+//   // and read from that automatic variable in a preempt handler, you must
+//   // declare that automatic variable as volatile.
+//   //
+//   // Non-automatic variables do not need to be marked volatile.
+//   //
+//   // Automatic variables which are not modified within the critical section
+//   // do not need to be marked volatile.
+//   //
+//   // Automatic variables which are not read by the preempt handler do not
+//   // need to be marked volatile.
+//   volatile auto did_phase_1 = false;
+//
 //   // Calling CXXTRACE_BEGIN_PREEMPTABLE is like setting rseq::rseq_cs for the
 //   // current thread. CXXTRACE_BEGIN_PREEMPTABLE enters a critical section.
 //   // rseq_cs::abort_ip is set to preempt_goto_label.
@@ -51,6 +64,11 @@ namespace cxxtrace_test {
 //   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
 //   /* (Do some work.) */
+//
+//   // Communicate with the preempt handler with volatile automatic variables.
+//   did_phase_1 = true;
+//
+//   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
 //   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
@@ -82,9 +100,6 @@ namespace cxxtrace_test {
 //
 //   /* (Do cleanup work. Maybe retry, calling CXXTRACE_BEGIN_PREEMPTABLE
 //      again.) */
-//
-// TODO(strager): Do local variables modified within the critical section need
-// to be declared volatile?
 class rseq_scheduler
 {
 public:
