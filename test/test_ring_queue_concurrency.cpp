@@ -520,7 +520,6 @@ private:
       assert(static_cast<size_type>(expected_items.size()) <=
              this->total_push_size());
       expected_items_permutations.emplace_back(std::move(expected_items));
-
     } while (std::next_permutation(producer_thread_indexes.begin(),
                                    producer_thread_indexes.end()));
     return expected_items_permutations;
