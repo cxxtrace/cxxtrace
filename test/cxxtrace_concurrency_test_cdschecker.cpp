@@ -105,7 +105,7 @@ spawn_thread(Func&& routine) -> cxxtrace::detail::cdschecker::thrd_t
   if (rc != 0) {
     throw std::runtime_error{ "thrd_create failed" };
   }
-  unique_routine.release();
+  static_cast<void>(unique_routine.release());
 
   return thread;
 }
