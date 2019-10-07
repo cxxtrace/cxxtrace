@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
 #define CXXTRACE_DETAIL_SPSC_RING_QUEUE_H
 
+#include "/home/strager/Projects/cxxtrace/test/rseq_scheduler.h" // @@@
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -138,6 +139,7 @@ private:
   public:
     auto set(size_type index, T value) noexcept -> void
     {
+      cxxtrace_test::rseq_scheduler<Sync>::allow_preempt(CXXTRACE_HERE);
       this->storage[(this->write_begin_vindex + index) % capacity].store(
         std::move(value), CXXTRACE_HERE);
     }
@@ -161,14 +163,17 @@ private:
     assert(count > 0);
     assert(count < this->capacity);
 
+    cxxtrace_test::rseq_scheduler<Sync>::allow_preempt(CXXTRACE_HERE);
     auto write_begin_vindex =
       this->write_begin_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+    cxxtrace_test::rseq_scheduler<Sync>::allow_preempt(CXXTRACE_HERE);
     auto maybe_new_write_end_vindex = add(write_begin_vindex, count);
     if (!maybe_new_write_end_vindex.has_value()) {
       this->abort_due_to_overflow();
     }
     this->write_end_vindex.store(
       *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
+    cxxtrace_test::rseq_scheduler<Sync>::allow_preempt(CXXTRACE_HERE);
     Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     return { write_begin_vindex, *maybe_new_write_end_vindex };
@@ -176,6 +181,7 @@ private:
 
   auto end_push(size_type write_end_vindex) noexcept -> void
   {
+    cxxtrace_test::rseq_scheduler<Sync>::allow_preempt(CXXTRACE_HERE);
     this->write_begin_vindex.store(
       write_end_vindex, std::memory_order_release, CXXTRACE_HERE);
   }

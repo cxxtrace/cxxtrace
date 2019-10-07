@@ -20,7 +20,7 @@ namespace cxxtrace_test {
 using concurrency_test_synchronization =
 #if CXXTRACE_ENABLE_CDSCHECKER
   cdschecker_synchronization
-#elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#elif CXXTRACE_ENABLE_CONCURRENCY_STRESS || CXXTRACE_ENABLE_GTEST
   cxxtrace::detail::real_synchronization
 #elif CXXTRACE_ENABLE_RELACY
   relacy_synchronization

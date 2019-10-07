@@ -1,5 +1,16 @@
+#if !(CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_CONCURRENCY_STRESS ||      \
+      CXXTRACE_ENABLE_RELACY)
+#define CXXTRACE_ENABLE_GTEST 1
+#endif
+
+#if !CXXTRACE_ENABLE_GTEST
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
+#include "rseq_scheduler.h"
+#include <cxxtrace/detail/processor_local_mpsc_ring_queue.h>
+#include <cxxtrace/detail/spsc_ring_queue.h>
+#endif
+
 #include "memory_resource.h"
 #include "ring_queue_wrapper.h"
 #include "synchronization.h"
@@ -9,7 +20,6 @@
 #include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
-#include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/string.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
@@ -26,6 +36,11 @@
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>
 
+#if CXXTRACE_ENABLE_GTEST
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+#endif
+
 #if defined(__GLIBCXX__)
 // libstdc++ version 9.1.0 does not define some overloads of
 // std::reduce.
@@ -36,10 +51,20 @@
 #include <iterator>
 #endif
 
+#if CXXTRACE_ENABLE_GTEST
+#define CXXTRACE_ASSERT(condition) EXPECT_TRUE((condition))
+#endif
+
+#if CXXTRACE_ENABLE_GTEST
+using testing::UnorderedElementsAre;
+#endif
+
 namespace {
+#if !CXXTRACE_ENABLE_GTEST
 auto
 assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
   -> void;
+#endif
 
 template<class Iterator>
 auto
@@ -52,6 +77,18 @@ reduce(Iterator begin, Iterator end) -> auto
   return std::reduce(begin, end);
 #endif
 }
+
+// Enumerate the power set [1] of the given set of items.
+//
+// callback must have the following signature:
+//
+//   void(const std::vector<T, Allocator>&)
+//
+// [1] https://en.wikipedia.org/wiki/Power_set
+template<class T, class Allocator, class Func>
+auto
+for_each_subset(const std::vector<T, Allocator>& items, Func&& callback)
+  -> void;
 }
 
 namespace cxxtrace {
@@ -65,6 +102,9 @@ operator<<(std::ostream& out, mpsc_ring_queue_push_result x) -> std::ostream&
       break;
     case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
       out << "not_pushed_due_to_contention";
+      break;
+    case mpsc_ring_queue_push_result::push_interrupted_due_to_preemption:
+      out << "push_interrupted_due_to_preemption";
       break;
   }
   return out;
@@ -176,8 +216,13 @@ protected:
   }
 
   ring_queue_wrapper<RingQueue> queue{};
+
+#if !CXXTRACE_ENABLE_GTEST
+  rseq_scheduler<sync> rseq{};
+#endif
 };
 
+#if !CXXTRACE_ENABLE_GTEST
 template<class RingQueue>
 class ring_queue_push_one_pop_all_relacy_test
   : public ring_queue_relacy_test_base<RingQueue>
@@ -387,7 +432,9 @@ private:
   size_type initial_push_size;
   size_type concurrent_push_size;
 };
+#endif
 
+// @@@ this test name is wrong for processor_local_mpsc_ring_queue.
 template<class RingQueue>
 class pushing_is_atomic_or_fails_with_multiple_producers
   : public ring_queue_relacy_test_base<RingQueue>
@@ -442,10 +489,13 @@ public:
     auto buffer = std::array<std::byte, 1024>{};
     auto memory = monotonic_buffer_resource{ buffer.data(), buffer.size() };
 
-    CXXTRACE_ASSERT(std::any_of(
-      this->producer_push_results.begin(),
-      this->producer_push_results.end(),
-      [](std::optional<push_result> r) { return r == push_result::pushed; }));
+    if (!std::any_of(this->producer_push_results.begin(),
+                     this->producer_push_results.end(),
+                     [](std::optional<push_result> r) {
+                       return r == push_result::pushed;
+                     })) {
+      return; // @@@ we should at least assert that we pushed nothing.
+    }
 
     auto expected_items_permutations =
       this->expected_items_permutations(&memory);
@@ -486,53 +536,482 @@ private:
     return std::pair{ begin, begin + push_size };
   }
 
+public:
   auto expected_items_permutations(
     std::experimental::pmr::memory_resource* memory)
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
     using std::experimental::pmr::vector;
 
-    auto producer_thread_indexes = vector<int>{ memory };
+    auto shrink = [](auto& items, int /*@@@ use typedef*/ max_size) -> void {
+      if (items.size() > std::size_t(max_size)) {
+        items.erase(items.begin(), items.end() - max_size);
+      }
+    };
+
+    auto expected_items_permutations = vector<vector<int>>{ memory };
+    auto collect_expected_item_permutations =
+      [&](vector<int>& producer_thread_indexes) -> void {
+      do {
+        auto expected_items = vector<int>{ memory };
+        this->push_back_items_for_range(
+          0, this->initial_push_size, expected_items);
+        for (auto thread_index : producer_thread_indexes) {
+          auto [begin, end] = this->producer_range(thread_index);
+          // @@@ convert to switch?
+          if (this->producer_push_results[thread_index] ==
+              push_result::push_interrupted_due_to_preemption) {
+            shrink(expected_items, RingQueue::capacity - (end - begin));
+          } else {
+            this->push_back_items_for_range(begin, end, expected_items);
+          }
+        }
+        shrink(expected_items, RingQueue::capacity);
+        assert(static_cast<size_type>(expected_items.size()) <=
+               this->total_push_size());
+        expected_items_permutations.emplace_back(std::move(expected_items));
+      } while (std::next_permutation(producer_thread_indexes.begin(),
+                                     producer_thread_indexes.end()));
+    };
+
+    auto pushed_producer_thread_indexes = vector<int>{ memory };
+    auto interrupted_producer_thread_indexes = vector<int>{ memory };
     for (auto thread_index = 0;
          thread_index < int(producer_push_results.size());
          ++thread_index) {
-      if (this->producer_push_results[thread_index] == push_result::pushed) {
-        producer_thread_indexes.push_back(thread_index);
+      auto thread_push_result = this->producer_push_results[thread_index];
+      if (!thread_push_result.has_value()) {
+        continue;
+      }
+      switch (*thread_push_result) {
+        case push_result::pushed:
+          pushed_producer_thread_indexes.push_back(thread_index);
+          break;
+        case push_result::push_interrupted_due_to_preemption:
+          interrupted_producer_thread_indexes.push_back(thread_index);
+          break;
+        case push_result::not_pushed_due_to_contention:
+          break;
       }
     }
-    std::sort(producer_thread_indexes.begin(), producer_thread_indexes.end());
 
-    auto expected_items_permutations = vector<vector<int>>{ memory };
-    do {
-      auto expected_items = vector<int>{ memory };
-      this->push_back_items_for_range(
-        0, this->initial_push_size, expected_items);
-      for (auto thread_index : producer_thread_indexes) {
-        auto [begin, end] = this->producer_range(thread_index);
-        this->push_back_items_for_range(begin, end, expected_items);
-      }
-      if (expected_items.size() > RingQueue::capacity) {
-        expected_items.erase(expected_items.begin(),
-                             expected_items.end() - RingQueue::capacity);
-      }
-      assert(static_cast<size_type>(expected_items.size()) >=
-             this->initial_push_size);
-      assert(static_cast<size_type>(expected_items.size()) <=
-             this->total_push_size());
-      expected_items_permutations.emplace_back(std::move(expected_items));
-    } while (std::next_permutation(producer_thread_indexes.begin(),
-                                   producer_thread_indexes.end()));
+    // @@@ these variable names are very long. shorten.
+    for_each_subset(
+      interrupted_producer_thread_indexes,
+      [&](const vector<int>& current_interrupted_producer_thread_indexes)
+        -> void {
+        auto producer_thread_indexes =
+          vector<int>{ pushed_producer_thread_indexes.begin(),
+                       pushed_producer_thread_indexes.end(),
+                       memory };
+        producer_thread_indexes.insert(
+          producer_thread_indexes.end(),
+          current_interrupted_producer_thread_indexes.begin(),
+          current_interrupted_producer_thread_indexes.end());
+        std::sort(producer_thread_indexes.begin(),
+                  producer_thread_indexes.end());
+        collect_expected_item_permutations(producer_thread_indexes);
+      });
+
+    // @@@ put into a function: sort_and_remove_duplicates
+    std::sort(expected_items_permutations.begin(),
+              expected_items_permutations.end());
+    expected_items_permutations.erase(
+      std::unique(expected_items_permutations.begin(),
+                  expected_items_permutations.end()),
+      expected_items_permutations.end());
+
     return expected_items_permutations;
   }
 
+private:
   static inline constexpr auto max_threads = 3;
 
   size_type initial_push_size;
   std::array<size_type, max_threads> producer_push_sizes;
 
+public:
   std::array<std::optional<push_result>, max_threads> producer_push_results;
 };
 
+#if CXXTRACE_ENABLE_GTEST
+class test_pushing_is_atomic_or_fails : public testing::Test
+{
+protected:
+  template<class T>
+  using vector = std::experimental::pmr::vector<T>;
+  using ring_queue_type = cxxtrace::detail::mpsc_ring_queue<int, 4>;
+  using test_type =
+    pushing_is_atomic_or_fails_with_multiple_producers<ring_queue_type>;
+  using push_result = ring_queue_type::push_result;
+
+  static inline std::experimental::pmr::memory_resource* memory =
+    std::experimental::pmr::new_delete_resource();
+};
+
+TEST_F(test_pushing_is_atomic_or_fails, two_successful_pushes_push_in_any_order)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 1;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::pushed;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(
+    permutations,
+    UnorderedElementsAre(vector<int>{ 100, 101 }, vector<int>{ 101, 100 }));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       three_successful_pushes_push_in_any_order)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 1;
+  auto producer_3_push_size = 1;
+  auto test = test_type{ initial_push_size,
+                         producer_1_push_size,
+                         producer_2_push_size,
+                         producer_3_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::pushed;
+  test.producer_push_results[2] = push_result::pushed;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(permutations,
+              UnorderedElementsAre(vector<int>{ 100, 101, 102 },
+                                   vector<int>{ 100, 102, 101 },
+                                   vector<int>{ 101, 100, 102 },
+                                   vector<int>{ 101, 102, 100 },
+                                   vector<int>{ 102, 100, 101 },
+                                   vector<int>{ 102, 101, 100 }));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails, two_successful_pushes_are_atomic)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 2;
+  auto producer_2_push_size = 2;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::pushed;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(
+    permutations,
+    UnorderedElementsAre(
+      vector<int>{ 100, 101, 102, 103 }, // Producer 1, then producer 2.
+      vector<int>{ 102, 103, 100, 101 }  // Producer 2, then producer 1.
+      ));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       failed_pushes_leave_initial_push_unchanged)
+{
+  auto initial_push_size = 2;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 1;
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::not_pushed_due_to_contention;
+    test.producer_push_results[1] = push_result::not_pushed_due_to_contention;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations, UnorderedElementsAre(vector<int>{ 100, 101 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::not_pushed_due_to_contention;
+    test.producer_push_results[1] = push_result::pushed;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 100, 101, 103 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::pushed;
+    test.producer_push_results[1] = push_result::not_pushed_due_to_contention;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 100, 101, 102 }));
+  }
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       interrupted_pushes_leave_initial_push_unchanged)
+{
+  auto initial_push_size = 2;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 1;
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] =
+      push_result::push_interrupted_due_to_preemption;
+    test.producer_push_results[1] =
+      push_result::push_interrupted_due_to_preemption;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations, UnorderedElementsAre(vector<int>{ 100, 101 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] =
+      push_result::push_interrupted_due_to_preemption;
+    test.producer_push_results[1] = push_result::pushed;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 100, 101, 103 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::pushed;
+    test.producer_push_results[1] =
+      push_result::push_interrupted_due_to_preemption;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 100, 101, 102 }));
+  }
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       independently_overflowing_pushes_overflow)
+{
+  auto initial_push_size = 3;
+  auto producer_1_push_size = 2;
+  auto producer_2_push_size = 2;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::pushed;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(permutations,
+              UnorderedElementsAre(
+                // Producer 1, then producer 2.
+                vector<int>{ 103, 104, 105, 106 },
+                // Producer 2, then producer 1.
+                vector<int>{ 105, 106, 103, 104 }));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails, mutually_overflowing_pushes_overflow)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 3;
+  auto producer_2_push_size = 3;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::pushed;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(permutations,
+              UnorderedElementsAre(
+                // Producer 1, then producer 2.
+                vector<int>{ 102, 103, 104, 105 },
+                // Producer 2, then producer 1.
+                vector<int>{ 105, 100, 101, 102 }));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       failed_mutually_overflowing_pushes_preserve_pushed_items)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 3;
+  auto producer_2_push_size = 3;
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::pushed;
+    test.producer_push_results[1] = push_result::not_pushed_due_to_contention;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 100, 101, 102 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::not_pushed_due_to_contention;
+    test.producer_push_results[1] = push_result::pushed;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(vector<int>{ 103, 104, 105 }));
+  }
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       interrupted_mutually_overflowing_pushes_may_overwrite_pushed_items)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 3;
+  auto producer_2_push_size = 3;
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::pushed;
+    test.producer_push_results[1] =
+      push_result::push_interrupted_due_to_preemption;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(
+                  // Either:
+                  // * Producer 1 only. Producer 2's push was interrupted early
+                  // (either before or after producer 1).
+                  // * Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ 100, 101, 102 },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ 102 }));
+  }
+
+  {
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] =
+      push_result::push_interrupted_due_to_preemption;
+    test.producer_push_results[1] = push_result::pushed;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(
+                  // Either:
+                  // * Producer 1 only. Producer 2's push was interrupted early
+                  // (either before or after producer 1).
+                  // * Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ 103, 104, 105 },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ 105 }));
+  }
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       failed_overflowing_push_leaves_initial_push_unchanged)
+{
+  auto initial_push_size = 2;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 3;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] = push_result::not_pushed_due_to_contention;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(permutations, UnorderedElementsAre(vector<int>{ 100, 101, 102 }));
+}
+
+TEST_F(test_pushing_is_atomic_or_fails,
+       interrupted_overflowing_push_possibly_overwrites_initial_push)
+{
+  {
+    auto initial_push_size = 2;
+    auto producer_1_push_size = 1;
+    auto producer_2_push_size = 3;
+    auto test = test_type{ initial_push_size,
+                           producer_1_push_size,
+                           producer_2_push_size };
+    test.producer_push_results[0] = push_result::pushed;
+    test.producer_push_results[1] =
+      push_result::push_interrupted_due_to_preemption;
+    auto permutations = test.expected_items_permutations(memory);
+    EXPECT_THAT(permutations,
+                UnorderedElementsAre(
+                  // Producer 1 only. Producer 2's push was interrupted early
+                  // (either before or after producer 1).
+                  vector<int>{ 100, 101, 102 },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ 102 },
+                  // Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ 101, 102 }));
+  }
+
+  auto initial_push_size = 2;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 2;
+  auto test =
+    test_type{ initial_push_size, producer_1_push_size, producer_2_push_size };
+  test.producer_push_results[0] = push_result::pushed;
+  test.producer_push_results[1] =
+    push_result::push_interrupted_due_to_preemption;
+  auto permutations = test.expected_items_permutations(memory);
+  EXPECT_THAT(permutations,
+              UnorderedElementsAre(
+                // Producer 1 only. Producer 2's push was interrupted early
+                // (either before or after producer 1).
+                vector<int>{ 100, 101, 102 },
+                // Either:
+                // * Producer 1, then producer 2 (interrupted; overwrote).
+                // * Producer 2 (interrupted; overwrote), then producer 1.
+                vector<int>{ 101, 102 }));
+}
+
+TEST(test_for_each_subset, empty_input)
+{
+  using v = std::vector<int>;
+  auto subsets = std::vector<v>{};
+  for_each_subset(
+    v{}, [&subsets](const v& subset) -> void { subsets.emplace_back(subset); });
+  EXPECT_THAT(subsets, UnorderedElementsAre(v{}));
+}
+
+TEST(test_for_each_subset, single_item)
+{
+  using v = std::vector<int>;
+  auto subsets = std::vector<v>{};
+  for_each_subset(v{ 42 }, [&subsets](const v& subset) -> void {
+    subsets.emplace_back(subset);
+  });
+  EXPECT_THAT(subsets, UnorderedElementsAre(v{}, v{ 42 }));
+}
+
+TEST(test_for_each_subset, two_items)
+{
+  using v = std::vector<int>;
+  auto subsets = std::vector<v>{};
+  for_each_subset(v{ 42, 9000 }, [&subsets](const v& subset) -> void {
+    subsets.emplace_back(subset);
+  });
+  EXPECT_THAT(subsets,
+              UnorderedElementsAre(v{}, v{ 42 }, v{ 9000 }, v{ 42, 9000 }));
+}
+
+TEST(test_for_each_subset, three_items)
+{
+  using v = std::vector<int>;
+  auto subsets = std::vector<v>{};
+  for_each_subset(v{ 42, 9000, -1 }, [&subsets](const v& subset) -> void {
+    subsets.emplace_back(subset);
+  });
+  EXPECT_THAT(subsets,
+              UnorderedElementsAre(v{},
+                                   v{ 42 },
+                                   v{ 9000 },
+                                   v{ -1 },
+                                   v{ 42, 9000 },
+                                   v{ 42, -1 },
+                                   v{ 9000, -1 },
+                                   v{ 42, 9000, -1 }));
+}
+#endif
+
+#if !CXXTRACE_ENABLE_GTEST
 template<
   template<class T, std::size_t Capacity, class Index = int, class Sync = sync>
   class RingQueue>
@@ -599,6 +1078,7 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
     }
   }
 
+#if 0 // @@@ too slow for processor_local_mpsc_ring_queue
   {
     auto initial_push_size = 0;
     auto producer_1_push_size = 1;
@@ -613,7 +1093,10 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
       producer_2_push_size,
       producer_3_push_size);
   }
+#endif
 
+  // @@@ This test fails because it assumes the queue can hold at most size
+  // items. It can actually hold size*processor_count items.
   {
     constexpr auto initial_push_size = 0;
     constexpr auto producer_1_push_size = 3;
@@ -633,16 +1116,22 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
 auto
 register_concurrency_tests() -> void
 {
+#if 0
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();
   register_multiple_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();
+#endif
+  register_multiple_producer_ring_queue_concurrency_tests<
+    cxxtrace::detail::processor_local_mpsc_ring_queue>();
 }
+#endif
 }
 
 namespace {
+#if !CXXTRACE_ENABLE_GTEST
 auto
 assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
   -> void
@@ -651,6 +1140,35 @@ assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
     for (auto i = 1; i < int(items.size()); ++i) {
       CXXTRACE_ASSERT(items[i] == items[i - 1] + 1);
     }
+  }
+}
+#endif
+
+template<class T, class Allocator, class Func>
+auto
+for_each_subset(const std::vector<T, Allocator>& items, Func&& callback) -> void
+{
+  using mask_type = unsigned;
+  auto mask_for_item_at_index = [](std::size_t item) -> mask_type {
+    assert(item < std::numeric_limits<mask_type>::digits - 1);
+    return mask_type{ 1 } << mask_type(item);
+  };
+
+  assert(items.size() < std::numeric_limits<mask_type>::digits - 1);
+
+  auto subset_count = mask_for_item_at_index(items.size());
+  auto subset = std::vector<T, Allocator>{ items.get_allocator() };
+  subset.reserve(items.size());
+  for (auto mask = mask_type{ 0 }; mask < subset_count; ++mask) {
+    subset.clear();
+    for (auto index = mask_type{ 0 }; index < mask_type(items.size());
+         ++index) {
+      auto item_in_subset = bool(mask & mask_for_item_at_index(index));
+      if (item_in_subset) {
+        subset.push_back(items[index]);
+      }
+    }
+    callback(subset);
   }
 }
 }

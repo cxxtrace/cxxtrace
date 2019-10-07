@@ -20,10 +20,11 @@
 
 namespace cxxtrace {
 namespace detail {
-enum class mpsc_ring_queue_push_result : bool
+enum class mpsc_ring_queue_push_result : char
 {
-  not_pushed_due_to_contention = false,
-  pushed = true,
+  not_pushed_due_to_contention = 0,
+  pushed = 1,
+  push_interrupted_due_to_preemption = 2,
 };
 
 // A special-purpose, lossy, bounded, MPSC FIFO container optimized for

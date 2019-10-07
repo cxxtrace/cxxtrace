@@ -118,6 +118,10 @@ private:
 
 public:
   explicit rseq_scheduler();
+  ~rseq_scheduler();
+
+  // @@@ make allow_preempt non-static?
+  static auto get() -> rseq_scheduler&;
 
   auto get_current_processor_id(debug_source_location) noexcept
     -> cxxtrace::detail::processor_id;
@@ -181,6 +185,7 @@ public:
   auto preempt_target_jmp_buf() noexcept -> ::jmp_buf&;
 
 private:
+  // @@@ move to .cpp?
   struct thread_state
   {
     auto in_critical_section() const noexcept -> bool;
@@ -209,6 +214,7 @@ private:
   };
 
   inline static thread_local_var<thread_state> thread_state_;
+  inline static std::atomic<rseq_scheduler*> active_instance_{ nullptr };
 
   auto exit_critical_section(debug_source_location) noexcept -> void;
 

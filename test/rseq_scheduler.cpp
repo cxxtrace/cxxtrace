@@ -65,12 +65,31 @@ get_test_thread_count<relacy_synchronization>() noexcept -> int
 template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler()
 {
+  this->active_instance_.store(this);
+
   // HACK(strager): Create at least two processors to make
   // test_thread_might_change_processor_when_entering_critical_section pass.
   // HACK(strager): Create at least one processor per thread to allow all
   // threads to successfully enter a critical section without blocking.
   auto thread_count = get_test_thread_count<Sync>();
   this->processor_id_count_ = std::max(thread_count, 2);
+}
+
+template<class Sync>
+rseq_scheduler<Sync>::~rseq_scheduler()
+{
+  auto old_active_rseq = this->active_instance_.exchange(nullptr);
+  assert(old_active_rseq == this);
+}
+
+// @@@ make allow_preempt non-static?
+template<class Sync>
+auto
+rseq_scheduler<Sync>::get() -> rseq_scheduler&
+{
+  auto* rseq = active_instance_.load();
+  assert(rseq);
+  return *rseq;
 }
 
 template<class Sync>

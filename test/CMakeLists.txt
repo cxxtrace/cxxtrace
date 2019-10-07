@@ -21,6 +21,7 @@ add_executable(
   test_molecular.cpp
   test_processor_id.cpp
   test_ring_queue.cpp
+  test_ring_queue_concurrency.cpp
   test_snapshot.cpp
   test_span.cpp
   test_span_thread.cpp
@@ -41,6 +42,26 @@ set_target_properties(test_cxxtrace PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
 set_target_properties(test_cxxtrace PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch.h)
 cxxtrace_cotire(test_cxxtrace)
 add_test(NAME test_cxxtrace COMMAND test_cxxtrace)
+
+# @@@ merge with test_cxxtrace after fixing test_ring_queue.cpp compilation
+add_executable(
+  test_cxxtrace_taco
+  test_ring_queue_concurrency.cpp
+)
+target_link_libraries(
+  test_cxxtrace_taco
+  PRIVATE
+  Threads::Threads
+  cxxtrace
+  cxxtrace_support
+  gmock
+  gmock_main
+  gtest
+)
+set_target_properties(test_cxxtrace_taco PROPERTIES COTIRE_ADD_UNITY_BUILD FALSE)
+set_target_properties(test_cxxtrace_taco PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT pch.h)
+cxxtrace_cotire(test_cxxtrace_taco)
+add_test(NAME test_cxxtrace_taco COMMAND test_cxxtrace_taco)
 
 add_library(
   test_cxxtrace_nlohmann_json
