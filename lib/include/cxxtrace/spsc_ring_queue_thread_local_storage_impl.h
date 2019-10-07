@@ -114,7 +114,7 @@ spsc_ring_queue_thread_local_storage<CapacityPerThread, Tag, ClockSample>::
   auto thread_ids = std::vector<thread_id>{};
   {
     auto global_lock = std::lock_guard{ global_mutex };
-    reclaimed_samples = std::move(disowned_samples);
+    swap(reclaimed_samples, disowned_samples);
     thread_names = std::move(disowned_thread_names);
     thread_ids.reserve(thread_list.size());
     for (auto* data : thread_list) {

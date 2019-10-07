@@ -54,7 +54,8 @@ auto
 unbounded_unsafe_storage<ClockSample>::take_all_samples(Clock& clock) noexcept(
   false) -> samples_snapshot
 {
-  auto samples = std::move(this->samples);
+  auto samples = std::vector<sample>{};
+  swap(samples, this->samples);
 
   auto named_threads = std::vector<thread_id>{};
   auto thread_names = std::move(this->remembered_thread_names);
