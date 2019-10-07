@@ -270,6 +270,9 @@ public:
   spawn_file_actions(const spawn_file_actions&) = delete;
   spawn_file_actions& operator=(const spawn_file_actions&) = delete;
 
+  spawn_file_actions(spawn_file_actions&&) = delete;
+  spawn_file_actions& operator=(spawn_file_actions&&) = delete;
+
   ~spawn_file_actions() noexcept(false)
   {
     auto rc = ::posix_spawn_file_actions_destroy(&this->actions);
