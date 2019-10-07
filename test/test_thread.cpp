@@ -45,12 +45,15 @@ public:
     , size{ size }
   {}
 
+  mach_array(const mach_array&) = delete;
+  mach_array& operator=(const mach_array&) = delete;
+
   mach_array(mach_array&& other) noexcept
     : data{ std::exchange(other.data, nullptr) }
     , size{ std::exchange(other.size, 0) }
   {}
 
-  mach_array& operator=(const mach_array&) = delete;
+  mach_array& operator=(mach_array&&) = delete;
 
   ~mach_array() { this->reset(); }
 
