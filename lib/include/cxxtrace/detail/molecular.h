@@ -5,8 +5,6 @@
 #include <atomic>
 #include <cstddef>
 #include <cstring>
-#include <cxxtrace/detail/atomic.h>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <type_traits>
 
 namespace cxxtrace {
@@ -22,9 +20,14 @@ using largest_lock_free_atomic_value_type =
 //
 // molecular<T> is similar to atomic<T>, but loads and stores may be striped.
 // Use outside synchronization to detect striping.
-template<class T>
+template<class T, class Sync>
 class molecular
 {
+private:
+  template<class U>
+  using atomic = typename Sync::template atomic<U>;
+  using debug_source_location = typename Sync::debug_source_location;
+
 public:
   using value_type = T;
 

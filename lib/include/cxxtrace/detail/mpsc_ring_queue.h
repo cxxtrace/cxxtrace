@@ -153,13 +153,14 @@ private:
     }
 
   private:
-    explicit push_handle(std::array<molecular<value_type>, capacity>& storage,
-                         size_type write_begin_vindex) noexcept
+    explicit push_handle(
+      std::array<molecular<value_type, synchronization>, capacity>& storage,
+      size_type write_begin_vindex) noexcept
       : storage{ storage }
       , write_begin_vindex{ write_begin_vindex }
     {}
 
-    std::array<molecular<value_type>, capacity>& storage;
+    std::array<molecular<value_type, synchronization>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
     friend class mpsc_ring_queue;
@@ -209,7 +210,7 @@ private:
   atomic<size_type> write_begin_vindex{ 0 };
   atomic<size_type> write_end_vindex{ 0 };
 
-  std::array<molecular<value_type>, capacity> storage
+  std::array<molecular<value_type, synchronization>, capacity> storage
     /* uninitialized */;
 };
 }

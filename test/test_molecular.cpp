@@ -4,12 +4,16 @@
 #include <cstddef>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/molecular.h>
+#include <cxxtrace/detail/real_synchronization.h>
 #include <gtest/gtest.h>
 #include <iterator>
 #include <type_traits>
 
 using cxxtrace::detail::largest_lock_free_atomic_value_type;
-using cxxtrace::detail::molecular;
+
+template<class T>
+using real_molecular =
+  cxxtrace::detail::molecular<T, cxxtrace::detail::real_synchronization>;
 
 #if defined(__LP64__)
 
@@ -94,7 +98,7 @@ TYPED_TEST_CASE(test_molecular_integral, test_molecular_integral_types, );
 TYPED_TEST(test_molecular_integral, integral_type_round_trips)
 {
   using integral_type = typename TestFixture::integral_type;
-  auto molecule = molecular<integral_type>{};
+  auto molecule = real_molecular<integral_type>{};
 
   molecule.store(42, CXXTRACE_HERE);
   EXPECT_EQ(molecule.load(CXXTRACE_HERE), 42);
@@ -119,7 +123,7 @@ TEST(test_molecular, large_struct_round_trips)
   };
 
   auto pointee = nullptr;
-  auto molecule = molecular<large>{};
+  auto molecule = real_molecular<large>{};
   molecule.store(large{ { 1, 2, 3 }, { 4, 5, 6 }, 7.8, &pointee },
                  CXXTRACE_HERE);
   auto loaded = molecule.load(CXXTRACE_HERE);
@@ -159,12 +163,12 @@ TYPED_TEST(test_molecular_char_array, char_array_round_trips)
   auto chars = std::array<char, size>{};
   std::copy_n(std::begin(alphabet), size, chars.begin());
 
-  auto molecule = molecular<std::array<char, size>>{};
+  auto molecule = real_molecular<std::array<char, size>>{};
   molecule.store(chars, CXXTRACE_HERE);
   EXPECT_EQ(molecule.load(CXXTRACE_HERE), chars);
 }
 
-static_assert(std::is_trivial_v<molecular<char>>);
-static_assert(std::is_trivial_v<molecular<int>>);
-static_assert(std::is_trivial_v<molecular<std::array<long, 42>>>);
+static_assert(std::is_trivial_v<real_molecular<char>>);
+static_assert(std::is_trivial_v<real_molecular<int>>);
+static_assert(std::is_trivial_v<real_molecular<std::array<long, 42>>>);
 }
