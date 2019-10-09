@@ -2,7 +2,6 @@
 #define CXXTRACE_DETAIL_THREAD_H
 
 #include <cstddef>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
@@ -60,16 +59,6 @@ struct thread_name_set
 #endif
 
   std::experimental::pmr::unordered_map<thread_id, std::string> names;
-};
-
-// TODO(strager): Merge with cxxtrace_test::backoff.
-class backoff
-{
-public:
-  explicit backoff();
-
-  auto reset() -> void;
-  auto yield(debug_source_location) -> void;
 };
 }
 }

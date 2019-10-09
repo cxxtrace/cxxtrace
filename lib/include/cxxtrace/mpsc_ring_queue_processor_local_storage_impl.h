@@ -12,6 +12,7 @@
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
+#include <cxxtrace/detail/real_synchronization.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>
 #include <cxxtrace/detail/thread.h>

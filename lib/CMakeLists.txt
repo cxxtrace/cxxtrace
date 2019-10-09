@@ -11,6 +11,7 @@ add_library(
   clock_extra.cpp
   file_descriptor.cpp
   processor.cpp
+  real_synchronization.cpp
   rseq.cpp
   snapshot.cpp
   thread.cpp

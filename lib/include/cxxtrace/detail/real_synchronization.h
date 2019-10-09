@@ -87,6 +87,16 @@ private:
   std::atomic_flag flag = ATOMIC_FLAG_INIT;
 };
 
+// TODO(strager): Merge with cxxtrace_test::backoff.
+class backoff
+{
+public:
+  explicit backoff();
+
+  auto reset() -> void;
+  auto yield(debug_source_location) -> void;
+};
+
 template<class T>
 class real_nonatomic : public nonatomic_base
 {

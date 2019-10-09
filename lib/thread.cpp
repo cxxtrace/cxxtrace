@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
@@ -398,19 +397,6 @@ thread_name_set::allocate_name(thread_id id,
   }
   assert(name.size() >= max_name_length);
   return name;
-}
-
-backoff::backoff() = default;
-
-auto
-backoff::reset() -> void
-{}
-
-auto backoff::yield(debug_source_location) -> void
-{
-  // TODO(strager): Call ::sched_yield or something.
-  // TODO(strager): Delete this function. Make callers use mutexes or condition
-  // variables or other synchronization primitives instead.
 }
 }
 

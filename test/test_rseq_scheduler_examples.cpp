@@ -9,6 +9,7 @@
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <ostream>
+#include <string>
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>
