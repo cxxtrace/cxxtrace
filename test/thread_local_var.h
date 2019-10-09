@@ -58,7 +58,6 @@ public:
     auto& slot = this->slots_[slot_index];
 
     if (!slot.allocated) {
-      // slot.thread_id = current_thread_id;
       slot.allocated = true;
       std::memset(&slot.value, 0, sizeof(slot.value));
     }
