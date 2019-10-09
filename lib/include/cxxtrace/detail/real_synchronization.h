@@ -67,6 +67,26 @@ private:
   std::atomic<T> data /* uninitialized */;
 };
 
+class real_atomic_flag
+{
+public:
+  explicit real_atomic_flag() noexcept = default;
+
+  auto clear(std::memory_order order, debug_source_location) noexcept -> void
+  {
+    this->flag.clear(order);
+  }
+
+  auto test_and_set(std::memory_order order, debug_source_location) noexcept
+    -> bool
+  {
+    return this->flag.test_and_set(order);
+  }
+
+private:
+  std::atomic_flag flag = ATOMIC_FLAG_INIT;
+};
+
 template<class T>
 class real_nonatomic : public nonatomic_base
 {
@@ -94,26 +114,6 @@ real_atomic_thread_fence(std::memory_order memory_order,
 {
   std::atomic_thread_fence(memory_order);
 }
-
-class real_atomic_flag
-{
-public:
-  explicit real_atomic_flag() noexcept = default;
-
-  auto clear(std::memory_order order, debug_source_location) noexcept -> void
-  {
-    this->flag.clear(order);
-  }
-
-  auto test_and_set(std::memory_order order, debug_source_location) noexcept
-    -> bool
-  {
-    return this->flag.test_and_set(order);
-  }
-
-private:
-  std::atomic_flag flag = ATOMIC_FLAG_INIT;
-};
 }
 }
 
