@@ -1,11 +1,14 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
-#include "thread_local_var.h"
+#include "thread_local_var.h" // IWYU pragma: keep
 #include <array>
 #include <cassert>
 #include <cstdint>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <string>
+// IWYU pragma: no_include "cdschecker_thread_local_var.h"
+// IWYU pragma: no_include "pthread_thread_local_var.h"
+// IWYU pragma: no_include "relacy_thread_local_var.h"
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>

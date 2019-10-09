@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_TEST_RSEQ_SCHEDULER_H
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
-#include "thread_local_var.h"
+#include "thread_local_var.h" // IWYU pragma: keep
 #include <array>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
@@ -14,6 +14,9 @@
 // IWYU pragma: no_forward_declare cxxtrace_test::cdschecker_thread_local_var
 // IWYU pragma: no_forward_declare cxxtrace_test::pthread_thread_local_var
 // IWYU pragma: no_forward_declare cxxtrace_test::relacy_thread_local_var
+// IWYU pragma: no_include "cdschecker_thread_local_var.h"
+// IWYU pragma: no_include "pthread_thread_local_var.h"
+// IWYU pragma: no_include "relacy_thread_local_var.h"
 // IWYU pragma: no_include <ostream>
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
