@@ -35,8 +35,6 @@ CXXTRACE_WARNING_POP
 #endif
 
 namespace cxxtrace_test {
-static constexpr auto thread_local_var_maximum_thread_count = 3;
-
 #if CXXTRACE_ENABLE_CDSCHECKER
 template<class T>
 class cdschecker_thread_local_var
@@ -53,7 +51,7 @@ public:
     auto current_thread_id = cdschecker_current_thread_id();
     assert(current_thread_id >= this->first_thread_id);
     auto slot_index = current_thread_id - this->first_thread_id;
-    // If this assertion fails, increase thread_local_var_maximum_thread_count.
+    // If this assertion fails, increase maximum_thread_count.
     assert(std::size_t(slot_index) < this->slots_.size());
     auto& slot = this->slots_[slot_index];
 
@@ -76,7 +74,9 @@ private:
   // run_concurrency_test_from_cdschecker.
   static constexpr auto first_thread_id = cdschecker_thread_id{ 2 };
 
-  std::array<slot, thread_local_var_maximum_thread_count> slots_;
+  static constexpr auto maximum_thread_count = 3;
+
+  std::array<slot, maximum_thread_count> slots_;
 };
 #endif
 
@@ -194,7 +194,7 @@ public:
   auto get() noexcept -> T*
   {
     auto thread_index = rl::thread_index();
-    // If this assertion fails, increase thread_local_var_maximum_thread_count.
+    // If this assertion fails, increase maximum_thread_count.
     assert(thread_index < slots_.size());
     auto& slot = this->slots_[thread_index];
     if (!this->slot_initialized_.get(CXXTRACE_HERE)) {
@@ -205,8 +205,10 @@ public:
   }
 
 private:
+  static constexpr auto maximum_thread_count = 3;
+
   rl::thread_local_var<bool> slot_initialized_{};
-  std::array<T, thread_local_var_maximum_thread_count> slots_;
+  std::array<T, maximum_thread_count> slots_;
 };
 #endif
 

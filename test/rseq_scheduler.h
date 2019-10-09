@@ -11,6 +11,9 @@
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
+// IWYU pragma: no_forward_declare cxxtrace_test::cdschecker_thread_local_var
+// IWYU pragma: no_forward_declare cxxtrace_test::pthread_thread_local_var
+// IWYU pragma: no_forward_declare cxxtrace_test::relacy_thread_local_var
 // IWYU pragma: no_include <ostream>
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
@@ -229,6 +232,8 @@ private:
     cxxtrace::detail::atomic<bool> baton{ true };
   };
 
+  static constexpr auto maximum_processor_count = 3;
+
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
   //
   // NOTE(strager): We use a real mutex (and not a modelled mutex) for two
@@ -238,7 +243,7 @@ private:
   //   algorithm.
   // * Using a modelled mutex adds undesired performance overhead.
   std::mutex processor_reservation_mutex_;
-  std::array<processor, thread_local_var_maximum_thread_count> processors_;
+  std::array<processor, maximum_processor_count> processors_;
   int processor_id_count_;
 };
 
