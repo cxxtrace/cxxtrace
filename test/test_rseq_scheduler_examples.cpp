@@ -10,6 +10,7 @@
 #include <cxxtrace/detail/processor.h>
 #include <ostream>
 #include <string>
+// IWYU pragma: no_include "relacy_backoff.h"
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>

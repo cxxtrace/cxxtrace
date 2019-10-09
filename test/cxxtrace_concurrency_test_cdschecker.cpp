@@ -2,6 +2,7 @@
 #error "CXXTRACE_ENABLE_CDSCHECKER must be defined and non-zero."
 #endif
 
+#include "cdschecker_backoff.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include <cstring>

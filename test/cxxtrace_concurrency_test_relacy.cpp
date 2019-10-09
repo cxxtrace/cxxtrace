@@ -5,6 +5,7 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
+#include "relacy_backoff.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -33,8 +34,9 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
 CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
 // Needed by <relacy/context_base.hpp>.
+// clang-format off
 #include <relacy/thread_local_ctx.hpp> // IWYU pragma: keep
-
+// clang-format on
 #include <relacy/backoff.hpp>
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>

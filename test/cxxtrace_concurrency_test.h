@@ -17,6 +17,7 @@
 #include <vector>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
+#include "cdschecker_backoff.h"
 #include <cxxtrace/detail/cdschecker.h>
 #include <cxxtrace/string.h>
 #endif
@@ -27,6 +28,7 @@
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
+#include "relacy_backoff.h"
 #include <cxxtrace/detail/warning.h>
 
 CXXTRACE_WARNING_PUSH
@@ -165,33 +167,6 @@ register_concurrency_test(int thread_count,
 
   detail::register_concurrency_test(t);
 }
-
-#if CXXTRACE_ENABLE_CDSCHECKER
-class cdschecker_backoff
-{
-public:
-  explicit cdschecker_backoff();
-  ~cdschecker_backoff();
-
-  auto reset() -> void;
-  auto yield(cxxtrace::detail::debug_source_location) -> void;
-};
-#endif
-
-#if CXXTRACE_ENABLE_RELACY
-class relacy_backoff
-{
-public:
-  explicit relacy_backoff();
-  ~relacy_backoff();
-
-  auto reset() -> void;
-  auto yield(cxxtrace::detail::debug_source_location) -> void;
-
-private:
-  rl::linear_backoff backoff;
-};
-#endif
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 using backoff = cdschecker_backoff;
