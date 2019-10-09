@@ -4,7 +4,6 @@
 #include "ring_queue_wrapper.h"
 #include <benchmark/benchmark.h>
 #include <cstdint>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/ring_queue.h>
