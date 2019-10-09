@@ -30,8 +30,28 @@ CXXTRACE_WARNING_POP
 namespace cxxtrace {
 namespace detail {
 #if CXXTRACE_ENABLE_RELACY
+class relacy_synchronization
+{
+public:
+  using debug_source_location = cxxtrace::detail::debug_source_location;
+
+  template<class T>
+  class atomic;
+
+  template<class T>
+  class nonatomic;
+
+  static auto atomic_thread_fence(std::memory_order,
+                                  debug_source_location) noexcept -> void;
+
+private:
+  static auto relacy_cast(std::memory_order memory_order) noexcept
+    -> rl::memory_order;
+};
+
 inline auto
-relacy_cast(std::memory_order memory_order) noexcept -> rl::memory_order
+relacy_synchronization::relacy_cast(std::memory_order memory_order) noexcept
+  -> rl::memory_order
 {
   switch (memory_order) {
     case std::memory_order_relaxed:
@@ -51,10 +71,10 @@ relacy_cast(std::memory_order memory_order) noexcept -> rl::memory_order
 }
 
 template<class T>
-class relacy_atomic : public atomic_base<T, relacy_atomic<T>>
+class relacy_synchronization::atomic : public atomic_base<T, atomic<T>>
 {
 private:
-  using base = atomic_base<T, relacy_atomic<T>>;
+  using base = atomic_base<T, atomic<T>>;
 
 public:
   using base::compare_exchange_strong;
@@ -62,9 +82,9 @@ public:
   using base::load;
   using base::store;
 
-  explicit relacy_atomic() /* data uninitialized */ = default;
+  explicit atomic() /* data uninitialized */ = default;
 
-  /* implicit */ relacy_atomic(T value) noexcept
+  /* implicit */ atomic(T value) noexcept
     : data{ value }
   {}
 
@@ -107,12 +127,12 @@ private:
 };
 
 template<class T>
-class relacy_nonatomic : public nonatomic_base
+class relacy_synchronization::nonatomic : public nonatomic_base
 {
 public:
-  explicit relacy_nonatomic() /* data uninitialized */ = default;
+  explicit nonatomic() /* data uninitialized */ = default;
 
-  /* implicit */ relacy_nonatomic(T value) noexcept
+  /* implicit */ nonatomic(T value) noexcept
     : data{ value }
   {}
 
@@ -131,8 +151,9 @@ private:
 };
 
 inline auto
-relacy_atomic_thread_fence(std::memory_order memory_order,
-                           debug_source_location caller) noexcept -> void
+relacy_synchronization::atomic_thread_fence(
+  std::memory_order memory_order,
+  debug_source_location caller) noexcept -> void
 {
   rl::atomic_thread_fence(relacy_cast(memory_order), caller);
 }

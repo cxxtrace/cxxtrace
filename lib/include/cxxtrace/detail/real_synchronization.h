@@ -7,11 +7,30 @@
 
 namespace cxxtrace {
 namespace detail {
+class real_synchronization
+{
+public:
+  using debug_source_location = cxxtrace::detail::debug_source_location;
+
+  template<class T>
+  class atomic;
+
+  class atomic_flag;
+
+  class backoff;
+
+  template<class T>
+  class nonatomic;
+
+  static auto atomic_thread_fence(std::memory_order,
+                                  debug_source_location) noexcept -> void;
+};
+
 template<class T>
-class real_atomic : public atomic_base<T, real_atomic<T>>
+class real_synchronization::atomic : public atomic_base<T, atomic<T>>
 {
 private:
-  using base = atomic_base<T, real_atomic<T>>;
+  using base = atomic_base<T, atomic<T>>;
 
 public:
   using base::compare_exchange_strong;
@@ -19,9 +38,9 @@ public:
   using base::load;
   using base::store;
 
-  explicit real_atomic() noexcept /* data uninitialized */ = default;
+  explicit atomic() noexcept /* data uninitialized */ = default;
 
-  /* implicit */ real_atomic(T value) noexcept
+  /* implicit */ atomic(T value) noexcept
     : data{ value }
   {}
 
@@ -67,10 +86,10 @@ private:
   std::atomic<T> data /* uninitialized */;
 };
 
-class real_atomic_flag
+class real_synchronization::atomic_flag
 {
 public:
-  explicit real_atomic_flag() noexcept = default;
+  explicit atomic_flag() noexcept = default;
 
   auto clear(std::memory_order order, debug_source_location) noexcept -> void
   {
@@ -88,7 +107,7 @@ private:
 };
 
 // TODO(strager): Merge with cxxtrace_test::backoff.
-class backoff
+class real_synchronization::backoff
 {
 public:
   explicit backoff();
@@ -98,12 +117,12 @@ public:
 };
 
 template<class T>
-class real_nonatomic : public nonatomic_base
+class real_synchronization::nonatomic : public nonatomic_base
 {
 public:
-  explicit real_nonatomic() noexcept /* data uninitialized */ = default;
+  explicit nonatomic() noexcept /* data uninitialized */ = default;
 
-  /* implicit */ real_nonatomic(T value) noexcept
+  /* implicit */ nonatomic(T value) noexcept
     : data{ value }
   {}
 
@@ -119,8 +138,9 @@ private:
 };
 
 inline auto
-real_atomic_thread_fence(std::memory_order memory_order,
-                         debug_source_location) noexcept -> void
+real_synchronization::atomic_thread_fence(std::memory_order memory_order,
+                                          debug_source_location) noexcept
+  -> void
 {
   std::atomic_thread_fence(memory_order);
 }

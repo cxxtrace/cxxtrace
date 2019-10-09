@@ -14,9 +14,31 @@
 namespace cxxtrace {
 namespace detail {
 #if CXXTRACE_ENABLE_CDSCHECKER
+class cdschecker_synchronization
+{
+public:
+  using debug_source_location = cxxtrace::detail::debug_source_location;
+
+  template<class T>
+  class atomic;
+
+  template<class T>
+  class nonatomic;
+
+  static auto atomic_thread_fence(std::memory_order,
+                                  debug_source_location) noexcept -> void;
+
+private:
+  template<std::size_t Size>
+  struct nonatomic_traits;
+
+  static auto cdschecker_cast(std::memory_order memory_order) noexcept
+    -> cdschecker::memory_order;
+};
+
 inline auto
-cdschecker_cast(std::memory_order memory_order) noexcept
-  -> cdschecker::memory_order
+cdschecker_synchronization::cdschecker_cast(
+  std::memory_order memory_order) noexcept -> cdschecker::memory_order
 {
   switch (memory_order) {
     case std::memory_order_relaxed:
@@ -37,10 +59,10 @@ cdschecker_cast(std::memory_order memory_order) noexcept
 }
 
 template<class T>
-class cdschecker_atomic : public atomic_base<T, cdschecker_atomic<T>>
+class cdschecker_synchronization::atomic : public atomic_base<T, atomic<T>>
 {
 private:
-  using base = atomic_base<T, cdschecker_atomic<T>>;
+  using base = atomic_base<T, atomic<T>>;
 
 public:
   using base::compare_exchange_strong;
@@ -48,9 +70,9 @@ public:
   using base::load;
   using base::store;
 
-  explicit cdschecker_atomic() noexcept /* data uninitialized */ = default;
+  explicit atomic() noexcept /* data uninitialized */ = default;
 
-  /* implicit */ cdschecker_atomic(T value) noexcept
+  /* implicit */ atomic(T value) noexcept
   {
     cdschecker::model_init_action(&this->data, this->from_t(value));
   }
@@ -126,11 +148,8 @@ private:
   std::uint64_t data /* uninitialized */;
 };
 
-template<std::size_t Size>
-struct cdschecker_nonatomic_traits;
-
 template<>
-struct cdschecker_nonatomic_traits<1>
+struct cdschecker_synchronization::nonatomic_traits<1>
 {
   using value_type = std::uint8_t;
 
@@ -146,7 +165,7 @@ struct cdschecker_nonatomic_traits<1>
 };
 
 template<>
-struct cdschecker_nonatomic_traits<2>
+struct cdschecker_synchronization::nonatomic_traits<2>
 {
   using value_type = std::uint16_t;
 
@@ -162,7 +181,7 @@ struct cdschecker_nonatomic_traits<2>
 };
 
 template<>
-struct cdschecker_nonatomic_traits<4>
+struct cdschecker_synchronization::nonatomic_traits<4>
 {
   using value_type = std::uint32_t;
 
@@ -178,7 +197,7 @@ struct cdschecker_nonatomic_traits<4>
 };
 
 template<>
-struct cdschecker_nonatomic_traits<8>
+struct cdschecker_synchronization::nonatomic_traits<8>
 {
   using value_type = std::uint64_t;
 
@@ -194,16 +213,16 @@ struct cdschecker_nonatomic_traits<8>
 };
 
 template<class T>
-class cdschecker_nonatomic : public nonatomic_base
+class cdschecker_synchronization::nonatomic : public nonatomic_base
 {
 private:
-  using traits = cdschecker_nonatomic_traits<sizeof(T)>;
+  using traits = nonatomic_traits<sizeof(T)>;
   using storage_type = typename traits::value_type;
 
 public:
-  explicit cdschecker_nonatomic() /* data uninitialized */ = default;
+  explicit nonatomic() /* data uninitialized */ = default;
 
-  /* implicit */ cdschecker_nonatomic(T value) noexcept
+  /* implicit */ nonatomic(T value) noexcept
     : storage{ this->value_to_storage(value) }
   {}
 
@@ -238,8 +257,9 @@ private:
 };
 
 inline auto
-cdschecker_atomic_thread_fence(std::memory_order memory_order,
-                               debug_source_location) noexcept -> void
+cdschecker_synchronization::atomic_thread_fence(std::memory_order memory_order,
+                                                debug_source_location) noexcept
+  -> void
 {
   cdschecker::model_fence_action(cdschecker_cast(memory_order));
 }

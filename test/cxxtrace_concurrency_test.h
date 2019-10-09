@@ -171,7 +171,7 @@ register_concurrency_test(int thread_count,
 #if CXXTRACE_ENABLE_CDSCHECKER
 using backoff = cdschecker_backoff;
 #elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
-using backoff = cxxtrace::detail::backoff;
+using backoff = cxxtrace::detail::real_synchronization::backoff;
 #elif CXXTRACE_ENABLE_RELACY
 using backoff = relacy_backoff;
 #else

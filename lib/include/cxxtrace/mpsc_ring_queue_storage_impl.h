@@ -48,7 +48,7 @@ mpsc_ring_queue_storage<Capacity, ClockSample>::add_sample(
 {
   using detail::mpsc_ring_queue_push_result;
 
-  auto backoff = detail::backoff{};
+  auto backoff = detail::real_synchronization::backoff{};
 retry:
   auto result = this->samples.try_push(
     1, [&](auto data) noexcept {

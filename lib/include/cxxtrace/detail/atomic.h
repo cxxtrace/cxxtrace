@@ -20,24 +20,24 @@ namespace cxxtrace {
 namespace detail {
 #if CXXTRACE_ENABLE_CDSCHECKER
 template<class T>
-using atomic = cdschecker_atomic<T>;
+using atomic = cdschecker_synchronization::atomic<T>;
 template<class T>
-using nonatomic = cdschecker_nonatomic<T>;
-// TODO(strager): Implement cdschecker_atomic_flag.
+using nonatomic = cdschecker_synchronization::nonatomic<T>;
+// TODO(strager): Implement cdschecker_synchronization::atomic_flag.
 using atomic_flag = void;
 #elif CXXTRACE_ENABLE_RELACY
 template<class T>
-using atomic = relacy_atomic<T>;
+using atomic = relacy_synchronization::atomic<T>;
 template<class T>
-using nonatomic = relacy_nonatomic<T>;
-// TODO(strager): Implement relacy_atomic_flag.
+using nonatomic = relacy_synchronization::nonatomic<T>;
+// TODO(strager): Implement relacy_synchronization::atomic_flag.
 using atomic_flag = void;
 #else
 template<class T>
-using atomic = real_atomic<T>;
+using atomic = real_synchronization::atomic<T>;
 template<class T>
-using nonatomic = real_nonatomic<T>;
-using atomic_flag = real_atomic_flag;
+using nonatomic = real_synchronization::nonatomic<T>;
+using atomic_flag = real_synchronization::atomic_flag;
 #endif
 
 namespace { // Avoid ODR violation: #if inside an inline function's body.
@@ -46,11 +46,11 @@ atomic_thread_fence(std::memory_order memory_order,
                     debug_source_location caller) noexcept -> void
 {
 #if CXXTRACE_ENABLE_RELACY
-  relacy_atomic_thread_fence(memory_order, caller);
+  relacy_synchronization::atomic_thread_fence(memory_order, caller);
 #elif CXXTRACE_ENABLE_CDSCHECKER
-  cdschecker_atomic_thread_fence(memory_order, caller);
+  cdschecker_synchronization::atomic_thread_fence(memory_order, caller);
 #else
-  real_atomic_thread_fence(memory_order, caller);
+  real_synchronization::atomic_thread_fence(memory_order, caller);
 #endif
 }
 }
