@@ -5,11 +5,11 @@
 #include <array>
 #include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <cxxtrace/string.h>
 #include <functional>
+#include <mutex>
 #include <setjmp.h>
 // IWYU pragma: no_include <ostream>
 
@@ -237,7 +237,7 @@ private:
   // * We do not want to interfere with the memory order of the user's
   //   algorithm.
   // * Using a modelled mutex adds undesired performance overhead.
-  cxxtrace::detail::real_mutex processor_reservation_mutex_;
+  std::mutex processor_reservation_mutex_;
   std::array<processor, thread_local_var_maximum_thread_count> processors_;
   int processor_id_count_;
 };

@@ -10,7 +10,6 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/mutex.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/sample.h>
@@ -46,8 +45,7 @@ spsc_ring_queue_processor_local_storage<CapacityPerProcessor,
                                         ClockSample>::reset() noexcept -> void
 {
   for (auto& samples : this->samples_by_processor) {
-    auto guard =
-      detail::unique_lock{ samples.mutex, detail::try_to_lock, CXXTRACE_HERE };
+    auto guard = std::unique_lock{ samples.mutex, std::try_to_lock };
     assert(guard);
     samples.samples.reset();
   }
@@ -72,8 +70,7 @@ retry:
   auto processor_id =
     this->processor_id_lookup.get_current_processor_id(processor_id_cache);
   auto& samples = this->samples_by_processor[processor_id];
-  auto guard =
-    detail::unique_lock{ samples.mutex, detail::try_to_lock, CXXTRACE_HERE };
+  auto guard = std::unique_lock{ samples.mutex, std::try_to_lock };
   if (!guard) {
     backoff.yield(CXXTRACE_HERE);
     goto retry;

@@ -70,7 +70,6 @@ if (CXXTRACE_CDSCHECKER)
     cxxtrace_cdschecker_extra_internal
     STATIC
     cdschecker_allocator.cpp
-    cdschecker_mutex.cpp
     cdschecker_thread.cpp
   )
   target_compile_definitions(

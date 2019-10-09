@@ -12,7 +12,6 @@
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/detail/warning.h>
 #include <mutex>
-// IWYU pragma: no_forward_declare cxxtrace_test::wrapped_mutex
 
 namespace cxxtrace_test {
 template<class RingQueue>
@@ -77,27 +76,27 @@ CXXTRACE_WARNING_IGNORE_CLANG("-Wembedded-directive")
 CXXTRACE_BENCHMARK_CONFIGURE_TEMPLATE_F(
   locked_spsc_ring_queue_benchmark,
 #if CXXTRACE_HAVE_OS_SPIN_LOCK
-  wrapped_mutex<apple_os_spin_lock>,
+  apple_os_spin_lock,
 #endif
 #if CXXTRACE_HAVE_OS_UNFAIR_LOCK
-  wrapped_mutex<apple_os_unfair_lock>,
+  apple_os_unfair_lock,
 #endif
 #if defined(__x86_64__) && defined(__GCC_ASM_FLAG_OUTPUTS__)
-  wrapped_mutex<cxxtrace::detail::x86_bts_spin_lock<std::uint8_t>>,
+  cxxtrace::detail::x86_bts_spin_lock<std::uint8_t>,
 #endif
 #if defined(__x86_64__)
-  wrapped_mutex<cxxtrace::detail::x86_xchg_spin_lock<std::uint8_t>>,
-  wrapped_mutex<cxxtrace::detail::x86_xchg_spin_lock<std::uint16_t>>,
-  wrapped_mutex<cxxtrace::detail::x86_xchg_spin_lock<std::uint32_t>>,
-  wrapped_mutex<cxxtrace::detail::x86_xchg_spin_lock<std::uint64_t>>,
+  cxxtrace::detail::x86_xchg_spin_lock<std::uint8_t>,
+  cxxtrace::detail::x86_xchg_spin_lock<std::uint16_t>,
+  cxxtrace::detail::x86_xchg_spin_lock<std::uint32_t>,
+  cxxtrace::detail::x86_xchg_spin_lock<std::uint64_t>,
 #endif
-  wrapped_mutex<cxxtrace::detail::atomic_flag_spin_lock>,
-  wrapped_mutex<cxxtrace::detail::spin_lock>,
-  wrapped_mutex<compare_exchange_strong_spin_lock<std::uint16_t>>,
-  wrapped_mutex<compare_exchange_strong_spin_lock<std::uint32_t>>,
-  wrapped_mutex<compare_exchange_strong_spin_lock<std::uint64_t>>,
-  wrapped_mutex<compare_exchange_strong_spin_lock<std::uint8_t>>,
-  wrapped_mutex<std::mutex>);
+  cxxtrace::detail::atomic_flag_spin_lock,
+  cxxtrace::detail::spin_lock,
+  compare_exchange_strong_spin_lock<std::uint16_t>,
+  compare_exchange_strong_spin_lock<std::uint32_t>,
+  compare_exchange_strong_spin_lock<std::uint64_t>,
+  compare_exchange_strong_spin_lock<std::uint8_t>,
+  std::mutex);
 CXXTRACE_WARNING_POP
 
 CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
@@ -110,10 +109,10 @@ CXXTRACE_BENCHMARK_DEFINE_TEMPLATE_F(locked_spsc_ring_queue_benchmark,
 #pragma clang loop unroll_count(1)
 #endif
     for (auto i = 0; i < this->items_per_iteration; ++i) {
-      if (this->mutex.try_lock(CXXTRACE_HERE)) {
+      if (this->mutex.try_lock()) {
         this->queue.push(
           1, [i](auto data) noexcept { data.set(0, i); });
-        this->mutex.unlock(CXXTRACE_HERE);
+        this->mutex.unlock();
       }
     }
     benchmark::DoNotOptimize(this->queue);

@@ -3,8 +3,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <cxxtrace/detail/atomic.h>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h>
 
 namespace cxxtrace {
@@ -12,20 +10,19 @@ namespace detail {
 class atomic_flag_spin_lock
 {
 public:
-  auto try_lock(debug_source_location caller) noexcept -> bool
+  auto try_lock() noexcept -> bool
   {
-    auto was_locked =
-      this->is_locked.test_and_set(std::memory_order_acquire, caller);
+    auto was_locked = this->is_locked.test_and_set(std::memory_order_acquire);
     return !was_locked;
   }
 
-  auto unlock(debug_source_location caller) noexcept -> void
+  auto unlock() noexcept -> void
   {
-    this->is_locked.clear(std::memory_order_release, caller);
+    this->is_locked.clear(std::memory_order_release);
   }
 
 private:
-  atomic_flag is_locked;
+  std::atomic_flag is_locked;
 };
 
 #if defined(__x86_64__) && defined(__GCC_ASM_FLAG_OUTPUTS__)
@@ -33,7 +30,7 @@ template<class LockType>
 class x86_bts_spin_lock
 {
 public:
-  auto try_lock(debug_source_location) noexcept -> bool
+  auto try_lock() noexcept -> bool
   {
     auto was_locked = bool{};
     asm("lock bts $0, %[lock]"
@@ -43,13 +40,13 @@ public:
     return !was_locked;
   }
 
-  auto unlock(debug_source_location caller) noexcept -> void
+  auto unlock() noexcept -> void
   {
-    this->lock.store(0, std::memory_order_release, caller);
+    this->lock.store(0, std::memory_order_release);
   }
 
 private:
-  real_atomic<LockType> lock{ 0 };
+  std::atomic<LockType> lock{ 0 };
   static_assert(sizeof(lock) == 1);
 };
 #endif
@@ -59,19 +56,19 @@ template<class LockType>
 class x86_xchg_spin_lock
 {
 public:
-  auto try_lock(debug_source_location caller) noexcept -> bool
+  auto try_lock() noexcept -> bool
   {
-    auto was_locked = this->lock.exchange(1, std::memory_order_seq_cst, caller);
+    auto was_locked = this->lock.exchange(1, std::memory_order_seq_cst);
     return was_locked == 0;
   }
 
-  auto unlock(debug_source_location caller) noexcept -> void
+  auto unlock() noexcept -> void
   {
-    this->lock.store(0, std::memory_order_release, caller);
+    this->lock.store(0, std::memory_order_release);
   }
 
 private:
-  atomic<LockType> lock{ 0 };
+  std::atomic<LockType> lock{ 0 };
 };
 #endif
 

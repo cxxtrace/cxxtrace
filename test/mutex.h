@@ -21,50 +21,6 @@
 #endif
 
 namespace cxxtrace_test {
-template<class Mutex, class = void_t<>>
-class wrapped_mutex;
-
-template<class Mutex>
-class wrapped_mutex<
-  Mutex,
-  void_t<decltype(std::declval<Mutex&>().try_lock(
-    std::declval<cxxtrace::detail::debug_source_location>()))>>
-{
-public:
-  [[gnu::always_inline]] auto try_lock(
-    cxxtrace::detail::debug_source_location caller) noexcept -> bool
-  {
-    return this->underlying_mutex.try_lock(caller);
-  }
-
-  [[gnu::always_inline]] auto unlock(
-    cxxtrace::detail::debug_source_location caller) noexcept -> void
-  {
-    return this->underlying_mutex.unlock(caller);
-  }
-
-  Mutex underlying_mutex;
-};
-
-template<class Mutex>
-class wrapped_mutex<Mutex, void_t<decltype(std::declval<Mutex&>().try_lock())>>
-{
-public:
-  [[gnu::always_inline]] auto try_lock(
-    cxxtrace::detail::debug_source_location) noexcept -> bool
-  {
-    return this->underlying_mutex.try_lock();
-  }
-
-  [[gnu::always_inline]] auto unlock(
-    cxxtrace::detail::debug_source_location) noexcept -> void
-  {
-    return this->underlying_mutex.unlock();
-  }
-
-  Mutex underlying_mutex;
-};
-
 template<class LockType>
 class compare_exchange_strong_spin_lock
 {

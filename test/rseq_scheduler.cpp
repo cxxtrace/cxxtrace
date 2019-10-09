@@ -170,7 +170,7 @@ rseq_scheduler::get_any_unused_processor_id(
   -> cxxtrace::detail::processor_id
 {
   using unique_lock =
-    cxxtrace::detail::unique_lock<decltype(this->processor_reservation_mutex_)>;
+    std::unique_lock<decltype(this->processor_reservation_mutex_)>;
 
   auto count_unused_processors = [this](const unique_lock&) -> int {
     auto count = 0;
@@ -199,10 +199,10 @@ rseq_scheduler::get_any_unused_processor_id(
   };
 
   auto get_random_unused_processor = [&]() -> processor* {
-    auto lock = unique_lock{ this->processor_reservation_mutex_, caller };
+    auto lock = unique_lock{ this->processor_reservation_mutex_ };
     auto unused_processor_count = count_unused_processors(lock);
     if (unused_processor_count == 0) {
-      lock.unlock(caller);
+      lock.unlock();
       CXXTRACE_ASSERT(false);
     }
     return get_unused_processor(
@@ -223,9 +223,7 @@ rseq_scheduler::mark_processor_id_as_unused(
   auto& processor = this->processors_[processor_id];
   processor.release_baton(caller);
   {
-    auto lock =
-      cxxtrace::detail::unique_lock{ this->processor_reservation_mutex_,
-                                     caller };
+    auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
     CXXTRACE_ASSERT(processor.in_use);
     processor.in_use = false;
   }
@@ -236,20 +234,19 @@ rseq_scheduler::take_unused_processor_id(
   cxxtrace::detail::debug_source_location caller)
   -> cxxtrace::detail::processor_id
 {
-  auto lock =
-    cxxtrace::detail::unique_lock{ this->processor_reservation_mutex_, caller };
+  auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
   for (auto processor_id = 0; processor_id < this->processor_id_count_;
        ++processor_id) {
     auto& processor = this->processors_[processor_id];
     if (!processor.in_use) {
       processor.in_use = true;
-      lock.unlock(caller);
+      lock.unlock();
       processor.maybe_acquire_baton(caller);
       return processor_id;
     }
   }
 
-  lock.unlock(caller);
+  lock.unlock();
   CXXTRACE_ASSERT(false);
   __builtin_unreachable();
 }
