@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <string>
-// IWYU pragma: no_include "cdschecker_thread_local_var.h"
+// IWYU pragma: no_include "cdschecker_synchronization.h"
+// IWYU pragma: no_include "relacy_synchronization.h"
 // IWYU pragma: no_include "pthread_thread_local_var.h"
-// IWYU pragma: no_include "relacy_thread_local_var.h"
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>

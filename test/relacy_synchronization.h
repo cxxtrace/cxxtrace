@@ -4,11 +4,19 @@
 // IWYU pragma: no_include <ostream>
 
 #if CXXTRACE_ENABLE_RELACY
-#include "relacy_thread_local_var.h"
+#include <array>
 #include <atomic>
+#include <cassert>
+#include <cstdio>
+#include <cstring>
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/warning.h>
+#include <cxxtrace/detail/workarounds.h>
+#include <exception>
+#include <pthread.h>
+#include <system_error>
+#include <type_traits>
 
 CXXTRACE_WARNING_PUSH
 CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated-declarations")
@@ -22,9 +30,13 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wmissing-field-initializers")
 CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
 CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
+// clang-format off
+#include <relacy/thread_local_ctx.hpp>
+// clang-format on
 #include <relacy/atomic.hpp>
 #include <relacy/atomic_fence.hpp>
 #include <relacy/memory_order.hpp>
+#include <relacy/thread_local.hpp>
 #include <relacy/var.hpp>
 
 CXXTRACE_WARNING_POP
@@ -44,7 +56,7 @@ public:
   class nonatomic;
 
   template<class T>
-  using thread_local_var = relacy_thread_local_var<T>;
+  class thread_local_var;
 
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;
@@ -155,6 +167,36 @@ public:
 
 private:
   rl::var<T> data /* uninitialized */;
+};
+
+template<class T>
+class relacy_synchronization::thread_local_var
+{
+public:
+  static_assert(std::is_trivial_v<T>);
+
+  auto operator-> () noexcept -> T* { return this->get(); }
+
+  auto operator*() noexcept -> T& { return *this->get(); }
+
+  auto get() noexcept -> T*
+  {
+    auto thread_index = rl::thread_index();
+    // If this assertion fails, increase maximum_thread_count.
+    assert(thread_index < slots_.size());
+    auto& slot = this->slots_[thread_index];
+    if (!this->slot_initialized_.get(CXXTRACE_HERE)) {
+      std::memset(&slot, 0, sizeof(slot));
+      this->slot_initialized_.set(true, CXXTRACE_HERE);
+    }
+    return &slot;
+  }
+
+private:
+  static constexpr auto maximum_thread_count = 3;
+
+  rl::thread_local_var<bool> slot_initialized_{};
+  std::array<T, maximum_thread_count> slots_;
 };
 
 inline auto
