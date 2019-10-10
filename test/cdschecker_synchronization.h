@@ -43,29 +43,6 @@ private:
     -> cxxtrace::detail::cdschecker::memory_order;
 };
 
-inline auto
-cdschecker_synchronization::cast_memory_order(
-  std::memory_order memory_order) noexcept
-  -> cxxtrace::detail::cdschecker::memory_order
-{
-  switch (memory_order) {
-    case std::memory_order_relaxed:
-      return cxxtrace::detail::cdschecker::memory_order_relaxed;
-    case std::memory_order_consume:
-      // NOTE(strager): CDSChecker does not support memory_order_consume.
-      return cxxtrace::detail::cdschecker::memory_order_acquire;
-    case std::memory_order_acquire:
-      return cxxtrace::detail::cdschecker::memory_order_acquire;
-    case std::memory_order_release:
-      return cxxtrace::detail::cdschecker::memory_order_release;
-    case std::memory_order_acq_rel:
-      return cxxtrace::detail::cdschecker::memory_order_acq_rel;
-    case std::memory_order_seq_cst:
-      return cxxtrace::detail::cdschecker::memory_order_seq_cst;
-  }
-  __builtin_unreachable();
-}
-
 template<class T>
 class cdschecker_synchronization::atomic
   : public cxxtrace::detail::atomic_base<T, atomic<T>>
@@ -327,6 +304,29 @@ cdschecker_synchronization::atomic_thread_fence(std::memory_order memory_order,
 {
   cxxtrace::detail::cdschecker::model_fence_action(
     cast_memory_order(memory_order));
+}
+
+inline auto
+cdschecker_synchronization::cast_memory_order(
+  std::memory_order memory_order) noexcept
+  -> cxxtrace::detail::cdschecker::memory_order
+{
+  switch (memory_order) {
+    case std::memory_order_relaxed:
+      return cxxtrace::detail::cdschecker::memory_order_relaxed;
+    case std::memory_order_consume:
+      // NOTE(strager): CDSChecker does not support memory_order_consume.
+      return cxxtrace::detail::cdschecker::memory_order_acquire;
+    case std::memory_order_acquire:
+      return cxxtrace::detail::cdschecker::memory_order_acquire;
+    case std::memory_order_release:
+      return cxxtrace::detail::cdschecker::memory_order_release;
+    case std::memory_order_acq_rel:
+      return cxxtrace::detail::cdschecker::memory_order_acq_rel;
+    case std::memory_order_seq_cst:
+      return cxxtrace::detail::cdschecker::memory_order_seq_cst;
+  }
+  __builtin_unreachable();
 }
 #endif
 }

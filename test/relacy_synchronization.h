@@ -64,27 +64,6 @@ private:
     -> rl::memory_order;
 };
 
-inline auto
-relacy_synchronization::cast_memory_order(
-  std::memory_order memory_order) noexcept -> rl::memory_order
-{
-  switch (memory_order) {
-    case std::memory_order_relaxed:
-      return rl::mo_relaxed;
-    case std::memory_order_consume:
-      return rl::mo_consume;
-    case std::memory_order_acquire:
-      return rl::mo_acquire;
-    case std::memory_order_release:
-      return rl::mo_release;
-    case std::memory_order_acq_rel:
-      return rl::mo_acq_rel;
-    case std::memory_order_seq_cst:
-      return rl::mo_seq_cst;
-  }
-  __builtin_unreachable();
-}
-
 template<class T>
 class relacy_synchronization::atomic
   : public cxxtrace::detail::atomic_base<T, atomic<T>>
@@ -217,6 +196,27 @@ relacy_synchronization::atomic_thread_fence(
   debug_source_location caller) noexcept -> void
 {
   rl::atomic_thread_fence(cast_memory_order(memory_order), caller);
+}
+
+inline auto
+relacy_synchronization::cast_memory_order(
+  std::memory_order memory_order) noexcept -> rl::memory_order
+{
+  switch (memory_order) {
+    case std::memory_order_relaxed:
+      return rl::mo_relaxed;
+    case std::memory_order_consume:
+      return rl::mo_consume;
+    case std::memory_order_acquire:
+      return rl::mo_acquire;
+    case std::memory_order_release:
+      return rl::mo_release;
+    case std::memory_order_acq_rel:
+      return rl::mo_acq_rel;
+    case std::memory_order_seq_cst:
+      return rl::mo_seq_cst;
+  }
+  __builtin_unreachable();
 }
 #endif
 }
