@@ -17,6 +17,8 @@
 #endif
 
 namespace cxxtrace_test {
+using sync = cxxtrace::detail::synchronization;
+
 // Test per-processor counters implemented using rseq.
 //
 // Specifically, test that incrementing the counter is atomic.
@@ -360,7 +362,7 @@ public:
     }
 
     cxxtrace::detail::atomic<bool> is_lock_held{ 0 };
-    cxxtrace::detail::nonatomic<int> counter{ 0 };
+    sync::nonatomic<int> counter{ 0 };
   };
 
   static constexpr auto max_thread_count = 3;

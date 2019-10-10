@@ -18,6 +18,8 @@
 #endif
 
 namespace cxxtrace_test {
+using sync = cxxtrace::detail::synchronization;
+
 // NOTE(strager): This test is a manual test. Ensure the test prints 'result:
 // preempted' and 'result: not preempted' at least one time each.
 // TODO(strager): Extend the test framework to make writing an assertion
@@ -930,7 +932,7 @@ public:
     ~cxxtrace::detail::processor_id{ 0 };
   cxxtrace::detail::atomic<cxxtrace::detail::processor_id>
     producer_processor_id{ invalid_processor_id };
-  cxxtrace::detail::nonatomic<int> data{ 0 };
+  sync::nonatomic<int> data{ 0 };
 };
 
 class test_getting_processor_id_implies_acquire_fence_for_same_processor
@@ -1004,7 +1006,7 @@ public:
     ~cxxtrace::detail::processor_id{ 0 };
   cxxtrace::detail::atomic<cxxtrace::detail::processor_id>
     producer_processor_id{ invalid_processor_id };
-  cxxtrace::detail::nonatomic<int> data{ 0 };
+  sync::nonatomic<int> data{ 0 };
 };
 
 auto

@@ -28,8 +28,6 @@ using synchronization = real_synchronization;
 
 template<class T>
 using atomic = synchronization::atomic<T>;
-template<class T>
-using nonatomic = synchronization::nonatomic<T>;
 
 // Avoid ODR violation using an anonymous namespace. Referencing the
 // synchronization type alias is effectively using #if.
