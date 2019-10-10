@@ -290,7 +290,7 @@ public:
         auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
 
         auto items = std::experimental::pmr::vector<int>{ &memory };
-        auto backoff = cxxtrace_test::backoff{};
+        auto backoff = sync::backoff{};
         this->queue.pop_all_into(items);
         while (items.empty()) {
           backoff.yield(CXXTRACE_HERE);
@@ -359,7 +359,7 @@ public:
       auto items = std::experimental::pmr::vector<int>{ &memory };
       while (items.size() < static_cast<std::size_t>(this->total_push_size())) {
         auto old_size = items.size();
-        auto backoff = cxxtrace_test::backoff{};
+        auto backoff = sync::backoff{};
         this->queue.pop_all_into(items);
         while (items.size() == old_size) {
           backoff.yield(CXXTRACE_HERE);

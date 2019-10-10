@@ -168,16 +168,6 @@ register_concurrency_test(int thread_count,
   detail::register_concurrency_test(t);
 }
 
-#if CXXTRACE_ENABLE_CDSCHECKER
-using backoff = cdschecker_synchronization::backoff;
-#elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
-using backoff = cxxtrace::detail::real_synchronization::backoff;
-#elif CXXTRACE_ENABLE_RELACY
-using backoff = relacy_synchronization::backoff;
-#else
-#error "Unknown configuration"
-#endif
-
 auto
 concurrency_log(void (*)(std::ostream&, void* opaque),
                 void* opaque,

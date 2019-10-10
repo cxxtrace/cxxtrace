@@ -56,7 +56,7 @@ public:
     assert(thread_index < int(this->thread_did_update_counter.size()));
     this->thread_did_update_counter[thread_index] = false;
 
-    auto backoff = cxxtrace_test::backoff{};
+    auto backoff = sync::backoff{};
     for (auto i = 0; i < this->rseq_attempt_count; ++i) {
       auto updated_counter = this->try_increment_counter();
       if (updated_counter) {
@@ -188,7 +188,7 @@ public:
     assert(thread_index < int(this->thread_did_update_counter.size()));
     this->thread_did_update_counter[thread_index] = false;
 
-    auto backoff = cxxtrace_test::backoff{};
+    auto backoff = sync::backoff{};
     for (auto i = 0; i < this->rseq_attempt_count; ++i) {
       auto* processor_data = this->try_lock(backoff);
       if (processor_data) {
@@ -201,7 +201,7 @@ public:
     }
   }
 
-  auto try_lock(cxxtrace_test::backoff& backoff) -> processor_data*
+  auto try_lock(sync::backoff& backoff) -> processor_data*
   {
     processor_data* data;
     auto acquired_lock = false;
