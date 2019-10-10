@@ -39,12 +39,12 @@ private:
   template<std::size_t Size>
   struct nonatomic_traits;
 
-  static auto cdschecker_cast(std::memory_order memory_order) noexcept
+  static auto cast_memory_order(std::memory_order memory_order) noexcept
     -> cxxtrace::detail::cdschecker::memory_order;
 };
 
 inline auto
-cdschecker_synchronization::cdschecker_cast(
+cdschecker_synchronization::cast_memory_order(
   std::memory_order memory_order) noexcept
   -> cxxtrace::detail::cdschecker::memory_order
 {
@@ -94,17 +94,17 @@ public:
                                debug_source_location) noexcept -> bool
   {
     auto actual = this->to_t(cxxtrace::detail::cdschecker::model_rmwr_action(
-      &this->data, cdschecker_cast(success_order)));
+      &this->data, cast_memory_order(success_order)));
     if (actual == expected) {
       cxxtrace::detail::cdschecker::model_rmw_action(
-        &this->data, cdschecker_cast(success_order), this->from_t(desired));
+        &this->data, cast_memory_order(success_order), this->from_t(desired));
       return true;
     } else {
       // TODO(strager): Should we use failure_order here? Why does CDSChecker's
       // own implementation of atomic_compare_exchange_strong_explicit ignore
       // failure_order?
       cxxtrace::detail::cdschecker::model_rmwc_action(
-        &this->data, cdschecker_cast(success_order));
+        &this->data, cast_memory_order(success_order));
       expected = actual;
       return false;
     }
@@ -115,10 +115,10 @@ public:
                  debug_source_location) noexcept -> T
   {
     auto original = cxxtrace::detail::cdschecker::model_rmwr_action(
-      &this->data, cdschecker_cast(memory_order));
+      &this->data, cast_memory_order(memory_order));
     auto modified = original + addend;
     cxxtrace::detail::cdschecker::model_rmw_action(
-      &this->data, cdschecker_cast(memory_order), this->from_t(modified));
+      &this->data, cast_memory_order(memory_order), this->from_t(modified));
     return original;
   }
 
@@ -127,7 +127,7 @@ public:
   {
     auto* data = const_cast<std::uint64_t*>(&this->data);
     return this->to_t(cxxtrace::detail::cdschecker::model_read_action(
-      data, cdschecker_cast(memory_order)));
+      data, cast_memory_order(memory_order)));
   }
 
   auto store(T value,
@@ -135,7 +135,7 @@ public:
              debug_source_location) noexcept -> void
   {
     cxxtrace::detail::cdschecker::model_write_action(
-      &this->data, cdschecker_cast(memory_order), this->from_t(value));
+      &this->data, cast_memory_order(memory_order), this->from_t(value));
   }
 
 private:
@@ -326,7 +326,7 @@ cdschecker_synchronization::atomic_thread_fence(std::memory_order memory_order,
   -> void
 {
   cxxtrace::detail::cdschecker::model_fence_action(
-    cdschecker_cast(memory_order));
+    cast_memory_order(memory_order));
 }
 #endif
 }

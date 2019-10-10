@@ -60,13 +60,13 @@ public:
                                   debug_source_location) noexcept -> void;
 
 private:
-  static auto relacy_cast(std::memory_order memory_order) noexcept
+  static auto cast_memory_order(std::memory_order memory_order) noexcept
     -> rl::memory_order;
 };
 
 inline auto
-relacy_synchronization::relacy_cast(std::memory_order memory_order) noexcept
-  -> rl::memory_order
+relacy_synchronization::cast_memory_order(
+  std::memory_order memory_order) noexcept -> rl::memory_order
 {
   switch (memory_order) {
     case std::memory_order_relaxed:
@@ -112,9 +112,9 @@ public:
   {
     return this->data.compare_exchange_strong(expected,
                                               desired,
-                                              relacy_cast(success_order),
+                                              cast_memory_order(success_order),
                                               caller,
-                                              relacy_cast(failure_order),
+                                              cast_memory_order(failure_order),
                                               caller);
   }
 
@@ -122,20 +122,21 @@ public:
                  std::memory_order memory_order,
                  debug_source_location caller) noexcept -> T
   {
-    return this->data.fetch_add(addend, relacy_cast(memory_order), caller);
+    return this->data.fetch_add(
+      addend, cast_memory_order(memory_order), caller);
   }
 
   auto load(std::memory_order memory_order, debug_source_location caller) const
     noexcept -> T
   {
-    return this->data.load(relacy_cast(memory_order), caller);
+    return this->data.load(cast_memory_order(memory_order), caller);
   }
 
   auto store(T value,
              std::memory_order memory_order,
              debug_source_location caller) noexcept -> void
   {
-    this->data.store(value, relacy_cast(memory_order), caller);
+    this->data.store(value, cast_memory_order(memory_order), caller);
   }
 
 private:
@@ -215,7 +216,7 @@ relacy_synchronization::atomic_thread_fence(
   std::memory_order memory_order,
   debug_source_location caller) noexcept -> void
 {
-  rl::atomic_thread_fence(relacy_cast(memory_order), caller);
+  rl::atomic_thread_fence(cast_memory_order(memory_order), caller);
 }
 #endif
 }
