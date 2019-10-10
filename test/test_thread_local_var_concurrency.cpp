@@ -4,6 +4,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <string>
 
 #if CXXTRACE_ENABLE_RELACY
