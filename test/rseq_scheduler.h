@@ -2,7 +2,6 @@
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
 #include "synchronization.h"
-#include "thread_local_var.h" // IWYU pragma: keep
 #include <array>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
@@ -203,7 +202,8 @@ private:
     std::function<void()>* preempt_callback;
   };
 
-  static thread_local_var<thread_state> thread_state_;
+  static concurrency_test_synchronization::thread_local_var<thread_state>
+    thread_state_;
 
   auto exit_critical_section(cxxtrace::detail::debug_source_location) noexcept
     -> void;

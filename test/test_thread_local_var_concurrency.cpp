@@ -1,6 +1,6 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
-#include "thread_local_var.h" // IWYU pragma: keep
+#include "synchronization.h"
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -15,6 +15,8 @@
 #endif
 
 namespace cxxtrace_test {
+using sync = concurrency_test_synchronization;
+
 class test_thread_local_variable_is_zero_on_thread_entry
 {
 public:
@@ -35,7 +37,7 @@ public:
   // NOTE(strager): var is intentionally not a class member variable. The test
   // framework resets member variables automatically, but does not necessarily
   // reset static variables automatically.
-  static inline thread_local_var<int> var{};
+  static inline sync::thread_local_var<int> var{};
 };
 
 class test_thread_local_variable_is_a_normal_variable_on_one_thread
@@ -52,7 +54,7 @@ public:
 
   auto tear_down() -> void {}
 
-  thread_local_var<int> var{};
+  sync::thread_local_var<int> var{};
 };
 
 class test_thread_local_variables_are_thread_independent
@@ -73,7 +75,7 @@ public:
   }
 
   std::array<std::uintptr_t, 3> var_pointers;
-  thread_local_var<int> var{};
+  sync::thread_local_var<int> var{};
 };
 
 class test_static_thread_local_variables_are_thread_independent
@@ -94,7 +96,7 @@ public:
   }
 
   std::array<std::uintptr_t, 3> var_pointers;
-  static inline thread_local_var<int> var{};
+  static inline sync::thread_local_var<int> var{};
 };
 
 class test_thread_local_variables_can_be_large
@@ -124,7 +126,7 @@ public:
     double d;
   };
 
-  thread_local_var<data> var{};
+  sync::thread_local_var<data> var{};
 };
 
 auto

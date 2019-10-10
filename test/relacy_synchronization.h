@@ -4,6 +4,7 @@
 // IWYU pragma: no_include <ostream>
 
 #if CXXTRACE_ENABLE_RELACY
+#include "relacy_thread_local_var.h"
 #include <atomic>
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
@@ -41,6 +42,9 @@ public:
 
   template<class T>
   class nonatomic;
+
+  template<class T>
+  using thread_local_var = relacy_thread_local_var<T>;
 
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;

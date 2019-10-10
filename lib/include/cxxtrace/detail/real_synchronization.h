@@ -5,6 +5,11 @@
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
 
+namespace cxxtrace_test {
+template<class T>
+class pthread_thread_local_var; // IWYU pragma: keep
+}
+
 namespace cxxtrace {
 namespace detail {
 class real_synchronization
@@ -21,6 +26,9 @@ public:
 
   template<class T>
   class nonatomic;
+
+  template<class T>
+  using thread_local_var = cxxtrace_test::pthread_thread_local_var<T>;
 
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;

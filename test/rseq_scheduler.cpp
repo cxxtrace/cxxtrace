@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 // IWYU pragma: no_include "relacy_synchronization.h"
+// IWYU pragma: no_include "relacy_thread_local_var.h"
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context.hpp>
@@ -270,5 +271,6 @@ rseq_scheduler::processor::release_baton(
   this->has_baton = true;
 }
 
-thread_local_var<rseq_scheduler::thread_state> rseq_scheduler::thread_state_;
+concurrency_test_synchronization::thread_local_var<rseq_scheduler::thread_state>
+  rseq_scheduler::thread_state_;
 }

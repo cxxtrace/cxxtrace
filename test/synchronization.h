@@ -6,6 +6,7 @@
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include "pthread_thread_local_var.h"
 #include <cxxtrace/detail/real_synchronization.h>
 #endif
 
