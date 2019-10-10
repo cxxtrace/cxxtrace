@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_RELACY_SYNCHRONIZATION_H
-#define CXXTRACE_DETAIL_RELACY_SYNCHRONIZATION_H
+#ifndef CXXTRACE_TEST_RELACY_SYNCHRONIZATION_H
+#define CXXTRACE_TEST_RELACY_SYNCHRONIZATION_H
 
 // IWYU pragma: no_include <ostream>
 
@@ -29,8 +29,7 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 CXXTRACE_WARNING_POP
 #endif
 
-namespace cxxtrace {
-namespace detail {
+namespace cxxtrace_test {
 #if CXXTRACE_ENABLE_RELACY
 class relacy_synchronization
 {
@@ -73,10 +72,11 @@ relacy_synchronization::relacy_cast(std::memory_order memory_order) noexcept
 }
 
 template<class T>
-class relacy_synchronization::atomic : public atomic_base<T, atomic<T>>
+class relacy_synchronization::atomic
+  : public cxxtrace::detail::atomic_base<T, atomic<T>>
 {
 private:
-  using base = atomic_base<T, atomic<T>>;
+  using base = cxxtrace::detail::atomic_base<T, atomic<T>>;
 
 public:
   using base::compare_exchange_strong;
@@ -129,7 +129,8 @@ private:
 };
 
 template<class T>
-class relacy_synchronization::nonatomic : public nonatomic_base
+class relacy_synchronization::nonatomic
+  : public cxxtrace::detail::nonatomic_base
 {
 public:
   explicit nonatomic() /* data uninitialized */ = default;
@@ -160,7 +161,6 @@ relacy_synchronization::atomic_thread_fence(
   rl::atomic_thread_fence(relacy_cast(memory_order), caller);
 }
 #endif
-}
 }
 
 #endif

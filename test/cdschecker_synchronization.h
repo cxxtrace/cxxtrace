@@ -1,5 +1,5 @@
-#ifndef CXXTRACE_DETAIL_CDSCHECKER_SYNCHRONIZATION_H
-#define CXXTRACE_DETAIL_CDSCHECKER_SYNCHRONIZATION_H
+#ifndef CXXTRACE_TEST_CDSCHECKER_SYNCHRONIZATION_H
+#define CXXTRACE_TEST_CDSCHECKER_SYNCHRONIZATION_H
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include <atomic>
@@ -11,8 +11,7 @@
 #include <cxxtrace/detail/debug_source_location.h>
 #endif
 
-namespace cxxtrace {
-namespace detail {
+namespace cxxtrace_test {
 #if CXXTRACE_ENABLE_CDSCHECKER
 class cdschecker_synchronization
 {
@@ -33,36 +32,38 @@ private:
   struct nonatomic_traits;
 
   static auto cdschecker_cast(std::memory_order memory_order) noexcept
-    -> cdschecker::memory_order;
+    -> cxxtrace::detail::cdschecker::memory_order;
 };
 
 inline auto
 cdschecker_synchronization::cdschecker_cast(
-  std::memory_order memory_order) noexcept -> cdschecker::memory_order
+  std::memory_order memory_order) noexcept
+  -> cxxtrace::detail::cdschecker::memory_order
 {
   switch (memory_order) {
     case std::memory_order_relaxed:
-      return cdschecker::memory_order_relaxed;
+      return cxxtrace::detail::cdschecker::memory_order_relaxed;
     case std::memory_order_consume:
       // NOTE(strager): CDSChecker does not support memory_order_consume.
-      return cdschecker::memory_order_acquire;
+      return cxxtrace::detail::cdschecker::memory_order_acquire;
     case std::memory_order_acquire:
-      return cdschecker::memory_order_acquire;
+      return cxxtrace::detail::cdschecker::memory_order_acquire;
     case std::memory_order_release:
-      return cdschecker::memory_order_release;
+      return cxxtrace::detail::cdschecker::memory_order_release;
     case std::memory_order_acq_rel:
-      return cdschecker::memory_order_acq_rel;
+      return cxxtrace::detail::cdschecker::memory_order_acq_rel;
     case std::memory_order_seq_cst:
-      return cdschecker::memory_order_seq_cst;
+      return cxxtrace::detail::cdschecker::memory_order_seq_cst;
   }
   __builtin_unreachable();
 }
 
 template<class T>
-class cdschecker_synchronization::atomic : public atomic_base<T, atomic<T>>
+class cdschecker_synchronization::atomic
+  : public cxxtrace::detail::atomic_base<T, atomic<T>>
 {
 private:
-  using base = atomic_base<T, atomic<T>>;
+  using base = cxxtrace::detail::atomic_base<T, atomic<T>>;
 
 public:
   using base::compare_exchange_strong;
@@ -74,7 +75,8 @@ public:
 
   /* implicit */ atomic(T value) noexcept
   {
-    cdschecker::model_init_action(&this->data, this->from_t(value));
+    cxxtrace::detail::cdschecker::model_init_action(&this->data,
+                                                    this->from_t(value));
   }
 
   auto compare_exchange_strong(T& expected,
@@ -83,18 +85,18 @@ public:
                                [[maybe_unused]] std::memory_order failure_order,
                                debug_source_location) noexcept -> bool
   {
-    auto actual = this->to_t(cdschecker::model_rmwr_action(
+    auto actual = this->to_t(cxxtrace::detail::cdschecker::model_rmwr_action(
       &this->data, cdschecker_cast(success_order)));
     if (actual == expected) {
-      cdschecker::model_rmw_action(
+      cxxtrace::detail::cdschecker::model_rmw_action(
         &this->data, cdschecker_cast(success_order), this->from_t(desired));
       return true;
     } else {
       // TODO(strager): Should we use failure_order here? Why does CDSChecker's
       // own implementation of atomic_compare_exchange_strong_explicit ignore
       // failure_order?
-      cdschecker::model_rmwc_action(&this->data,
-                                    cdschecker_cast(success_order));
+      cxxtrace::detail::cdschecker::model_rmwc_action(
+        &this->data, cdschecker_cast(success_order));
       expected = actual;
       return false;
     }
@@ -104,10 +106,10 @@ public:
                  std::memory_order memory_order,
                  debug_source_location) noexcept -> T
   {
-    auto original =
-      cdschecker::model_rmwr_action(&this->data, cdschecker_cast(memory_order));
+    auto original = cxxtrace::detail::cdschecker::model_rmwr_action(
+      &this->data, cdschecker_cast(memory_order));
     auto modified = original + addend;
-    cdschecker::model_rmw_action(
+    cxxtrace::detail::cdschecker::model_rmw_action(
       &this->data, cdschecker_cast(memory_order), this->from_t(modified));
     return original;
   }
@@ -116,15 +118,15 @@ public:
     noexcept -> T
   {
     auto* data = const_cast<std::uint64_t*>(&this->data);
-    return this->to_t(
-      cdschecker::model_read_action(data, cdschecker_cast(memory_order)));
+    return this->to_t(cxxtrace::detail::cdschecker::model_read_action(
+      data, cdschecker_cast(memory_order)));
   }
 
   auto store(T value,
              std::memory_order memory_order,
              debug_source_location) noexcept -> void
   {
-    cdschecker::model_write_action(
+    cxxtrace::detail::cdschecker::model_write_action(
       &this->data, cdschecker_cast(memory_order), this->from_t(value));
   }
 
@@ -155,12 +157,12 @@ struct cdschecker_synchronization::nonatomic_traits<1>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return cdschecker::load_8(&data);
+    return cxxtrace::detail::cdschecker::load_8(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return cdschecker::store_8(&data, value);
+    return cxxtrace::detail::cdschecker::store_8(&data, value);
   }
 };
 
@@ -171,12 +173,12 @@ struct cdschecker_synchronization::nonatomic_traits<2>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return cdschecker::load_16(&data);
+    return cxxtrace::detail::cdschecker::load_16(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return cdschecker::store_16(&data, value);
+    return cxxtrace::detail::cdschecker::store_16(&data, value);
   }
 };
 
@@ -187,12 +189,12 @@ struct cdschecker_synchronization::nonatomic_traits<4>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return cdschecker::load_32(&data);
+    return cxxtrace::detail::cdschecker::load_32(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return cdschecker::store_32(&data, value);
+    return cxxtrace::detail::cdschecker::store_32(&data, value);
   }
 };
 
@@ -203,17 +205,18 @@ struct cdschecker_synchronization::nonatomic_traits<8>
 
   static auto load(const value_type& data) noexcept -> value_type
   {
-    return cdschecker::load_64(&data);
+    return cxxtrace::detail::cdschecker::load_64(&data);
   }
 
   static auto store(value_type& data, value_type value) noexcept -> void
   {
-    return cdschecker::store_64(&data, value);
+    return cxxtrace::detail::cdschecker::store_64(&data, value);
   }
 };
 
 template<class T>
-class cdschecker_synchronization::nonatomic : public nonatomic_base
+class cdschecker_synchronization::nonatomic
+  : public cxxtrace::detail::nonatomic_base
 {
 private:
   using traits = nonatomic_traits<sizeof(T)>;
@@ -261,10 +264,10 @@ cdschecker_synchronization::atomic_thread_fence(std::memory_order memory_order,
                                                 debug_source_location) noexcept
   -> void
 {
-  cdschecker::model_fence_action(cdschecker_cast(memory_order));
+  cxxtrace::detail::cdschecker::model_fence_action(
+    cdschecker_cast(memory_order));
 }
 #endif
-}
 }
 
 #endif

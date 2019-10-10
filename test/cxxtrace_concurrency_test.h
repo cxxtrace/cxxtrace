@@ -17,8 +17,8 @@
 
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include "cdschecker_backoff.h"
+#include "cdschecker_synchronization.h"
 #include <cxxtrace/detail/cdschecker.h>
-#include <cxxtrace/detail/cdschecker_synchronization.h>
 #include <cxxtrace/string.h>
 #endif
 
@@ -30,7 +30,7 @@
 
 #if CXXTRACE_ENABLE_RELACY
 #include "relacy_backoff.h"
-#include <cxxtrace/detail/relacy_synchronization.h>
+#include "relacy_synchronization.h"
 #include <cxxtrace/detail/warning.h>
 
 CXXTRACE_WARNING_PUSH

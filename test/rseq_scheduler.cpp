@@ -7,7 +7,7 @@
 #include <ostream>
 #include <string>
 #include <utility>
-// IWYU pragma: no_include <cxxtrace/detail/relacy_synchronization.h>
+// IWYU pragma: no_include "relacy_synchronization.h"
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context.hpp>
