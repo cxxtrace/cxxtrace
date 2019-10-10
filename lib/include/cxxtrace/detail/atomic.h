@@ -31,16 +31,6 @@ using atomic = synchronization::atomic<T>;
 template<class T>
 using nonatomic = synchronization::nonatomic<T>;
 
-#if CXXTRACE_ENABLE_CDSCHECKER
-// TODO(strager): Implement cdschecker_synchronization::atomic_flag.
-using atomic_flag = void;
-#elif CXXTRACE_ENABLE_RELACY
-// TODO(strager): Implement relacy_synchronization::atomic_flag.
-using atomic_flag = void;
-#else
-using atomic_flag = real_synchronization::atomic_flag;
-#endif
-
 // Avoid ODR violation using an anonymous namespace. Referencing the
 // synchronization type alias is effectively using #if.
 namespace {
