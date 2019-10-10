@@ -16,7 +16,6 @@
 #include <vector>
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-#include "cdschecker_backoff.h"
 #include "cdschecker_synchronization.h"
 #include <cxxtrace/detail/cdschecker.h>
 #include <cxxtrace/string.h>
@@ -29,7 +28,6 @@
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
-#include "relacy_backoff.h"
 #include "relacy_synchronization.h"
 #include <cxxtrace/detail/warning.h>
 
@@ -171,11 +169,11 @@ register_concurrency_test(int thread_count,
 }
 
 #if CXXTRACE_ENABLE_CDSCHECKER
-using backoff = cdschecker_backoff;
+using backoff = cdschecker_synchronization::backoff;
 #elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
 using backoff = cxxtrace::detail::real_synchronization::backoff;
 #elif CXXTRACE_ENABLE_RELACY
-using backoff = relacy_backoff;
+using backoff = relacy_synchronization::backoff;
 #else
 #error "Unknown configuration"
 #endif

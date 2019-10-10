@@ -114,7 +114,6 @@ private:
   std::atomic_flag flag = ATOMIC_FLAG_INIT;
 };
 
-// TODO(strager): Merge with cxxtrace_test::backoff.
 class real_synchronization::backoff
 {
 public:

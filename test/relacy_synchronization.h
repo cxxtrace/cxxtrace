@@ -7,16 +7,10 @@
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/warning.h>
-#include <cxxtrace/detail/workarounds.h>
-#include <exception>
-#include <pthread.h>
-#include <system_error>
-#include <type_traits>
 
 CXXTRACE_WARNING_PUSH
 CXXTRACE_WARNING_IGNORE_CLANG("-Wdeprecated-declarations")
@@ -31,10 +25,12 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wsized-deallocation")
 CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 
 // clang-format off
-#include <relacy/thread_local_ctx.hpp>
+#include <relacy/thread_local_ctx.hpp> // IWYU pragma: keep
 // clang-format on
 #include <relacy/atomic.hpp>
 #include <relacy/atomic_fence.hpp>
+#include <relacy/backoff.hpp>
+#include <relacy/context.hpp>
 #include <relacy/memory_order.hpp>
 #include <relacy/thread_local.hpp>
 #include <relacy/var.hpp>
@@ -51,6 +47,8 @@ public:
 
   template<class T>
   class atomic;
+
+  class backoff;
 
   template<class T>
   class nonatomic;
@@ -142,6 +140,19 @@ public:
 
 private:
   rl::atomic<T> data /* uninitialized */;
+};
+
+class relacy_synchronization::backoff
+{
+public:
+  explicit backoff();
+  ~backoff();
+
+  auto reset() -> void;
+  auto yield(debug_source_location) -> void;
+
+private:
+  rl::linear_backoff backoff_;
 };
 
 template<class T>

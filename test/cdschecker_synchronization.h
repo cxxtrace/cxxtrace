@@ -8,17 +8,10 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/cdschecker.h>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/warning.h>
-#include <cxxtrace/detail/workarounds.h>
-#include <exception>
-#include <pthread.h>
-#include <system_error>
-#include <type_traits>
 #endif
 
 namespace cxxtrace_test {
@@ -30,6 +23,8 @@ public:
 
   template<class T>
   class atomic;
+
+  class backoff;
 
   template<class T>
   class nonatomic;
@@ -161,6 +156,16 @@ private:
   }
 
   std::uint64_t data /* uninitialized */;
+};
+
+class cdschecker_synchronization::backoff
+{
+public:
+  explicit backoff();
+  ~backoff();
+
+  auto reset() -> void;
+  auto yield(debug_source_location) -> void;
 };
 
 template<>
