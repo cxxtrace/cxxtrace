@@ -26,9 +26,6 @@ using synchronization = relacy_synchronization;
 using synchronization = real_synchronization;
 #endif
 
-template<class T>
-using atomic = synchronization::atomic<T>;
-
 // Avoid ODR violation using an anonymous namespace. Referencing the
 // synchronization type alias is effectively using #if.
 namespace {

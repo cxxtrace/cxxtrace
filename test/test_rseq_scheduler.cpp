@@ -416,8 +416,7 @@ public:
   static constexpr auto invalid_processor_id =
     ~cxxtrace::detail::processor_id{ 0 };
   static constexpr auto thread_count = 2;
-  std::array<cxxtrace::detail::atomic<cxxtrace::detail::processor_id>,
-             thread_count>
+  std::array<sync::atomic<cxxtrace::detail::processor_id>, thread_count>
     thread_processor_ids;
 };
 
@@ -525,8 +524,7 @@ public:
   static constexpr auto invalid_processor_id =
     ~cxxtrace::detail::processor_id{ 0 };
   static constexpr auto thread_count = 3;
-  std::array<cxxtrace::detail::atomic<cxxtrace::detail::processor_id>,
-             thread_count>
+  std::array<sync::atomic<cxxtrace::detail::processor_id>, thread_count>
     thread_processor_ids;
 };
 
@@ -588,7 +586,7 @@ public:
 
   static constexpr auto invalid_processor_id =
     ~cxxtrace::detail::processor_id{ 0 };
-  std::array<cxxtrace::detail::atomic<cxxtrace::detail::processor_id>, 2>
+  std::array<sync::atomic<cxxtrace::detail::processor_id>, 2>
     thread_processor_ids{ invalid_processor_id, invalid_processor_id };
 };
 
@@ -676,7 +674,7 @@ public:
   struct processor_state
   {
     std::array<bool, max_thread_count> thread_updated_counter{};
-    cxxtrace::detail::atomic<int> counter{ 0 };
+    sync::atomic<int> counter{ 0 };
   };
 
   std::array<processor_state, max_processor_count> processor_states;
@@ -770,8 +768,8 @@ public:
 
   auto tear_down() -> void {}
 
-  cxxtrace::detail::atomic<bool> is_data_stored{ false };
-  cxxtrace::detail::atomic<int> data{ 0 };
+  sync::atomic<bool> is_data_stored{ false };
+  sync::atomic<int> data{ 0 };
 };
 
 // NOTE(strager): This test is a manual test. Ensure the test prints the
@@ -851,8 +849,8 @@ public:
 
   auto tear_down() -> void {}
 
-  cxxtrace::detail::atomic<bool> is_data_stored{ false };
-  cxxtrace::detail::atomic<int> data{ 0 };
+  sync::atomic<bool> is_data_stored{ false };
+  sync::atomic<int> data{ 0 };
 };
 
 class test_preemption_implies_release_fence_for_same_processor
@@ -930,8 +928,9 @@ public:
 
   static constexpr auto invalid_processor_id =
     ~cxxtrace::detail::processor_id{ 0 };
-  cxxtrace::detail::atomic<cxxtrace::detail::processor_id>
-    producer_processor_id{ invalid_processor_id };
+  sync::atomic<cxxtrace::detail::processor_id> producer_processor_id{
+    invalid_processor_id
+  };
   sync::nonatomic<int> data{ 0 };
 };
 
@@ -1004,8 +1003,9 @@ public:
 
   static constexpr auto invalid_processor_id =
     ~cxxtrace::detail::processor_id{ 0 };
-  cxxtrace::detail::atomic<cxxtrace::detail::processor_id>
-    producer_processor_id{ invalid_processor_id };
+  sync::atomic<cxxtrace::detail::processor_id> producer_processor_id{
+    invalid_processor_id
+  };
   sync::nonatomic<int> data{ 0 };
 };
 

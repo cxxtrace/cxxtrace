@@ -232,7 +232,7 @@ private:
     // processor_reservation_mutex_ provides synchronization (but not mutual
     // exclusion) for has_baton.
     bool has_baton{ false };
-    cxxtrace::detail::atomic<bool> baton{ true };
+    cxxtrace::detail::synchronization::atomic<bool> baton{ true };
   };
 
   static constexpr auto maximum_processor_count = 3;

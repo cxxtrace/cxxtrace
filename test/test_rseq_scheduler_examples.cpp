@@ -119,7 +119,7 @@ public:
 
   struct processor_counter
   {
-    cxxtrace::detail::atomic<int> counter{ 0 };
+    sync::atomic<int> counter{ 0 };
   };
 
   static constexpr auto max_thread_count = 3;
@@ -361,7 +361,7 @@ public:
       }
     }
 
-    cxxtrace::detail::atomic<bool> is_lock_held{ 0 };
+    sync::atomic<bool> is_lock_held{ 0 };
     sync::nonatomic<int> counter{ 0 };
   };
 
