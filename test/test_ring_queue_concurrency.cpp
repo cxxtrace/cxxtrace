@@ -6,6 +6,7 @@
 #include <array>
 #include <cassert>
 #include <cstddef>
+#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
@@ -70,6 +71,8 @@ operator<<(std::ostream& out, mpsc_ring_queue_push_result x) -> std::ostream&
 }
 
 namespace cxxtrace_test {
+using sync = cxxtrace::detail::synchronization;
+
 template<class RingQueue>
 class ring_queue_relacy_test_base
 {
@@ -152,7 +155,7 @@ protected:
 
   static auto log_items(cxxtrace::czstring name,
                         const std::experimental::pmr::vector<int>& items,
-                        cxxtrace::detail::debug_source_location caller) -> void
+                        sync::debug_source_location caller) -> void
   {
     concurrency_log(
       [&](std::ostream& out) {
@@ -529,8 +532,9 @@ private:
   std::array<std::optional<push_result>, max_threads> producer_push_results;
 };
 
-template<template<class T, std::size_t Capacity, class Index = int>
-         class RingQueue>
+template<
+  template<class T, std::size_t Capacity, class Index = int, class Sync = sync>
+  class RingQueue>
 auto
 register_single_producer_ring_queue_concurrency_tests() -> void
 {
@@ -574,8 +578,9 @@ register_single_producer_ring_queue_concurrency_tests() -> void
   }
 }
 
-template<template<class T, std::size_t Capacity, class Index = int>
-         class RingQueue>
+template<
+  template<class T, std::size_t Capacity, class Index = int, class Sync = sync>
+  class RingQueue>
 auto
 register_multiple_producer_ring_queue_concurrency_tests() -> void
 {

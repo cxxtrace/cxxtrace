@@ -67,10 +67,21 @@ struct ring_queue_factory
   using ring_queue = ring_queue_wrapper<RingQueue<T, Capacity, Index>>;
 };
 
+template<template<class T,
+                  std::size_t Capacity,
+                  class Index,
+                  class Sync = cxxtrace::detail::real_synchronization>
+         class RingQueue>
+struct sync_ring_queue_factory
+{
+  template<class T, std::size_t Capacity, class Index>
+  using ring_queue = ring_queue_wrapper<RingQueue<T, Capacity, Index>>;
+};
+
 using test_ring_queue_types =
   ::testing::Types<ring_queue_factory<cxxtrace::detail::ring_queue>,
-                   ring_queue_factory<cxxtrace::detail::mpsc_ring_queue>,
-                   ring_queue_factory<cxxtrace::detail::spsc_ring_queue>>;
+                   sync_ring_queue_factory<cxxtrace::detail::mpsc_ring_queue>,
+                   sync_ring_queue_factory<cxxtrace::detail::spsc_ring_queue>>;
 TYPED_TEST_CASE(test_ring_queue, test_ring_queue_types, );
 
 namespace {

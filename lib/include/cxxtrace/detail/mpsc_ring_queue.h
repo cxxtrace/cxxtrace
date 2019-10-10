@@ -9,9 +9,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/molecular.h>
+#include <cxxtrace/detail/real_synchronization.h>
 #include <limits>
 #include <optional>
 #include <type_traits> // IWYU pragma: keep
@@ -46,7 +46,10 @@ enum class mpsc_ring_queue_push_result : bool
 //
 // @see ring_queue
 // @see spsc_ring_queue
-template<class T, std::size_t Capacity, class Index = int>
+template<class T,
+         std::size_t Capacity,
+         class Index = int,
+         class Sync = real_synchronization>
 class mpsc_ring_queue
 {
 public:
@@ -124,7 +127,7 @@ public:
     // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
     // CDSChecker without this fence? Doesn't the implicitly-seq_cst
     // compare_exchange_strong enforce acq_rel ordering already?
-    atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
+    Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     {
       const auto write_end_vindex = this->write_end_vindex.load(CXXTRACE_HERE);
@@ -143,6 +146,11 @@ public:
   }
 
 private:
+  template<class U>
+  using atomic = typename Sync::template atomic<U>;
+  template<class U>
+  using nonatomic = typename Sync::template nonatomic<U>;
+
   class push_handle
   {
   public:
@@ -154,13 +162,13 @@ private:
 
   private:
     explicit push_handle(
-      std::array<molecular<value_type, synchronization>, capacity>& storage,
+      std::array<molecular<value_type, Sync>, capacity>& storage,
       size_type write_begin_vindex) noexcept
       : storage{ storage }
       , write_begin_vindex{ write_begin_vindex }
     {}
 
-    std::array<molecular<value_type, synchronization>, capacity>& storage;
+    std::array<molecular<value_type, Sync>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
     friend class mpsc_ring_queue;
@@ -188,7 +196,7 @@ private:
     // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
     // CDSChecker without this fence? Doesn't the implicitly-seq_cst
     // compare_exchange_strong enforce acq_rel ordering already?
-    atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
+    Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     return std::pair{ write_begin_vindex, *maybe_new_write_end_vindex };
   }
@@ -210,7 +218,7 @@ private:
   atomic<size_type> write_begin_vindex{ 0 };
   atomic<size_type> write_end_vindex{ 0 };
 
-  std::array<molecular<value_type, synchronization>, capacity> storage
+  std::array<molecular<value_type, Sync>, capacity> storage
     /* uninitialized */;
 };
 }

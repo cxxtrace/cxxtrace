@@ -9,9 +9,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/add.h>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/molecular.h>
+#include <cxxtrace/detail/real_synchronization.h>
 #include <limits>
 #include <type_traits> // IWYU pragma: keep
 #include <utility>
@@ -38,7 +38,10 @@ namespace detail {
 //
 // @see ring_queue
 // @see mpsc_ring_queue
-template<class T, std::size_t Capacity, class Index = int>
+template<class T,
+         std::size_t Capacity,
+         class Index = int,
+         class Sync = real_synchronization>
 class spsc_ring_queue
 {
 public:
@@ -105,7 +108,7 @@ public:
     }
     auto output_item_count = end_vindex - begin_vindex;
 
-    atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
+    Sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
 
     {
       const auto write_end_vindex =
@@ -125,6 +128,11 @@ public:
   }
 
 private:
+  template<class U>
+  using atomic = typename Sync::template atomic<U>;
+  template<class U>
+  using nonatomic = typename Sync::template nonatomic<U>;
+
   class push_handle
   {
   public:
@@ -136,13 +144,13 @@ private:
 
   private:
     explicit push_handle(
-      std::array<molecular<value_type, synchronization>, capacity>& storage,
+      std::array<molecular<value_type, Sync>, capacity>& storage,
       size_type write_begin_vindex) noexcept
       : storage{ storage }
       , write_begin_vindex{ write_begin_vindex }
     {}
 
-    std::array<molecular<value_type, synchronization>, capacity>& storage;
+    std::array<molecular<value_type, Sync>, capacity>& storage;
     size_type write_begin_vindex{ 0 };
 
     friend class spsc_ring_queue;
@@ -161,7 +169,7 @@ private:
     }
     this->write_end_vindex.store(
       *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
-    atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
+    Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     return { write_begin_vindex, *maybe_new_write_end_vindex };
   }
@@ -183,7 +191,7 @@ private:
   atomic<size_type> write_begin_vindex{ 0 };
   atomic<size_type> write_end_vindex{ 0 };
 
-  std::array<molecular<value_type, synchronization>, capacity> storage
+  std::array<molecular<value_type, Sync>, capacity> storage
     /* uninitialized */;
 };
 }
