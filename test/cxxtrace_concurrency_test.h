@@ -204,14 +204,6 @@ auto
 concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int;
 #endif
 
-#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-using concurrency_stress_generation = std::int64_t;
-
-auto
-current_concurrency_stress_generation() noexcept
-  -> concurrency_stress_generation;
-#endif
-
 namespace detail {
 #if CXXTRACE_ENABLE_CDSCHECKER
 auto

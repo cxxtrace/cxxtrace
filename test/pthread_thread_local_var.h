@@ -2,7 +2,7 @@
 #define CXXTRACE_TEST_PTHREAD_THREAD_LOCAL_VAR_H
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-#include "cxxtrace_concurrency_test.h"
+#include "concurrency_stress.h"
 #include <array>
 #include <cassert>
 #include <cstdio>

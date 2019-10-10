@@ -2,6 +2,7 @@
 #error "CXXTRACE_ENABLE_CONCURRENCY_STRESS must be defined and non-zero."
 #endif
 
+#include "concurrency_stress.h"
 #include "concurrency_test_runner.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
