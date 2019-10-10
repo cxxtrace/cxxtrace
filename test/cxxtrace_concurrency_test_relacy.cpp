@@ -5,7 +5,6 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
-#include "relacy_backoff.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -37,7 +36,6 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 // clang-format off
 #include <relacy/thread_local_ctx.hpp> // IWYU pragma: keep
 // clang-format on
-#include <relacy/backoff.hpp>
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #include <relacy/context_base_impl.hpp>
@@ -141,22 +139,6 @@ public:
   }
 };
 }
-}
-
-relacy_backoff::relacy_backoff() = default;
-
-relacy_backoff::~relacy_backoff() = default;
-
-auto
-relacy_backoff::reset() -> void
-{
-  this->backoff = rl::linear_backoff{};
-}
-
-auto
-relacy_backoff::yield(cxxtrace::detail::debug_source_location caller) -> void
-{
-  this->backoff.yield(caller);
 }
 
 auto

@@ -88,6 +88,7 @@ if (CXXTRACE_CDSCHECKER)
   add_library(
     cxxtrace_cdschecker_extra
     STATIC
+    cdschecker_synchronization.cpp
     cxxtrace_concurrency_test_cdschecker.cpp
   )
   target_compile_definitions(
@@ -129,10 +130,10 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
 
   add_executable(
     ${BASE_NAME}_relacy
-    # TODO(strager): Put cxxtrace_concurrency_test_relacy.cpp and
-    # cxxtrace_concurrency_test_main_relacy.cpp into their own library.
+    # TODO(strager): Put these source files into their own library.
     cxxtrace_concurrency_test_main_relacy.cpp
     cxxtrace_concurrency_test_relacy.cpp
+    relacy_synchronization.cpp
     rseq_scheduler.cpp
     ${SOURCES}
   )

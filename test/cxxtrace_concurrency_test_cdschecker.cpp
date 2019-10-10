@@ -2,7 +2,6 @@
 #error "CXXTRACE_ENABLE_CDSCHECKER must be defined and non-zero."
 #endif
 
-#include "cdschecker_backoff.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include <cstring>
@@ -24,19 +23,6 @@ join_thread(cxxtrace::detail::cdschecker::thrd_t thread) -> void;
 }
 
 namespace cxxtrace_test {
-cdschecker_backoff::cdschecker_backoff() = default;
-
-cdschecker_backoff::~cdschecker_backoff() = default;
-
-auto
-cdschecker_backoff::reset() -> void
-{}
-
-auto cdschecker_backoff::yield(cxxtrace::detail::debug_source_location) -> void
-{
-  cxxtrace::detail::cdschecker::thrd_yield();
-}
-
 namespace detail {
 auto
 run_concurrency_test_from_cdschecker(detail::concurrency_test* test) -> void
