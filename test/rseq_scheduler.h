@@ -38,7 +38,7 @@ namespace cxxtrace_test {
 //   // object between all of your threads.
 //   // Do not declare rseq_scheduler with static storage duration. Call
 //   // rseq_scheduler's default constructor each test iteration.
-//   rseq_scheduler my_rseq{};
+//   rseq_scheduler<concurrency_test_synchronization> my_rseq{};
 //
 //   // If you want to write to an automatic variable within a critical section
 //   // and read from that automatic variable in a preempt handler, you must
@@ -106,13 +106,20 @@ namespace cxxtrace_test {
 //
 //   /* (Do cleanup work. Maybe retry, calling CXXTRACE_BEGIN_PREEMPTABLE
 //      again.) */
+template<class Sync>
 class rseq_scheduler
 {
+private:
+  template<class T>
+  using atomic = typename Sync::template atomic<T>;
+  using debug_source_location = typename Sync::debug_source_location;
+  template<class T>
+  using thread_local_var = typename Sync::template thread_local_var<T>;
+
 public:
   explicit rseq_scheduler();
 
-  auto get_current_processor_id(
-    cxxtrace::detail::debug_source_location) noexcept
+  auto get_current_processor_id(debug_source_location) noexcept
     -> cxxtrace::detail::processor_id;
 
   // Possibly jump to the label registered with CXXTRACE_BEGIN_PREEMPTABLE.
@@ -133,13 +140,13 @@ public:
   //
   // [1] See set_preempt_callback for optional steps performed before exiting
   //     the critical section.
-  static auto allow_preempt(cxxtrace::detail::debug_source_location) -> void;
+  static auto allow_preempt(debug_source_location) -> void;
 
   // TODO(strager): Convert end_preemptable into a macro to mirror
   // CXXTRACE_BEGIN_PREEMPTABLE.
   // TODO(strager): Require a matching call to end_preemptable for each call to
   // CXXTRACE_BEGIN_PREEMPTABLE.
-  auto end_preemptable(cxxtrace::detail::debug_source_location) -> void;
+  auto end_preemptable(debug_source_location) -> void;
 
   // This function exists for assertions only. Do not use the result of this
   // function to influence your algorithm.
@@ -163,12 +170,11 @@ public:
   // This function is private to rseq_scheduler. It is visible only so it can be
   // used in macros.
   auto enter_critical_section(cxxtrace::czstring preempt_label,
-                              cxxtrace::detail::debug_source_location) noexcept
-    -> void;
+                              debug_source_location) noexcept -> void;
 
   // This function is private to rseq_scheduler. It is visible only so it can be
   // used in macros.
-  auto finish_preempt(cxxtrace::detail::debug_source_location) noexcept -> void;
+  auto finish_preempt(debug_source_location) noexcept -> void;
 
   // This function is private to rseq_scheduler. It is visible only so it can be
   // used in macros.
@@ -179,7 +185,7 @@ private:
   {
     auto in_critical_section() const noexcept -> bool;
 
-    [[noreturn]] auto preempt(cxxtrace::detail::debug_source_location) -> void;
+    [[noreturn]] auto preempt(debug_source_location) -> void;
 
     // preempt_label is a nullable pointer to a statically-allocated string.
     //
@@ -202,24 +208,21 @@ private:
     std::function<void()>* preempt_callback;
   };
 
-  static concurrency_test_synchronization::thread_local_var<thread_state>
-    thread_state_;
+  inline static thread_local_var<thread_state> thread_state_;
 
-  auto exit_critical_section(cxxtrace::detail::debug_source_location) noexcept
-    -> void;
+  auto exit_critical_section(debug_source_location) noexcept -> void;
 
-  auto get_any_unused_processor_id(cxxtrace::detail::debug_source_location)
+  auto get_any_unused_processor_id(debug_source_location)
     -> cxxtrace::detail::processor_id;
   auto mark_processor_id_as_unused(cxxtrace::detail::processor_id,
-                                   cxxtrace::detail::debug_source_location)
-    -> void;
-  auto take_unused_processor_id(cxxtrace::detail::debug_source_location)
+                                   debug_source_location) -> void;
+  auto take_unused_processor_id(debug_source_location)
     -> cxxtrace::detail::processor_id;
 
   struct processor
   {
-    auto maybe_acquire_baton(cxxtrace::detail::debug_source_location) -> void;
-    auto release_baton(cxxtrace::detail::debug_source_location) -> void;
+    auto maybe_acquire_baton(debug_source_location) -> void;
+    auto release_baton(debug_source_location) -> void;
 
     bool in_use{ false };
 
@@ -233,7 +236,7 @@ private:
     // processor_reservation_mutex_ provides synchronization (but not mutual
     // exclusion) for has_baton.
     bool has_baton{ false };
-    concurrency_test_synchronization::atomic<bool> baton{ true };
+    atomic<bool> baton{ true };
   };
 
   static constexpr auto maximum_processor_count = 3;
@@ -251,11 +254,13 @@ private:
   int processor_id_count_;
 };
 
+extern template class rseq_scheduler<concurrency_test_synchronization>;
+
 // TODO(strager): Should CXXTRACE_BEGIN_PREEMPTABLE implicitly call
 // allow_preempt?
 #define CXXTRACE_BEGIN_PREEMPTABLE(scheduler, preempt_label)                   \
   do {                                                                         \
-    ::cxxtrace_test::rseq_scheduler& _cxxtrace_scheduler = (scheduler);        \
+    auto& _cxxtrace_scheduler = (scheduler);                                   \
     if (setjmp(_cxxtrace_scheduler.preempt_target_jmp_buf()) != 0) {           \
       _cxxtrace_scheduler.finish_preempt(CXXTRACE_HERE);                       \
       goto preempt_label;                                                      \
@@ -268,7 +273,7 @@ private:
 class rseq_scheduler_test_base
 {
 public:
-  rseq_scheduler rseq;
+  rseq_scheduler<concurrency_test_synchronization> rseq;
 };
 #endif
 }

@@ -7,13 +7,19 @@
 #include <ostream>
 #include <string>
 #include <utility>
-// IWYU pragma: no_include "relacy_synchronization.h"
 // IWYU pragma: no_include "relacy_thread_local_var.h"
 
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include <cxxtrace/detail/real_synchronization.h>
+#endif
+// IWYU pragma: no_forward_declare cxxtrace::detail::real_synchronization
+
 #if CXXTRACE_ENABLE_RELACY
+#include "relacy_synchronization.h"
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #endif
+// IWYU pragma: no_forward_declare cxxtrace_test::relacy_synchronization
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
 #error                                                                         \
@@ -21,27 +27,56 @@
 #endif
 
 namespace cxxtrace_test {
-rseq_scheduler::rseq_scheduler()
+namespace {
+template<class Sync>
+auto
+get_test_thread_count() noexcept -> int = delete;
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+template<>
+auto
+get_test_thread_count<cdschecker_synchronization>() noexcept -> int
+{
+  // TODO(strager): Create an API to query the number of test threads.
+  return 3;
+}
+#endif
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+template<>
+auto
+get_test_thread_count<cxxtrace::detail::real_synchronization>() noexcept -> int
+{
+  // TODO(strager): Create an API to query the number of test threads.
+  return 3;
+}
+#endif
+
+#if CXXTRACE_ENABLE_RELACY
+template<>
+auto
+get_test_thread_count<relacy_synchronization>() noexcept -> int
+{
+  return rl::ctx().get_thread_count();
+}
+#endif
+}
+
+template<class Sync>
+rseq_scheduler<Sync>::rseq_scheduler()
 {
   // HACK(strager): Create at least two processors to make
   // test_thread_might_change_processor_when_entering_critical_section pass.
   // HACK(strager): Create at least one processor per thread to allow all
   // threads to successfully enter a critical section without blocking.
-  auto thread_count =
-#if CXXTRACE_ENABLE_RELACY
-    rl::ctx().get_thread_count()
-#else
-    // TODO(strager): Create an API to query the number of test threads.
-    3
-#endif
-    ;
+  auto thread_count = get_test_thread_count<Sync>();
   this->processor_id_count_ = std::max(thread_count, 2);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::get_current_processor_id(
-  cxxtrace::detail::debug_source_location caller) noexcept
-  -> cxxtrace::detail::processor_id
+rseq_scheduler<Sync>::get_current_processor_id(
+  debug_source_location caller) noexcept -> cxxtrace::detail::processor_id
 {
   const auto& state = *this->thread_state_;
   cxxtrace::detail::processor_id processor_id;
@@ -56,9 +91,9 @@ rseq_scheduler::get_current_processor_id(
   return processor_id;
 }
 
+template<class Sync>
 auto
-rseq_scheduler::allow_preempt(cxxtrace::detail::debug_source_location caller)
-  -> void
+rseq_scheduler<Sync>::allow_preempt(debug_source_location caller) -> void
 {
   auto& state = *thread_state_;
   if (state.in_critical_section()) {
@@ -69,9 +104,10 @@ rseq_scheduler::allow_preempt(cxxtrace::detail::debug_source_location caller)
   }
 }
 
+template<class Sync>
 [[noreturn]] auto
-rseq_scheduler::thread_state::preempt(
-  cxxtrace::detail::debug_source_location caller) -> void
+rseq_scheduler<Sync>::thread_state::preempt(debug_source_location caller)
+  -> void
 {
   assert(this->in_critical_section());
   cxxtrace_test::concurrency_log(
@@ -83,8 +119,10 @@ rseq_scheduler::thread_state::preempt(
   ::longjmp(this->preempt_target, 1);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::set_preempt_callback(std::function<void()>&& on_preempt) -> void
+rseq_scheduler<Sync>::set_preempt_callback(std::function<void()>&& on_preempt)
+  -> void
 {
   auto& state = *thread_state_;
   assert(state.in_critical_section());
@@ -92,25 +130,27 @@ rseq_scheduler::set_preempt_callback(std::function<void()>&& on_preempt) -> void
   state.preempt_callback = new std::function<void()>{ std::move(on_preempt) };
 }
 
+template<class Sync>
 auto
-rseq_scheduler::end_preemptable(cxxtrace::detail::debug_source_location caller)
-  -> void
+rseq_scheduler<Sync>::end_preemptable(debug_source_location caller) -> void
 {
   cxxtrace_test::concurrency_log(
     [](std::ostream& out) { out << "CXXTRACE_END_PREEMPTABLE"; }, caller);
   this->exit_critical_section(caller);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::in_critical_section() noexcept -> bool
+rseq_scheduler<Sync>::in_critical_section() noexcept -> bool
 {
   return thread_state_->in_critical_section();
 }
 
+template<class Sync>
 auto
-rseq_scheduler::enter_critical_section(
+rseq_scheduler<Sync>::enter_critical_section(
   cxxtrace::czstring preempt_label,
-  cxxtrace::detail::debug_source_location caller) noexcept -> void
+  debug_source_location caller) noexcept -> void
 {
   assert(preempt_label);
   ::cxxtrace_test::concurrency_log(
@@ -126,9 +166,10 @@ rseq_scheduler::enter_critical_section(
   state.processor_id = this->take_unused_processor_id(caller);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::finish_preempt(
-  cxxtrace::detail::debug_source_location caller) noexcept -> void
+rseq_scheduler<Sync>::finish_preempt(debug_source_location caller) noexcept
+  -> void
 {
   auto& state = *this->thread_state_;
   assert(state.in_critical_section());
@@ -144,21 +185,24 @@ rseq_scheduler::finish_preempt(
   this->exit_critical_section(caller);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::preempt_target_jmp_buf() noexcept -> ::jmp_buf&
+rseq_scheduler<Sync>::preempt_target_jmp_buf() noexcept -> ::jmp_buf&
 {
   return this->thread_state_->preempt_target;
 }
 
+template<class Sync>
 auto
-rseq_scheduler::thread_state::in_critical_section() const noexcept -> bool
+rseq_scheduler<Sync>::thread_state::in_critical_section() const noexcept -> bool
 {
   return !!this->preempt_label;
 }
 
+template<class Sync>
 auto
-rseq_scheduler::exit_critical_section(
-  cxxtrace::detail::debug_source_location caller) noexcept -> void
+rseq_scheduler<Sync>::exit_critical_section(
+  debug_source_location caller) noexcept -> void
 {
   auto& state = *this->thread_state_;
   state.preempt_label = nullptr;
@@ -166,9 +210,9 @@ rseq_scheduler::exit_critical_section(
   this->mark_processor_id_as_unused(state.processor_id, caller);
 }
 
+template<class Sync>
 auto
-rseq_scheduler::get_any_unused_processor_id(
-  cxxtrace::detail::debug_source_location caller)
+rseq_scheduler<Sync>::get_any_unused_processor_id(debug_source_location caller)
   -> cxxtrace::detail::processor_id
 {
   using unique_lock =
@@ -217,10 +261,11 @@ rseq_scheduler::get_any_unused_processor_id(
   return processor - this->processors_.data();
 }
 
+template<class Sync>
 auto
-rseq_scheduler::mark_processor_id_as_unused(
+rseq_scheduler<Sync>::mark_processor_id_as_unused(
   cxxtrace::detail::processor_id processor_id,
-  cxxtrace::detail::debug_source_location caller) -> void
+  debug_source_location caller) -> void
 {
   auto& processor = this->processors_[processor_id];
   processor.release_baton(caller);
@@ -231,9 +276,9 @@ rseq_scheduler::mark_processor_id_as_unused(
   }
 }
 
+template<class Sync>
 auto
-rseq_scheduler::take_unused_processor_id(
-  cxxtrace::detail::debug_source_location caller)
+rseq_scheduler<Sync>::take_unused_processor_id(debug_source_location caller)
   -> cxxtrace::detail::processor_id
 {
   auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
@@ -253,9 +298,10 @@ rseq_scheduler::take_unused_processor_id(
   __builtin_unreachable();
 }
 
+template<class Sync>
 auto
-rseq_scheduler::processor::maybe_acquire_baton(
-  cxxtrace::detail::debug_source_location caller) -> void
+rseq_scheduler<Sync>::processor::maybe_acquire_baton(
+  debug_source_location caller) -> void
 {
   if (this->has_baton) {
     [[maybe_unused]] auto baton =
@@ -263,14 +309,14 @@ rseq_scheduler::processor::maybe_acquire_baton(
   }
 }
 
+template<class Sync>
 auto
-rseq_scheduler::processor::release_baton(
-  cxxtrace::detail::debug_source_location caller) -> void
+rseq_scheduler<Sync>::processor::release_baton(debug_source_location caller)
+  -> void
 {
   this->baton.store(true, std::memory_order_seq_cst, caller);
   this->has_baton = true;
 }
 
-concurrency_test_synchronization::thread_local_var<rseq_scheduler::thread_state>
-  rseq_scheduler::thread_state_;
+template class rseq_scheduler<concurrency_test_synchronization>;
 }
