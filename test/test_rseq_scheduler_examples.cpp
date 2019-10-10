@@ -232,8 +232,7 @@ public:
       switch (Style) {
         case spin_lock_style::librseq_arm:
           // ARM assembly: dmb ish
-          cxxtrace::detail::atomic_thread_fence(std::memory_order_seq_cst,
-                                                CXXTRACE_HERE);
+          sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
           break;
         case spin_lock_style::librseq_x86_64:
           // x86_64 assembly: (compiler barrier)

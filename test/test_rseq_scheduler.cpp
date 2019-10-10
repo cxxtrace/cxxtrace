@@ -720,8 +720,7 @@ public:
     this->rseq.end_preemptable(CXXTRACE_HERE);
 
     if (force_acquire_fence) {
-      cxxtrace::detail::atomic_thread_fence(std::memory_order_acquire,
-                                            CXXTRACE_HERE);
+      sync::atomic_thread_fence(std::memory_order_acquire, CXXTRACE_HERE);
     }
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
@@ -805,8 +804,7 @@ public:
     this->rseq.end_preemptable(CXXTRACE_HERE);
 
     if (force_release_fence) {
-      cxxtrace::detail::atomic_thread_fence(std::memory_order_release,
-                                            CXXTRACE_HERE);
+      sync::atomic_thread_fence(std::memory_order_release, CXXTRACE_HERE);
     }
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
@@ -893,8 +891,7 @@ public:
 
   preempted:
     if (force_release_fence) {
-      cxxtrace::detail::atomic_thread_fence(std::memory_order_release,
-                                            CXXTRACE_HERE);
+      sync::atomic_thread_fence(std::memory_order_release, CXXTRACE_HERE);
     }
     if (did_store_data) {
       this->producer_processor_id.store(
@@ -989,8 +986,7 @@ public:
       return;
     }
     if (force_acquire_fence) {
-      cxxtrace::detail::atomic_thread_fence(std::memory_order_acquire,
-                                            CXXTRACE_HERE);
+      sync::atomic_thread_fence(std::memory_order_acquire, CXXTRACE_HERE);
     }
     // The same processor executed the producer thread's critical section and
     // the consumer thread after loading producer_processor_id. An acquire fence

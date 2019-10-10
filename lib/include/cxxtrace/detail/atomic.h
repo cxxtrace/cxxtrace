@@ -1,9 +1,6 @@
 #ifndef CXXTRACE_DETAIL_ATOMIC_H
 #define CXXTRACE_DETAIL_ATOMIC_H
 
-#include <atomic>
-#include <cxxtrace/detail/debug_source_location.h>
-
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include <cxxtrace/detail/cdschecker_synchronization.h> // IWYU pragma: export
 #endif
@@ -25,17 +22,6 @@ using synchronization = relacy_synchronization;
 #else
 using synchronization = real_synchronization;
 #endif
-
-// Avoid ODR violation using an anonymous namespace. Referencing the
-// synchronization type alias is effectively using #if.
-namespace {
-inline auto
-atomic_thread_fence(std::memory_order memory_order,
-                    debug_source_location caller) noexcept -> void
-{
-  synchronization::atomic_thread_fence(memory_order, caller);
-}
-}
 }
 }
 
