@@ -5,11 +5,11 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
+#include "relacy_synchronization.h"
 #include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/warning.h>
 #include <exception>
 #include <experimental/memory_resource>
@@ -144,7 +144,7 @@ public:
 auto
 concurrency_log(void (*make_message)(std::ostream&, void* opaque),
                 void* opaque,
-                cxxtrace::detail::debug_source_location caller) -> void
+                relacy_synchronization::debug_source_location caller) -> void
 {
   auto& relacy_context = rl::ctx();
   if (!relacy_context.collecting_history()) {

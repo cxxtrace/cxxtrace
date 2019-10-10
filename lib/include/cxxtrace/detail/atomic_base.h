@@ -2,7 +2,6 @@
 #define CXXTRACE_DETAIL_ATOMIC_BASE_H
 
 #include <atomic>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <type_traits> // IWYU pragma: keep
 
 namespace cxxtrace {
@@ -20,9 +19,10 @@ public:
   atomic_base(atomic_base&&) = delete;
   atomic_base& operator=(atomic_base&&) = delete;
 
+  template<class DebugSourceLocation>
   auto compare_exchange_strong(T& expected,
                                T desired,
-                               debug_source_location caller) noexcept -> bool
+                               DebugSourceLocation caller) noexcept -> bool
   {
     return static_cast<Class&>(*this).compare_exchange_strong(
       expected,
@@ -32,19 +32,22 @@ public:
       caller);
   }
 
-  auto fetch_add(T addend, debug_source_location caller) noexcept -> T
+  template<class DebugSourceLocation>
+  auto fetch_add(T addend, DebugSourceLocation caller) noexcept -> T
   {
     return static_cast<Class&>(*this).fetch_add(
       addend, std::memory_order_seq_cst, caller);
   }
 
-  auto load(debug_source_location caller) const noexcept -> T
+  template<class DebugSourceLocation>
+  auto load(DebugSourceLocation caller) const noexcept -> T
   {
     return static_cast<const Class&>(*this).load(std::memory_order_seq_cst,
                                                  caller);
   }
 
-  auto store(T value, debug_source_location caller) noexcept -> void
+  template<class DebugSourceLocation>
+  auto store(T value, DebugSourceLocation caller) noexcept -> void
   {
     static_cast<Class&>(*this).store(value, std::memory_order_seq_cst, caller);
   }

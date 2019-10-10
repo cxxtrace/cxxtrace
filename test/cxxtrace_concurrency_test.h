@@ -3,6 +3,7 @@
 
 #include "cxxtrace_concurrency_test_base.h" // IWYU pragma: export
 #include "pretty_type_name.h"
+#include "synchronization.h"
 #include <cassert>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h>
@@ -171,11 +172,13 @@ register_concurrency_test(int thread_count,
 auto
 concurrency_log(void (*)(std::ostream&, void* opaque),
                 void* opaque,
-                cxxtrace::detail::debug_source_location) -> void;
+                concurrency_test_synchronization::debug_source_location)
+  -> void;
 
 template<class Func>
 auto
-concurrency_log(Func&& func, cxxtrace::detail::debug_source_location caller)
+concurrency_log(Func&& func,
+                concurrency_test_synchronization::debug_source_location caller)
   -> void
 {
   concurrency_log(

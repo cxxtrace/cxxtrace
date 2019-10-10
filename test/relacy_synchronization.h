@@ -30,6 +30,7 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 #include <relacy/atomic.hpp>
 #include <relacy/atomic_fence.hpp>
 #include <relacy/backoff.hpp>
+#include <relacy/base.hpp>
 #include <relacy/context.hpp>
 #include <relacy/memory_order.hpp>
 #include <relacy/thread_local.hpp>
@@ -43,7 +44,7 @@ namespace cxxtrace_test {
 class relacy_synchronization
 {
 public:
-  using debug_source_location = cxxtrace::detail::debug_source_location;
+  using debug_source_location = rl::debug_info;
 
   template<class T>
   class atomic;

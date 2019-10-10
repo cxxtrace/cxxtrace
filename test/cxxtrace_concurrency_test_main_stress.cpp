@@ -11,7 +11,7 @@
 #include <cassert>
 #include <chrono>
 #include <cstdlib>
-#include <cxxtrace/detail/debug_source_location.h>
+#include <cxxtrace/detail/real_synchronization.h>
 #include <cxxtrace/string.h>
 #include <exception>
 #include <iostream>
@@ -90,7 +90,8 @@ auto
 concurrency_log([[maybe_unused]] void (*make_message)(std::ostream&,
                                                       void* opaque),
                 [[maybe_unused]] void* opaque,
-                cxxtrace::detail::debug_source_location) -> void
+                cxxtrace::detail::real_synchronization::debug_source_location)
+  -> void
 {
   // TODO(strager): Log into a temporary buffer, and dump the buffer on failure.
   // We should probably do this probabilistically to avoid interfering with the

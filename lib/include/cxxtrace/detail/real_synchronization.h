@@ -15,7 +15,7 @@ namespace detail {
 class real_synchronization
 {
 public:
-  using debug_source_location = cxxtrace::detail::debug_source_location;
+  using debug_source_location = cxxtrace::detail::stub_debug_source_location;
 
   template<class T>
   class atomic;

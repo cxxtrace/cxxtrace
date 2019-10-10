@@ -16,6 +16,7 @@
 // IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_ENABLE_RELACY
+#include <relacy/base.hpp>
 #include <relacy/context_base.hpp>
 #endif
 

@@ -18,14 +18,13 @@ CXXTRACE_WARNING_POP
 
 namespace cxxtrace {
 namespace detail {
-#if CXXTRACE_ENABLE_RELACY
-using debug_source_location = rl::debug_info;
-#define CXXTRACE_HERE (RL_INFO)
-#else
 class stub_debug_source_location
 {};
-using debug_source_location = stub_debug_source_location;
-#define CXXTRACE_HERE (::cxxtrace::detail::debug_source_location{})
+
+#if CXXTRACE_ENABLE_RELACY
+#define CXXTRACE_HERE (RL_INFO)
+#else
+#define CXXTRACE_HERE (::cxxtrace::detail::stub_debug_source_location{})
 #endif
 }
 }

@@ -2,11 +2,11 @@
 #error "CXXTRACE_ENABLE_CDSCHECKER must be defined and non-zero."
 #endif
 
+#include "cdschecker_synchronization.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include <cstring>
 #include <cxxtrace/detail/cdschecker.h>
-#include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/string.h>
 #include <iostream>
 #include <memory>
@@ -45,7 +45,7 @@ run_concurrency_test_from_cdschecker(detail::concurrency_test* test) -> void
 auto
 concurrency_log(void (*make_message)(std::ostream&, void* opaque),
                 void* opaque,
-                cxxtrace::detail::debug_source_location) -> void
+                cdschecker_synchronization::debug_source_location) -> void
 {
   auto& out = std::cout;
   make_message(out, opaque);
