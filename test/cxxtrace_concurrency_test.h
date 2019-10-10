@@ -4,7 +4,6 @@
 #include "cxxtrace_concurrency_test_base.h" // IWYU pragma: export
 #include "pretty_type_name.h"
 #include <cassert>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <exception>
@@ -19,16 +18,19 @@
 #if CXXTRACE_ENABLE_CDSCHECKER
 #include "cdschecker_backoff.h"
 #include <cxxtrace/detail/cdschecker.h>
+#include <cxxtrace/detail/cdschecker_synchronization.h>
 #include <cxxtrace/string.h>
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include <cxxtrace/detail/real_synchronization.h>
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
 #include "relacy_backoff.h"
+#include <cxxtrace/detail/relacy_synchronization.h>
 #include <cxxtrace/detail/warning.h>
 
 CXXTRACE_WARNING_PUSH

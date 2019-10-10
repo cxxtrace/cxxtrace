@@ -1,24 +1,27 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "rseq_scheduler.h"
+#include "synchronization.h"
 #include <array>
 #include <atomic>
 #include <cassert>
 #include <cstdio>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <functional>
 #include <numeric>
 #include <ostream>
 #include <string>
+// IWYU pragma: no_include <cxxtrace/detail/real_synchronization.h>
+// IWYU pragma: no_include <cxxtrace/detail/relacy_synchronization.h>
+// IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>
 #endif
 
 namespace cxxtrace_test {
-using sync = cxxtrace::detail::synchronization;
+using sync = concurrency_test_synchronization;
 
 // NOTE(strager): This test is a manual test. Ensure the test prints 'result:
 // preempted' and 'result: not preempted' at least one time each.

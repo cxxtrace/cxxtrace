@@ -5,7 +5,6 @@
 #include "cxxtrace_concurrency_test_base.h" // IWYU pragma: export
 #include "pretty_type_name.h"
 #include <cassert>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/cdschecker.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/workarounds.h>

@@ -2,7 +2,6 @@
 #include <array>
 #include <atomic>
 #include <cstddef>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/molecular.h>
 #include <cxxtrace/detail/real_synchronization.h>
 #include <gtest/gtest.h>

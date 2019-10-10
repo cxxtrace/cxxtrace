@@ -1,23 +1,26 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "rseq_scheduler.h"
+#include "synchronization.h"
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cassert>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <ostream>
 #include <string>
 // IWYU pragma: no_include "relacy_backoff.h"
+// IWYU pragma: no_include <cxxtrace/detail/real_synchronization.h>
+// IWYU pragma: no_include <cxxtrace/detail/relacy_synchronization.h>
+// IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context_base.hpp>
 #endif
 
 namespace cxxtrace_test {
-using sync = cxxtrace::detail::synchronization;
+using sync = concurrency_test_synchronization;
 
 // Test per-processor counters implemented using rseq.
 //

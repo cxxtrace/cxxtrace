@@ -1,9 +1,9 @@
 #ifndef CXXTRACE_TEST_RSEQ_SCHEDULER_H
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
+#include "synchronization.h"
 #include "thread_local_var.h" // IWYU pragma: keep
 #include <array>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
@@ -18,6 +18,7 @@
 // IWYU pragma: no_include "pthread_thread_local_var.h"
 // IWYU pragma: no_include "relacy_thread_local_var.h"
 // IWYU pragma: no_include <ostream>
+// IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
 #error                                                                         \
@@ -232,7 +233,7 @@ private:
     // processor_reservation_mutex_ provides synchronization (but not mutual
     // exclusion) for has_baton.
     bool has_baton{ false };
-    cxxtrace::detail::synchronization::atomic<bool> baton{ true };
+    concurrency_test_synchronization::atomic<bool> baton{ true };
   };
 
   static constexpr auto maximum_processor_count = 3;

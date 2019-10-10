@@ -2,11 +2,11 @@
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
 #include "ring_queue_wrapper.h"
+#include "synchronization.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
-#include <cxxtrace/detail/atomic.h>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
@@ -71,7 +71,7 @@ operator<<(std::ostream& out, mpsc_ring_queue_push_result x) -> std::ostream&
 }
 
 namespace cxxtrace_test {
-using sync = cxxtrace::detail::synchronization;
+using sync = concurrency_test_synchronization;
 
 template<class RingQueue>
 class ring_queue_relacy_test_base

@@ -1,6 +1,8 @@
 #ifndef CXXTRACE_DETAIL_RELACY_SYNCHRONIZATION_H
 #define CXXTRACE_DETAIL_RELACY_SYNCHRONIZATION_H
 
+// IWYU pragma: no_include <ostream>
+
 #if CXXTRACE_ENABLE_RELACY
 #include <atomic>
 #include <cxxtrace/detail/atomic_base.h>
