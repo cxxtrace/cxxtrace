@@ -1,6 +1,7 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "rseq_scheduler.h"
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -38,6 +39,9 @@ public:
     : rseq_attempt_count{ rseq_attempt_count }
   {
     assert(rseq_attempt_count >= 1);
+    std::fill(this->thread_did_update_counter.begin(),
+              this->thread_did_update_counter.end(),
+              false);
   }
 
   auto run_thread(int thread_index) -> void
@@ -167,6 +171,9 @@ public:
     : rseq_attempt_count{ rseq_attempt_count }
   {
     assert(rseq_attempt_count >= 1);
+    std::fill(this->thread_did_update_counter.begin(),
+              this->thread_did_update_counter.end(),
+              false);
   }
 
   auto run_thread(int thread_index) -> void
