@@ -7,15 +7,14 @@
 #endif
 
 #include <benchmark/benchmark.h>
-#include <string>
-#include <type_traits>
-#include <utility>
-#include <vector>
-
 #include <cassert>
 #include <condition_variable>
 #include <mutex>
 #include <optional>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 namespace cxxtrace_test {
 namespace detail {

@@ -1,5 +1,5 @@
-#include "rseq_scheduler.h"
 #include "cxxtrace_concurrency_test.h"
+#include "rseq_scheduler.h"
 #include <algorithm>
 #include <atomic>
 #include <cassert>
