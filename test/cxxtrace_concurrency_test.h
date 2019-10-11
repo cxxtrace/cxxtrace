@@ -103,7 +103,22 @@ register_concurrency_test(int thread_count,
 
     auto set_up() -> void override
     {
-      assert(!this->test_object.has_value());
+      if (this->test_object.has_value()) {
+        // HACK(strager): With Relacy, if a test fails, rl::simulate might call
+        // rl::test_suite<>::before a second time without calling
+        // rl::test_suite<>::after (to run the test again with history tracing).
+        // When this happens, this->test_object have a value when this->set_up
+        // is called. Calling set_up without calling tear_down is normally a
+        // programmer error, but let's ignore the error so tests can work with
+        // Relacy.
+        //
+        // Unfortunately, Relacy objects contained in this->test_object (such as
+        // atomic variables and mutexes) are potentially unsafe to destruct.
+        // (Executing this->test_object.reset() causes a double delete, for
+        // example.) Carefully avoid destruction in this case to avoid undefined
+        // behavior in Relacy.
+        new (&this->test_object) std::optional<Test>{};
+      }
       std::apply(
         [this](const Args&... args) { this->test_object.emplace(args...); },
         this->args);

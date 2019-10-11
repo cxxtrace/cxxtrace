@@ -115,11 +115,6 @@ class concurrency_test_relacy_wrapper
 public:
   inline static concurrency_test* test{ nullptr };
 
-  // FIXME(strager): If a test fails, rl::simulate might call this->before a
-  // second time without calling this->after (to run the test again with history
-  // tracing). This breaks preconditions of concurrency_test::set_up, causing
-  // its assertion to fail.
-
   auto before() -> void
   {
     assert(this->test);
