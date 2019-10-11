@@ -548,7 +548,7 @@ public:
 
     auto other_thread_index = 1 - thread_index;
 
-    auto processor_id = this->invalid_processor_id;
+    volatile auto processor_id = this->invalid_processor_id;
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
 
     this->rseq.set_preempt_callback([&reset_processor_id_for_current_thread] {
@@ -877,7 +877,7 @@ public:
   auto run_producer_thread() -> void
   {
     volatile auto did_store_data = false;
-    cxxtrace::detail::processor_id processor_id;
+    volatile cxxtrace::detail::processor_id processor_id;
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     {
