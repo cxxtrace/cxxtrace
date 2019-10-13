@@ -1,6 +1,5 @@
 #include "cxxtrace_concurrency_test.h"
 #include "rseq_scheduler.h"
-#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
@@ -8,14 +7,9 @@
 #include <string>
 #include <utility>
 // IWYU pragma: no_include "relacy_thread_local_var.h"
-
-#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-#include <cxxtrace/detail/real_synchronization.h>
-#endif
 // IWYU pragma: no_forward_declare cxxtrace::detail::real_synchronization
 
 #if CXXTRACE_ENABLE_RELACY
-#include "relacy_synchronization.h"
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #endif
@@ -27,50 +21,10 @@
 #endif
 
 namespace cxxtrace_test {
-namespace {
 template<class Sync>
-auto
-get_test_thread_count() noexcept -> int = delete;
-
-#if CXXTRACE_ENABLE_CDSCHECKER
-template<>
-auto
-get_test_thread_count<cdschecker_synchronization>() noexcept -> int
+rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
 {
-  // TODO(strager): Create an API to query the number of test threads.
-  return 3;
-}
-#endif
-
-#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-template<>
-auto
-get_test_thread_count<cxxtrace::detail::real_synchronization>() noexcept -> int
-{
-  // TODO(strager): Create an API to query the number of test threads.
-  return 3;
-}
-#endif
-
-#if CXXTRACE_ENABLE_RELACY
-template<>
-auto
-get_test_thread_count<relacy_synchronization>() noexcept -> int
-{
-  return rl::ctx().get_thread_count();
-}
-#endif
-}
-
-template<class Sync>
-rseq_scheduler<Sync>::rseq_scheduler()
-{
-  // HACK(strager): Create at least two processors to make
-  // test_thread_might_change_processor_when_entering_critical_section pass.
-  // HACK(strager): Create at least one processor per thread to allow all
-  // threads to successfully enter a critical section without blocking.
-  auto thread_count = get_test_thread_count<Sync>();
-  this->processor_id_count_ = std::max(thread_count, 2);
+  this->processor_id_count_ = processor_count;
 }
 
 template<class Sync>

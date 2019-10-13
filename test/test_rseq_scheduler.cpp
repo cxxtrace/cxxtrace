@@ -32,6 +32,8 @@ class test_allow_preempt_call_is_preempted_sometimes
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -78,6 +80,8 @@ class
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -133,6 +137,8 @@ class test_allow_preempt_call_never_preempts_after_critical_section
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -165,6 +171,8 @@ class test_allow_preempt_call_never_preempts_after_aborting_critical_section
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -191,6 +199,8 @@ class test_allow_preempt_call_never_preempts_before_critical_section
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -214,6 +224,8 @@ class test_preemptable_state_resets_between_iterations
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -240,6 +252,8 @@ class test_allow_preempt_call_never_preempts_between_critical_sections
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_ASSERT(thread_index == 0);
@@ -291,6 +305,8 @@ class test_allow_preempt_calls_on_different_threads_are_preempted_independently
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     assert(thread_index == 0 || thread_index == 1);
@@ -338,6 +354,8 @@ class test_current_processor_id_is_constant_within_critical_section
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread([[maybe_unused]] int thread_index) -> void
   {
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
@@ -362,7 +380,9 @@ class test_threads_have_different_processor_ids_within_critical_section
   : public rseq_scheduler_test_base
 {
 public:
-  explicit test_threads_have_different_processor_ids_within_critical_section() noexcept
+  explicit test_threads_have_different_processor_ids_within_critical_section(
+    int processor_count) noexcept
+    : rseq_scheduler_test_base{ processor_count }
   {
     for (auto& thread_processor_id : this->thread_processor_ids) {
       thread_processor_id.store(this->invalid_processor_id, CXXTRACE_HERE);
@@ -429,7 +449,9 @@ class
   : public rseq_scheduler_test_base
 {
 public:
-  explicit test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections() noexcept
+  explicit test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections(
+    int processor_count) noexcept
+    : rseq_scheduler_test_base{ processor_count }
   {
     for (auto& thread_processor_id : this->thread_processor_ids) {
       thread_processor_id.store(this->invalid_processor_id, CXXTRACE_HERE);
@@ -543,6 +565,8 @@ class
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     auto reset_processor_id_for_current_thread = [&] {
@@ -604,6 +628,8 @@ class test_thread_might_change_processor_when_entering_critical_section
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread([[maybe_unused]] int thread_index) -> void
   {
     auto processor_id_outside =
@@ -631,6 +657,8 @@ class test_thread_sees_stores_by_previous_thread_on_processor
   : public rseq_scheduler_test_base
 {
 public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
@@ -694,6 +722,8 @@ class test_critical_section_does_not_force_acquire_fence
 {
 public:
   static constexpr auto force_acquire_fence = false;
+
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
 
   auto run_thread(int thread_index) -> void
   {
@@ -786,6 +816,8 @@ class test_critical_section_does_not_force_release_fence
 public:
   static constexpr auto force_release_fence = false;
 
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     switch (thread_index) {
@@ -860,6 +892,8 @@ class test_preemption_implies_release_fence_for_same_processor
 {
 public:
   static constexpr auto force_release_fence = false;
+
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
 
   auto run_thread(int thread_index) -> void
   {
@@ -941,6 +975,8 @@ class test_getting_processor_id_implies_acquire_fence_for_same_processor
 public:
   static constexpr auto force_acquire_fence = false;
 
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
   auto run_thread(int thread_index) -> void
   {
     switch (thread_index) {
@@ -1013,58 +1049,62 @@ auto
 register_concurrency_tests() -> void
 {
   register_concurrency_test<test_allow_preempt_call_is_preempted_sometimes>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_call_is_preempted_sometimes_in_multiple_critical_sections>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_call_never_preempts_after_critical_section>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_call_never_preempts_after_aborting_critical_section>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_call_never_preempts_before_critical_section>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<test_preemptable_state_resets_between_iterations>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_call_never_preempts_between_critical_sections>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_allow_preempt_calls_on_different_threads_are_preempted_independently>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_current_processor_id_is_constant_within_critical_section>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_threads_have_different_processor_ids_within_critical_section>(
     test_threads_have_different_processor_ids_within_critical_section::
       thread_count,
-    concurrency_test_depth::full);
+    concurrency_test_depth::full,
+    test_threads_have_different_processor_ids_within_critical_section::
+      thread_count);
   register_concurrency_test<
     test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections>(
     test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections::
       thread_count,
-    concurrency_test_depth::full);
+    concurrency_test_depth::full,
+    test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections::
+      thread_count);
   register_concurrency_test<
     test_preempted_thread_might_share_processor_with_another_thread_in_critical_section>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_thread_might_change_processor_when_entering_critical_section>(
-    1, concurrency_test_depth::full);
+    1, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_thread_sees_stores_by_previous_thread_on_processor>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<test_critical_section_does_not_force_acquire_fence>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<test_critical_section_does_not_force_release_fence>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_preemption_implies_release_fence_for_same_processor>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_getting_processor_id_implies_acquire_fence_for_same_processor>(
-    2, concurrency_test_depth::full);
+    2, concurrency_test_depth::full, 2);
 }
 }

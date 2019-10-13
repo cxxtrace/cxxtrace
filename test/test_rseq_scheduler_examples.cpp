@@ -43,8 +43,9 @@ public:
   static constexpr auto bug_2 = false;
   static constexpr auto bug_3 = false;
 
-  explicit test_counter(int rseq_attempt_count)
-    : rseq_attempt_count{ rseq_attempt_count }
+  explicit test_counter(int processor_count, int rseq_attempt_count)
+    : rseq_scheduler_test_base{ processor_count }
+    , rseq_attempt_count{ rseq_attempt_count }
   {
     assert(rseq_attempt_count >= 1);
     std::fill(this->thread_did_update_counter.begin(),
@@ -175,8 +176,9 @@ public:
 
   struct processor_data;
 
-  explicit test_spin_lock(int rseq_attempt_count)
-    : rseq_attempt_count{ rseq_attempt_count }
+  explicit test_spin_lock(int processor_count, int rseq_attempt_count)
+    : rseq_scheduler_test_base{ processor_count }
+    , rseq_attempt_count{ rseq_attempt_count }
   {
     assert(rseq_attempt_count >= 1);
     std::fill(this->thread_did_update_counter.begin(),
@@ -380,16 +382,18 @@ public:
 auto
 register_concurrency_tests() -> void
 {
-  register_concurrency_test<test_counter>(2, concurrency_test_depth::full, 3);
-  register_concurrency_test<test_counter>(3, concurrency_test_depth::full, 1);
+  register_concurrency_test<test_counter>(
+    2, concurrency_test_depth::full, 2, 3);
+  register_concurrency_test<test_counter>(
+    3, concurrency_test_depth::full, 3, 1);
 
   register_concurrency_test<test_spin_lock<spin_lock_style::basic>>(
-    2, concurrency_test_depth::full, 2);
+    2, concurrency_test_depth::full, 2, 2);
   register_concurrency_test<test_spin_lock<spin_lock_style::basic>>(
-    3, concurrency_test_depth::full, 1);
+    3, concurrency_test_depth::full, 3, 1);
   register_concurrency_test<test_spin_lock<spin_lock_style::librseq_arm>>(
-    2, concurrency_test_depth::full, 2);
+    2, concurrency_test_depth::full, 2, 2);
   register_concurrency_test<test_spin_lock<spin_lock_style::librseq_x86_64>>(
-    2, concurrency_test_depth::full, 2);
+    2, concurrency_test_depth::full, 2, 2);
 }
 }

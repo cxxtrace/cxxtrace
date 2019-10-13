@@ -117,7 +117,7 @@ private:
   using thread_local_var = typename Sync::template thread_local_var<T>;
 
 public:
-  explicit rseq_scheduler();
+  explicit rseq_scheduler(int processor_count);
 
   auto get_current_processor_id(debug_source_location) noexcept
     -> cxxtrace::detail::processor_id;
@@ -273,6 +273,10 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
 class rseq_scheduler_test_base
 {
 public:
+  explicit rseq_scheduler_test_base(int processor_count)
+    : rseq{ processor_count }
+  {}
+
   rseq_scheduler<concurrency_test_synchronization> rseq;
 };
 #endif
