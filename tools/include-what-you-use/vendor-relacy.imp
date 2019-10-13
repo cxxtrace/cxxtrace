@@ -1,5 +1,7 @@
 [
   {"include": ["<relacy/stdlib/../atomic.hpp>", "private", "<relacy/atomic.hpp>", "public"]},
+  {"include": ["<relacy/stdlib/../context.hpp>", "private", "<relacy/context.hpp>", "public"]},
+  {"include": ["<relacy/stdlib/../waitset.hpp>", "private", "<relacy/waitset.hpp>", "public"]},
   {"symbol": ["RL_INFO", "private", "<relacy/base.hpp>", "public"]},
   {"symbol": ["rl::debug_info", "private", "<relacy/base.hpp>", "public"]},
 ]

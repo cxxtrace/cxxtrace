@@ -6,6 +6,8 @@
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include "libdispatch_semaphore.h"
+#include "posix_semaphore.h"
 #include "pthread_thread_local_var.h"
 #include <cxxtrace/detail/real_synchronization.h>
 #endif

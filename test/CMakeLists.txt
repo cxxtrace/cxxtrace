@@ -259,8 +259,10 @@ add_library(
   cxxtrace_concurrency_test_base.cpp
   event.cpp
   exhaustive_rng.cpp
+  libdispatch_semaphore.cpp
   linux_proc_cpuinfo.cpp
   memory_resource.cpp
+  posix_semaphore.cpp
   pretty_type_name.cpp
   thread.cpp
 )

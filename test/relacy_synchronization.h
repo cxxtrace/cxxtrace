@@ -35,6 +35,7 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 #include <relacy/memory_order.hpp>
 #include <relacy/thread_local.hpp>
 #include <relacy/var.hpp>
+#include <relacy/waitset.hpp>
 
 CXXTRACE_WARNING_POP
 #endif
@@ -53,6 +54,8 @@ public:
 
   template<class T>
   class nonatomic;
+
+  class relaxed_semaphore;
 
   template<class T>
   class thread_local_var;
@@ -159,6 +162,27 @@ public:
 
 private:
   rl::var<T> data /* uninitialized */;
+};
+
+class relacy_synchronization::relaxed_semaphore
+{
+public:
+  explicit relaxed_semaphore() = default;
+
+  relaxed_semaphore(const relaxed_semaphore&) = delete;
+  relaxed_semaphore& operator=(const relaxed_semaphore&) = delete;
+
+  relaxed_semaphore(relaxed_semaphore&&) = delete;
+  relaxed_semaphore& operator=(relaxed_semaphore&&) = delete;
+
+  auto signal(debug_source_location) -> void;
+  auto wait(debug_source_location) -> void;
+
+private:
+  static constexpr auto max_thread_count = 3;
+
+  rl::waitset<max_thread_count> waiters_;
+  int value_{ 0 };
 };
 
 template<class T>

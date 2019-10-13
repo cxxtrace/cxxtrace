@@ -200,10 +200,14 @@ rseq_scheduler<Sync>::get_any_unused_processor_id(debug_source_location caller)
 
   auto get_random_unused_processor = [&]() -> processor* {
     auto lock = unique_lock{ this->processor_reservation_mutex_ };
+  retry:
+    assert(lock.owns_lock());
     auto unused_processor_count = count_unused_processors(lock);
     if (unused_processor_count == 0) {
       lock.unlock();
-      CXXTRACE_ASSERT(false);
+      this->wait_for_unused_processor(CXXTRACE_HERE);
+      lock.lock();
+      goto retry;
     }
     return get_unused_processor(
       concurrency_rng_next_integer_0(unused_processor_count), lock);
@@ -228,6 +232,7 @@ rseq_scheduler<Sync>::mark_processor_id_as_unused(
     CXXTRACE_ASSERT(processor.in_use);
     processor.in_use = false;
   }
+  this->thread_runnable_.signal(CXXTRACE_HERE);
 }
 
 template<class Sync>
@@ -235,21 +240,34 @@ auto
 rseq_scheduler<Sync>::take_unused_processor_id(debug_source_location caller)
   -> cxxtrace::detail::processor_id
 {
-  auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
-  for (auto processor_id = 0; processor_id < this->processor_id_count_;
-       ++processor_id) {
-    auto& processor = this->processors_[processor_id];
-    if (!processor.in_use) {
-      processor.in_use = true;
-      lock.unlock();
-      processor.maybe_acquire_baton(caller);
-      return processor_id;
+  auto try_take_unused_processor = [&]() -> processor* {
+    auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
+    for (auto processor_id = 0; processor_id < this->processor_id_count_;
+         ++processor_id) {
+      auto& processor = this->processors_[processor_id];
+      if (!processor.in_use) {
+        processor.in_use = true;
+        return &processor;
+      }
     }
-  }
+    return nullptr;
+  };
 
-  lock.unlock();
-  CXXTRACE_ASSERT(false);
-  __builtin_unreachable();
+retry:
+  if (auto* processor = try_take_unused_processor()) {
+    processor->maybe_acquire_baton(caller);
+    return processor - this->processors_.data();
+  }
+  this->wait_for_unused_processor(CXXTRACE_HERE);
+  goto retry;
+}
+
+template<class Sync>
+auto
+rseq_scheduler<Sync>::wait_for_unused_processor(debug_source_location caller)
+  -> void
+{
+  this->thread_runnable_.wait(caller);
 }
 
 template<class Sync>

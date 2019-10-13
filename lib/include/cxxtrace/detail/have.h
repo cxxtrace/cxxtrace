@@ -170,4 +170,16 @@
 #endif
 #endif
 
+#if defined(__linux__) && defined(_GNU_SOURCE)
+// ::sem_init
+// <semaphore.h>
+#define CXXTRACE_HAVE_POSIX_SEMAPHORE 1
+#endif
+
+#if defined(__APPLE__)
+// ::dispatch_semaphore_create
+// <dispatch/dispatch.h>
+#define CXXTRACE_HAVE_LIBDISPATCH_SEMAPHORE 1
+#endif
+
 #endif

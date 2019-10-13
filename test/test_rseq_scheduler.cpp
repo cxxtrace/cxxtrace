@@ -376,6 +376,36 @@ public:
   auto tear_down() -> void {}
 };
 
+class test_current_processor_id_is_constant_with_one_processor
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    auto processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    auto processor_id_2 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_2 == processor_id);
+
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+    {
+      auto processor_id_3 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+      CXXTRACE_ASSERT(processor_id_3 == processor_id);
+      this->rseq.allow_preempt(CXXTRACE_HERE);
+      auto processor_id_4 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+      CXXTRACE_ASSERT(processor_id_4 == processor_id);
+    }
+    this->rseq.end_preemptable(CXXTRACE_HERE);
+
+  preempted:
+    auto processor_id_5 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_5 == processor_id);
+  }
+
+  auto tear_down() -> void {}
+};
+
 class test_threads_have_different_processor_ids_within_critical_section
   : public rseq_scheduler_test_base
 {
@@ -1045,6 +1075,52 @@ public:
   sync::nonatomic<int> data{ 0 };
 };
 
+class test_critical_section_implies_mutual_exclusion_with_one_processor
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread(int thread_index) -> void
+  {
+    assert(thread_index < int(this->thread_did_update_counter.size()));
+    this->thread_did_update_counter[thread_index] = false;
+
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+    {
+      auto counter_value = this->counter.load(CXXTRACE_HERE);
+      this->rseq.allow_preempt(CXXTRACE_HERE);
+      this->counter.store(counter_value + 1, CXXTRACE_HERE);
+      this->thread_did_update_counter[thread_index] = true;
+    }
+    this->rseq.end_preemptable(CXXTRACE_HERE);
+
+  preempted:;
+  }
+
+  auto tear_down() -> void
+  {
+    auto expected_counter = 0;
+    for (auto counter_updated : this->thread_did_update_counter) {
+      expected_counter += counter_updated ? 1 : 0;
+    }
+    auto actual_counter = this->counter.load(CXXTRACE_HERE);
+    concurrency_log(
+      [&](std::ostream& out) {
+        out << "expected_counter = " << expected_counter
+            << "; actual_counter = " << actual_counter;
+      },
+      CXXTRACE_HERE);
+    CXXTRACE_ASSERT(actual_counter != -1);
+    CXXTRACE_ASSERT(actual_counter == expected_counter);
+  }
+
+  static constexpr auto max_thread_count = 3;
+
+  std::array<bool, max_thread_count> thread_did_update_counter;
+  sync::nonatomic<int> counter{ 0 };
+};
+
 auto
 register_concurrency_tests() -> void
 {
@@ -1073,6 +1149,9 @@ register_concurrency_tests() -> void
   register_concurrency_test<
     test_current_processor_id_is_constant_within_critical_section>(
     1, concurrency_test_depth::full, 1);
+  register_concurrency_test<
+    test_current_processor_id_is_constant_with_one_processor>(
+    2, concurrency_test_depth::full, 1);
   register_concurrency_test<
     test_threads_have_different_processor_ids_within_critical_section>(
     test_threads_have_different_processor_ids_within_critical_section::
@@ -1106,5 +1185,8 @@ register_concurrency_tests() -> void
   register_concurrency_test<
     test_getting_processor_id_implies_acquire_fence_for_same_processor>(
     2, concurrency_test_depth::full, 2);
+  register_concurrency_test<
+    test_critical_section_implies_mutual_exclusion_with_one_processor>(
+    3, concurrency_test_depth::full, 1);
 }
 }

@@ -113,6 +113,7 @@ private:
   template<class T>
   using atomic = typename Sync::template atomic<T>;
   using debug_source_location = typename Sync::debug_source_location;
+  using relaxed_semaphore = typename Sync::relaxed_semaphore;
   template<class T>
   using thread_local_var = typename Sync::template thread_local_var<T>;
 
@@ -218,6 +219,7 @@ private:
                                    debug_source_location) -> void;
   auto take_unused_processor_id(debug_source_location)
     -> cxxtrace::detail::processor_id;
+  auto wait_for_unused_processor(debug_source_location) -> void;
 
   struct processor
   {
@@ -252,6 +254,10 @@ private:
   std::mutex processor_reservation_mutex_;
   std::array<processor, maximum_processor_count> processors_;
   int processor_id_count_;
+
+  // thread_runnable_ is awaited when all processors are in use.
+  // thread_runnable_ is posted when a processor becomes unused.
+  relaxed_semaphore thread_runnable_;
 };
 
 extern template class rseq_scheduler<concurrency_test_synchronization>;
