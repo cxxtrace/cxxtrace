@@ -7,12 +7,12 @@
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <vector>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 class mpsc_ring_queue_processor_local_storage

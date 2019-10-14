@@ -5,11 +5,11 @@
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 template<std::size_t Capacity, class ClockSample>
 class mpsc_ring_queue_storage

@@ -8,12 +8,12 @@
 #include <cxxtrace/detail/spin_lock.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <mutex>
 #include <vector>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 template<std::size_t CapacityPerProcessor, class Tag, class ClockSample>
 class spsc_ring_queue_processor_local_storage

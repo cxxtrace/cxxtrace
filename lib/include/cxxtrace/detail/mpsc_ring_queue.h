@@ -16,7 +16,6 @@
 #include <optional>
 #include <type_traits> // IWYU pragma: keep
 #include <utility>
-// IWYU pragma: no_forward_declare cxxtrace::detail::molecular
 
 namespace cxxtrace {
 namespace detail {

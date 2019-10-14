@@ -214,7 +214,7 @@ def compute_fixes(
 
     share_path = include_what_you_use_share_path()
     iwyu_args = (
-        ["--no_default_mappings", "--quoted_includes_first"]
+        ["--no_default_mappings", "--no_fwd_decls", "--quoted_includes_first"]
         + [
             f"--mapping_file={include_what_you_use_tools_path / f}"
             for f in project_mapping_files

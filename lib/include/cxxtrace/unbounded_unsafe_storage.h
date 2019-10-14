@@ -3,11 +3,11 @@
 
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 #include <vector>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 enum class sample_kind;
 

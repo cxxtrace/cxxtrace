@@ -7,13 +7,11 @@
 #include <string>
 #include <utility>
 // IWYU pragma: no_include "relacy_thread_local_var.h"
-// IWYU pragma: no_forward_declare cxxtrace::detail::real_synchronization
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #endif
-// IWYU pragma: no_forward_declare cxxtrace_test::relacy_synchronization
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
 #error                                                                         \

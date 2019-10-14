@@ -1,13 +1,12 @@
 #ifndef CXXTRACE_CHROME_TRACE_EVENT_FORMAT_H
 #define CXXTRACE_CHROME_TRACE_EVENT_FORMAT_H
 
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/string.h>
 #include <iosfwd>
 #include <type_traits>
 
 namespace cxxtrace {
-class sample_ref;
-class samples_snapshot;
 
 // Write a trace file in the Chrome Trace Event format [1].
 //

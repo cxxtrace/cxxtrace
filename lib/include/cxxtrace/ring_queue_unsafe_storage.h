@@ -5,10 +5,10 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <cxxtrace/thread.h>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 template<std::size_t Capacity, class ClockSample>
 class ring_queue_unsafe_storage

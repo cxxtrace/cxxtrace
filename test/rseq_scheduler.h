@@ -10,9 +10,6 @@
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
-// IWYU pragma: no_forward_declare cxxtrace_test::cdschecker_thread_local_var
-// IWYU pragma: no_forward_declare cxxtrace_test::pthread_thread_local_var
-// IWYU pragma: no_forward_declare cxxtrace_test::relacy_thread_local_var
 // IWYU pragma: no_include "cdschecker_thread_local_var.h"
 // IWYU pragma: no_include "pthread_thread_local_var.h"
 // IWYU pragma: no_include "relacy_thread_local_var.h"

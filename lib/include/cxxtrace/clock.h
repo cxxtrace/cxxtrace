@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
+#include <cxxtrace/uninitialized.h>
 #include <iosfwd>
 #include <sys/time.h>
 
@@ -17,7 +18,6 @@
 #endif
 
 namespace cxxtrace {
-struct uninitialized_t;
 
 class time_point
 {

@@ -4,11 +4,11 @@
 #include <cstddef>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/snapshot.h>
 #include <mutex>
 #include <vector>
 
 namespace cxxtrace {
-class samples_snapshot;
 
 template<std::size_t CapacityPerThread, class Tag, class ClockSample>
 class ring_queue_thread_local_storage
