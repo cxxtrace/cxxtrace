@@ -186,6 +186,7 @@ if (CXXTRACE_CDSCHECKER)
     cxxtrace
     cxxtrace_cdschecker_extra
     cxxtrace_cdschecker_extra_internal
+    cxxtrace_concurrency_test
   )
 endif ()
 
