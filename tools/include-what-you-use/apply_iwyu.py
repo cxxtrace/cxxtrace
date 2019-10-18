@@ -53,6 +53,7 @@ blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "test" / "test_processor_id_manual" / "main.cpp",
     cxxtrace_project_path / "test" / "test_processor_id_manual" / "sample_checker.cpp",
     cxxtrace_project_path / "test" / "test_ring_queue.cpp",
+    cxxtrace_project_path / "test" / "test_ring_queue_concurrency_util.cpp",
     cxxtrace_project_path / "test" / "test_snapshot.cpp",
     cxxtrace_project_path / "test" / "test_span.cpp",
     cxxtrace_project_path / "test" / "test_span_thread.cpp",

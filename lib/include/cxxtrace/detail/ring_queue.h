@@ -10,7 +10,6 @@
 #include <cxxtrace/detail/add.h>
 #include <limits>
 #include <type_traits> // IWYU pragma: keep
-#include <utility>
 
 namespace cxxtrace {
 namespace detail {

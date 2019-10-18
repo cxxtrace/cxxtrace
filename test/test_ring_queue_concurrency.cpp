@@ -4,6 +4,7 @@
 #include "reduce.h"
 #include "ring_queue_wrapper.h"
 #include "synchronization.h"
+#include "test_ring_queue_concurrency_util.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -55,9 +56,11 @@ using sync = concurrency_test_synchronization;
 
 template<class RingQueue>
 class ring_queue_relacy_test_base
+  : public ring_queue_relacy_test_utilities<typename RingQueue::size_type>
 {
 protected:
   using size_type = typename RingQueue::size_type;
+  using utilities = ring_queue_relacy_test_utilities<size_type>;
 
   static_assert(std::is_same_v<typename RingQueue::value_type, int>);
 
@@ -67,7 +70,9 @@ protected:
   {
     for (auto i = begin; i < end; ++i) {
       this->queue.push(
-        1, [i](auto data) noexcept { data.set(0, item_at_index(i)); });
+        1, [&](auto data) noexcept {
+          data.set(0, utilities::item_at_index(i));
+        });
     }
   }
 
@@ -100,7 +105,7 @@ protected:
       data.set(i - begin, 9999);
     }
     for (auto i = begin; i < end; ++i) {
-      data.set(i - begin, item_at_index(i));
+      data.set(i - begin, utilities::item_at_index(i));
     }
   }
 
@@ -112,25 +117,9 @@ protected:
     auto items = std::experimental::pmr::vector<int>{ memory };
     items.reserve(end - begin);
     for (auto i = begin; i < end; ++i) {
-      items.emplace_back(this->item_at_index(i));
+      items.emplace_back(utilities::item_at_index(i));
     }
     return items;
-  }
-
-  auto push_back_items_for_range(
-    size_type begin,
-    size_type end,
-    std::experimental::pmr::vector<int>& items) const -> void
-  {
-    items.reserve(items.size() + (end - begin));
-    for (auto i = begin; i < end; ++i) {
-      items.emplace_back(this->item_at_index(i));
-    }
-  }
-
-  static constexpr auto item_at_index(size_type index) noexcept -> int
-  {
-    return index + 100;
   }
 
   static auto log_items(cxxtrace::czstring name,
@@ -468,39 +457,12 @@ private:
     std::experimental::pmr::memory_resource* memory)
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
-    using std::experimental::pmr::vector;
-
-    auto producer_thread_indexes = vector<int>{ memory };
-    for (auto thread_index = 0;
-         thread_index < int(producer_push_results.size());
-         ++thread_index) {
-      if (this->producer_push_results[thread_index] == push_result::pushed) {
-        producer_thread_indexes.push_back(thread_index);
-      }
+    return queue_push_operations<RingQueue::capacity>{
+      this->initial_push_size,
+      this->producer_push_sizes,
+      this->producer_push_results,
     }
-    std::sort(producer_thread_indexes.begin(), producer_thread_indexes.end());
-
-    auto expected_items_permutations = vector<vector<int>>{ memory };
-    do {
-      auto expected_items = vector<int>{ memory };
-      this->push_back_items_for_range(
-        0, this->initial_push_size, expected_items);
-      for (auto thread_index : producer_thread_indexes) {
-        auto [begin, end] = this->producer_range(thread_index);
-        this->push_back_items_for_range(begin, end, expected_items);
-      }
-      if (expected_items.size() > RingQueue::capacity) {
-        expected_items.erase(expected_items.begin(),
-                             expected_items.end() - RingQueue::capacity);
-      }
-      assert(static_cast<size_type>(expected_items.size()) >=
-             this->initial_push_size);
-      assert(static_cast<size_type>(expected_items.size()) <=
-             this->total_push_size());
-      expected_items_permutations.emplace_back(std::move(expected_items));
-    } while (std::next_permutation(producer_thread_indexes.begin(),
-                                   producer_thread_indexes.end()));
-    return expected_items_permutations;
+      .possible_outcomes(memory);
   }
 
   static inline constexpr auto max_threads = 3;

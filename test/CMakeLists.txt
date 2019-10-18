@@ -21,6 +21,7 @@ add_executable(
   test_molecular.cpp
   test_processor_id.cpp
   test_ring_queue.cpp
+  test_ring_queue_concurrency_util.cpp
   test_snapshot.cpp
   test_span.cpp
   test_span_thread.cpp
