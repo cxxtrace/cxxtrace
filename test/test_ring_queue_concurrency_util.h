@@ -51,7 +51,11 @@ private:
   using vector = std::experimental::pmr::vector<T>;
 
 public:
-  using push_result = cxxtrace::detail::mpsc_ring_queue_push_result;
+  enum class push_result
+  {
+    skipped = 0, // Default for value initialization.
+    pushed,
+  };
   using size_type = int;
 
   static inline constexpr auto capacity = Capacity;
@@ -60,11 +64,29 @@ public:
   explicit queue_push_operations(
     size_type initial_push_size,
     std::array<size_type, max_threads> producer_push_sizes,
-    std::array<std::optional<push_result>, max_threads> producer_push_results)
+    std::array<push_result, max_threads> producer_push_results)
     : initial_push_size{ initial_push_size }
     , producer_push_sizes{ producer_push_sizes }
     , producer_push_results{ producer_push_results }
   {}
+
+  explicit queue_push_operations(
+    size_type initial_push_size,
+    std::array<size_type, max_threads> producer_push_sizes,
+    std::array<std::optional<cxxtrace::detail::mpsc_ring_queue_push_result>,
+               max_threads> producer_push_results)
+    : initial_push_size{ initial_push_size }
+    , producer_push_sizes{ producer_push_sizes }
+  {
+    for (auto i = std::size_t{ 0 }; i < producer_push_results.size(); ++i) {
+      if (producer_push_results[i].has_value()) {
+        this->producer_push_results[i] =
+          this->convert_push_result(*producer_push_results[i]);
+      } else {
+        this->producer_push_results[i] = push_result::skipped;
+      }
+    }
+  }
 
   // Return all possible states of the queue after the try_push calls.
   auto possible_outcomes(std::experimental::pmr::memory_resource* memory) const
@@ -177,9 +199,21 @@ private:
                                             this->producer_push_sizes.end());
   }
 
+  static auto convert_push_result(
+    cxxtrace::detail::mpsc_ring_queue_push_result r) noexcept -> push_result
+  {
+    using cxxtrace::detail::mpsc_ring_queue_push_result;
+    switch (r) {
+      case mpsc_ring_queue_push_result::pushed:
+        return push_result::pushed;
+      case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
+        return push_result::skipped;
+    }
+  }
+
   size_type initial_push_size;
   std::array<size_type, max_threads> producer_push_sizes;
-  std::array<std::optional<push_result>, max_threads> producer_push_results;
+  std::array<push_result, max_threads> producer_push_results;
 };
 }
 

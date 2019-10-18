@@ -13,7 +13,7 @@ class test_queue_push_outcomes : public testing::Test
 protected:
   template<class T>
   using vector = std::experimental::pmr::vector<T>;
-  using push_result = cxxtrace::detail::mpsc_ring_queue_push_result;
+  using push_result = queue_push_operations<4>::push_result;
 
   static inline std::experimental::pmr::memory_resource* memory =
     std::experimental::pmr::new_delete_resource();
@@ -118,8 +118,7 @@ TEST_F(test_queue_push_outcomes, failed_pushes_leave_initial_push_unchanged)
       /*initial_push_size=*/initial_push_size,
       /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
       /*producer_push_results=*/
-      { push_result::not_pushed_due_to_contention,
-        push_result::not_pushed_due_to_contention },
+      { push_result::skipped, push_result::skipped },
     };
     auto outcomes = possible_queue_push_outcomes(operations);
     EXPECT_THAT(outcomes,
@@ -131,7 +130,7 @@ TEST_F(test_queue_push_outcomes, failed_pushes_leave_initial_push_unchanged)
       /*initial_push_size=*/initial_push_size,
       /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
       /*producer_push_results=*/
-      { push_result::not_pushed_due_to_contention, push_result::pushed },
+      { push_result::skipped, push_result::pushed },
     };
     auto outcomes = possible_queue_push_outcomes(operations);
     EXPECT_THAT(
@@ -144,7 +143,7 @@ TEST_F(test_queue_push_outcomes, failed_pushes_leave_initial_push_unchanged)
       /*initial_push_size=*/initial_push_size,
       /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
       /*producer_push_results=*/
-      { push_result::pushed, push_result::not_pushed_due_to_contention },
+      { push_result::pushed, push_result::skipped },
     };
     auto outcomes = possible_queue_push_outcomes(operations);
     EXPECT_THAT(
@@ -216,7 +215,7 @@ TEST_F(test_queue_push_outcomes,
       /*initial_push_size=*/initial_push_size,
       /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
       /*producer_push_results=*/
-      { push_result::pushed, push_result::not_pushed_due_to_contention },
+      { push_result::pushed, push_result::skipped },
     };
     auto outcomes = possible_queue_push_outcomes(operations);
     EXPECT_THAT(outcomes,
@@ -229,7 +228,7 @@ TEST_F(test_queue_push_outcomes,
       /*initial_push_size=*/initial_push_size,
       /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
       /*producer_push_results=*/
-      { push_result::not_pushed_due_to_contention, push_result::pushed },
+      { push_result::skipped, push_result::pushed },
     };
     auto outcomes = possible_queue_push_outcomes(operations);
     EXPECT_THAT(outcomes,
@@ -245,7 +244,7 @@ TEST_F(test_queue_push_outcomes,
     /*initial_push_size=*/2,
     /*producer_push_sizes=*/{ 1, 3 },
     /*producer_push_results=*/
-    { push_result::pushed, push_result::not_pushed_due_to_contention },
+    { push_result::pushed, push_result::skipped },
   };
   auto outcomes = possible_queue_push_outcomes(operations);
   auto initial_a = 100;
