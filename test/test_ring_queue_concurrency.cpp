@@ -1,6 +1,7 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
+#include "reduce.h"
 #include "ring_queue_wrapper.h"
 #include "synchronization.h"
 #include <algorithm>
@@ -13,7 +14,6 @@
 #include <cxxtrace/string.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
-#include <numeric>
 #include <optional>
 #include <ostream>
 #include <type_traits> // IWYU pragma: keep
@@ -26,32 +26,10 @@
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>
 
-#if defined(__GLIBCXX__)
-// libstdc++ version 9.1.0 does not define some overloads of
-// std::reduce.
-#define CXXTRACE_WORK_AROUND_STD_REDUCE 1
-#endif
-
-#if CXXTRACE_WORK_AROUND_STD_REDUCE
-#include <iterator>
-#endif
-
 namespace {
 auto
 assert_items_are_sequential(const std::experimental::pmr::vector<int>& items)
   -> void;
-
-template<class Iterator>
-auto
-reduce(Iterator begin, Iterator end) -> auto
-{
-#if CXXTRACE_WORK_AROUND_STD_REDUCE
-  return std::accumulate(
-    begin, end, typename std::iterator_traits<Iterator>::value_type());
-#else
-  return std::reduce(begin, end);
-#endif
-}
 }
 
 namespace cxxtrace {
