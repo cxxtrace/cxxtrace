@@ -46,6 +46,10 @@ public:
 template<std::size_t Capacity>
 class queue_push_operations
 {
+private:
+  template<class T>
+  using vector = std::experimental::pmr::vector<T>;
+
 public:
   using push_result = cxxtrace::detail::mpsc_ring_queue_push_result;
   using size_type = int;
@@ -66,43 +70,93 @@ public:
   auto possible_outcomes(std::experimental::pmr::memory_resource* memory) const
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
-    using std::experimental::pmr::vector;
-    using utilities = ring_queue_relacy_test_utilities<int>;
-
-    auto producer_thread_indexes = vector<int>{ memory };
+    auto pushes = vector<push>{ memory };
     for (auto thread_index = 0;
          thread_index < int(producer_push_results.size());
          ++thread_index) {
       if (this->producer_push_results[thread_index] == push_result::pushed) {
-        producer_thread_indexes.push_back(thread_index);
+        pushes.push_back(push{ thread_index });
       }
     }
-    std::sort(producer_thread_indexes.begin(), producer_thread_indexes.end());
 
     auto expected_items_permutations = vector<vector<int>>{ memory };
-    do {
-      auto expected_items = vector<int>{ memory };
-      utilities::push_back_items_for_range(
-        0, this->initial_push_size, expected_items);
-      for (auto thread_index : producer_thread_indexes) {
-        auto [begin, end] = this->producer_range(thread_index);
-        utilities::push_back_items_for_range(begin, end, expected_items);
-      }
-      if (expected_items.size() > this->capacity) {
-        expected_items.erase(expected_items.begin(),
-                             expected_items.end() - this->capacity);
-      }
-      assert(static_cast<size_type>(expected_items.size()) >=
-             this->initial_push_size);
-      assert(static_cast<size_type>(expected_items.size()) <=
-             this->total_push_size());
-      expected_items_permutations.emplace_back(std::move(expected_items));
-    } while (std::next_permutation(producer_thread_indexes.begin(),
-                                   producer_thread_indexes.end()));
+    enumerate_push_permutations(pushes, [&](vector<int>&& items) -> void {
+      expected_items_permutations.emplace_back(std::move(items));
+    });
     return expected_items_permutations;
   }
 
 private:
+  // A single possibly-executed call to RingQueue::try_push.
+  struct push
+  {
+  private:
+    auto members() const noexcept -> auto
+    {
+      return std::tie(this->thread_index);
+    }
+
+  public:
+    // The producer which called try_push. The producer_range function
+    // determines what items were pushed.
+    int thread_index;
+
+    auto operator==(const push& other) const noexcept -> bool
+    {
+      return this->members() == other.members();
+    }
+
+    auto operator!=(const push& other) const noexcept -> bool
+    {
+      return !(*this == other);
+    }
+
+    auto operator<(const push& other) const noexcept -> bool
+    {
+      return this->members() < other.members();
+    }
+
+    auto operator<=(const push& other) const noexcept -> bool
+    {
+      return this->members() <= other.members();
+    }
+
+    auto operator>(const push& other) const noexcept -> bool
+    {
+      return this->members() > other.members();
+    }
+
+    auto operator>=(const push& other) const noexcept -> bool
+    {
+      return this->members() >= other.members();
+    }
+  };
+
+  template<class Func>
+  auto enumerate_push_permutations(vector<push>& pushes, Func&& callback) const
+    -> void
+  {
+    using utilities = ring_queue_relacy_test_utilities<size_type>;
+    std::sort(pushes.begin(), pushes.end());
+    do {
+      char buffer[1024];
+      auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+      auto items = vector<int>{ &memory };
+      utilities::push_back_items_for_range(0, this->initial_push_size, items);
+      for (auto& push : pushes) {
+        auto [begin, end] = this->producer_range(push.thread_index);
+        utilities::push_back_items_for_range(begin, end, items);
+      }
+      if (items.size() > this->capacity) {
+        items.erase(items.begin(), items.end() - this->capacity);
+      }
+      assert(static_cast<size_type>(items.size()) >= this->initial_push_size);
+      assert(static_cast<size_type>(items.size()) <= this->total_push_size());
+      callback(std::move(items));
+    } while (std::next_permutation(pushes.begin(), pushes.end()));
+  }
+
   // TODO(strager): Deduplicate with
   // pushing_is_atomic_or_fails_with_multiple_producers.
   auto producer_range(int thread_index) const noexcept

@@ -17,6 +17,7 @@
 #include <experimental/vector>
 #include <optional>
 #include <ostream>
+#include <tuple>
 #include <type_traits> // IWYU pragma: keep
 #include <utility>
 // IWYU pragma: no_include "relacy_backoff.h"
