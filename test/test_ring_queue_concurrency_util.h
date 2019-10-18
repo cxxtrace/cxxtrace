@@ -21,14 +21,14 @@ class ring_queue_relacy_test_utilities
 public:
   using size_type = Size;
 
-  static auto push_back_items_for_range(
-    size_type begin,
-    size_type end,
-    std::experimental::pmr::vector<int>& items) -> void
+  template<class RingQueue>
+  static auto push_range(RingQueue& queue,
+                         size_type begin,
+                         size_type end) noexcept -> void
   {
-    items.reserve(items.size() + (end - begin));
     for (auto i = begin; i < end; ++i) {
-      items.emplace_back(item_at_index(i));
+      queue.push(
+        1, [&](auto data) noexcept { data.set(0, item_at_index(i)); });
     }
   }
 
@@ -142,15 +142,15 @@ private:
       char buffer[1024];
       auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
 
-      auto items = vector<int>{ &memory };
-      utilities::push_back_items_for_range(0, this->initial_push_size, items);
+      auto queue = cxxtrace::detail::ring_queue<int, capacity>{};
+      utilities::push_range(queue, 0, this->initial_push_size);
       for (auto& push : pushes) {
         auto [begin, end] = this->producer_range(push.thread_index);
-        utilities::push_back_items_for_range(begin, end, items);
+        utilities::push_range(queue, begin, end);
       }
-      if (items.size() > this->capacity) {
-        items.erase(items.begin(), items.end() - this->capacity);
-      }
+
+      auto items = vector<int>{ &memory };
+      queue.pop_all_into(items);
       assert(static_cast<size_type>(items.size()) >= this->initial_push_size);
       assert(static_cast<size_type>(items.size()) <= this->total_push_size());
       callback(std::move(items));

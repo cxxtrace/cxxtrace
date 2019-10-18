@@ -69,12 +69,7 @@ protected:
 
   auto push_range(size_type begin, size_type end) noexcept -> void
   {
-    for (auto i = begin; i < end; ++i) {
-      this->queue.push(
-        1, [&](auto data) noexcept {
-          data.set(0, utilities::item_at_index(i));
-        });
-    }
+    utilities::push_range(this->queue, begin, end);
   }
 
   auto bulk_push_range(size_type begin, size_type end) noexcept -> void
