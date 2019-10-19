@@ -13,6 +13,7 @@
 #include <cxxtrace/detail/ring_queue.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
+#include <iterator>
 #include <optional>
 #include <utility>
 
@@ -40,12 +41,44 @@ public:
   }
 };
 
+template<class Subqueue>
+class multi_queue
+{
+public:
+  explicit multi_queue(int subqueue_count,
+                       std::experimental::pmr::memory_resource* memory)
+    : subqueues_{ memory }
+  {
+    std::generate_n(std::back_inserter(this->subqueues_), subqueue_count, [&] {
+      return Subqueue{};
+    });
+  }
+
+  auto subqueue(int subqueue_index) -> Subqueue&
+  {
+    return this->subqueues_.at(subqueue_index);
+  }
+
+  auto pop_all(std::experimental::pmr::memory_resource* memory)
+    -> std::experimental::pmr::vector<int>
+  {
+    auto result = std::experimental::pmr::vector<int>{ memory };
+    for (auto& subqueue : this->subqueues_) {
+      subqueue.pop_all_into(result);
+    }
+    return result;
+  }
+
+private:
+  std::experimental::pmr::vector<Subqueue> subqueues_;
+};
+
 // A log of try_push calls to a ring queue.
 //
 // See pushing_is_atomic_or_fails_with_multiple_producers.
 //
 // See queue_push_operations<>::possible_outcomes.
-template<std::size_t Capacity>
+template<std::size_t SubqueueCapacity>
 class queue_push_operations
 {
 private:
@@ -68,24 +101,28 @@ public:
   };
   using size_type = int;
 
-  static inline constexpr auto capacity = Capacity;
+  static inline constexpr auto subqueue_capacity = SubqueueCapacity;
   static inline constexpr auto max_threads = 3;
 
   explicit queue_push_operations(
+    int subqueue_count,
     size_type initial_push_size,
     std::array<size_type, max_threads> producer_push_sizes,
     std::array<push_result, max_threads> producer_push_results)
-    : initial_push_size{ initial_push_size }
+    : subqueue_count{ subqueue_count }
+    , initial_push_size{ initial_push_size }
     , producer_push_sizes{ producer_push_sizes }
     , producer_push_results{ producer_push_results }
   {}
 
   explicit queue_push_operations(
+    int subqueue_count,
     size_type initial_push_size,
     std::array<size_type, max_threads> producer_push_sizes,
     std::array<std::optional<cxxtrace::detail::mpsc_ring_queue_push_result>,
                max_threads> producer_push_results)
-    : initial_push_size{ initial_push_size }
+    : subqueue_count{ subqueue_count }
+    , initial_push_size{ initial_push_size }
     , producer_push_sizes{ producer_push_sizes }
   {
     for (auto i = std::size_t{ 0 }; i < producer_push_results.size(); ++i) {
@@ -130,39 +167,52 @@ public:
     for_each_subset(
       optional_thread_indexes,
       [&](const vector<int>& included_optional_thread_indexes) -> void {
-        char buffer[1024];
-        auto temporary_memory =
-          monotonic_buffer_resource{ buffer, sizeof(buffer) };
+        this->enumerate_push_subqueue_indexes(
+          [&](int initial_push_subqueue_index,
+              std::array<int, max_threads> producer_subqueue_indexes) -> void {
+            char buffer[1024];
+            auto temporary_memory =
+              monotonic_buffer_resource{ buffer, sizeof(buffer) };
 
-        auto thread_indexes =
-          concatenated_vectors(required_thread_indexes,
-                               included_optional_thread_indexes,
-                               &temporary_memory);
-        auto pushes = vector<push>{ &temporary_memory };
-        pushes.reserve(thread_indexes.size());
-        for (auto thread_index : thread_indexes) {
-          pushes.push_back(
-            push{ thread_index, this->producer_push_results[thread_index] });
-        }
-        enumerate_push_permutations(pushes, add_outcome);
+            auto thread_indexes =
+              concatenated_vectors(required_thread_indexes,
+                                   included_optional_thread_indexes,
+                                   &temporary_memory);
+            auto pushes = vector<push>{ &temporary_memory };
+            pushes.reserve(thread_indexes.size());
+            for (auto thread_index : thread_indexes) {
+              pushes.push_back(
+                push{ thread_index,
+                      producer_subqueue_indexes[thread_index],
+                      this->producer_push_results[thread_index] });
+            }
+            enumerate_push_permutations(
+              pushes, initial_push_subqueue_index, add_outcome);
+          });
       });
     return outcomes;
   }
 
 private:
-  // A single possibly-executed call to RingQueue::try_push.
+  // A single possibly-executed call to RingQueue::try_push, including the
+  // circumstances of the call.
   struct push
   {
   private:
     auto members() const noexcept -> auto
     {
-      return std::tie(this->thread_index, this->result);
+      return std::tie(this->thread_index, this->subqueue_index, this->result);
     }
 
   public:
     // The producer which called try_push. The producer_range function
     // determines what items were pushed.
     int thread_index;
+
+    // Which subqueue the try_push call pushed into. Some RingQueue
+    // implementations are implemented using possibly multiple independent
+    // queues internally.
+    int subqueue_index;
 
     // Whether the try_push call succeeded, failed and dropped items, or failed
     // and preserved items.
@@ -200,8 +250,9 @@ private:
   };
 
   template<class Func>
-  auto enumerate_push_permutations(vector<push>& pushes, Func&& callback) const
-    -> void
+  auto enumerate_push_permutations(vector<push>& pushes,
+                                   int initial_push_subqueue_index,
+                                   Func&& callback) const -> void
   {
     using utilities = ring_queue_relacy_test_utilities<size_type>;
     std::sort(pushes.begin(), pushes.end());
@@ -209,17 +260,24 @@ private:
       char buffer[1024];
       auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
 
-      auto queue = cxxtrace::detail::ring_queue<int, capacity>{};
-      utilities::push_range(queue, 0, this->initial_push_size);
+      auto subqueues =
+        multi_queue<cxxtrace::detail::ring_queue<int, subqueue_capacity>>{
+          this->subqueue_count, &memory
+        };
+      utilities::push_range(subqueues.subqueue(initial_push_subqueue_index),
+                            0,
+                            this->initial_push_size);
       for (auto& push : pushes) {
         auto [begin, end] = this->producer_range(push.thread_index);
         assert(this->producer_push_results[push.thread_index] == push.result);
+        auto& subqueue = subqueues.subqueue(push.subqueue_index);
         switch (push.result) {
           case push_result::interrupted:
-            this->shrink_queue(queue, this->capacity - (end - begin));
+            this->shrink_queue(subqueue,
+                               this->subqueue_capacity - (end - begin));
             break;
           case push_result::pushed:
-            utilities::push_range(queue, begin, end);
+            utilities::push_range(subqueue, begin, end);
             break;
           case push_result::skipped:
             assert(false && "unexpected push result: skipped");
@@ -227,11 +285,29 @@ private:
         }
       }
 
-      auto items = vector<int>{ &memory };
-      queue.pop_all_into(items);
+      auto items = subqueues.pop_all(&memory);
       assert(static_cast<size_type>(items.size()) <= this->total_push_size());
       callback(std::move(items));
     } while (std::next_permutation(pushes.begin(), pushes.end()));
+  }
+
+  template<class Func>
+  auto enumerate_push_subqueue_indexes(Func&& callback) const -> void
+  {
+    auto count = this->subqueue_count;
+    for (auto initial_push = 0; initial_push < count; ++initial_push) {
+      static_assert(max_threads == 3);
+      for (auto producer_1 = 0; producer_1 < count; ++producer_1) {
+        for (auto producer_2 = 0; producer_2 < count; ++producer_2) {
+          for (auto producer_3 = 0; producer_3 < count; ++producer_3) {
+            auto producer_subqueue_indexes = std::array<int, max_threads>{
+              producer_1, producer_2, producer_3
+            };
+            callback(initial_push, producer_subqueue_indexes);
+          }
+        }
+      }
+    }
   }
 
   template<class RingQueue>
@@ -283,6 +359,7 @@ private:
     }
   }
 
+  int subqueue_count;
   size_type initial_push_size;
   std::array<size_type, max_threads> producer_push_sizes;
   std::array<push_result, max_threads> producer_push_results;

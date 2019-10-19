@@ -453,7 +453,9 @@ private:
     std::experimental::pmr::memory_resource* memory)
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
+    auto subqueue_count = 1;
     return queue_push_operations<RingQueue::capacity>{
+      subqueue_count,
       this->initial_push_size,
       this->producer_push_sizes,
       this->producer_push_results,
