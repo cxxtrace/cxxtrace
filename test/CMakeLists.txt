@@ -17,6 +17,7 @@ add_executable(
   test_clock.cpp
   test_concurrency_test_runner.cpp
   test_exhaustive_rng.cpp
+  test_for_each_subset.cpp
   test_linux_proc_cpuinfo.cpp
   test_molecular.cpp
   test_processor_id.cpp

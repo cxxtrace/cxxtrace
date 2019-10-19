@@ -1,6 +1,8 @@
 #ifndef CXXTRACE_TEST_TEST_RING_QUEUE_CONCURRENCY_UTIL_H
 #define CXXTRACE_TEST_TEST_RING_QUEUE_CONCURRENCY_UTIL_H
 
+#include "concatenated_vectors.h"
+#include "for_each_subset.h"
 #include "memory_resource.h"
 #include "reduce.h"
 #include <algorithm>
@@ -53,8 +55,16 @@ private:
 public:
   enum class push_result
   {
+    // try_push was called, but it was interrupted. try_push had no effect on
+    // the queue.
     skipped = 0, // Default for value initialization.
+
+    // push or try_push was called and succeeded.
     pushed,
+
+    // try_push was called, but it was interrupted. try_push either had no
+    // effect, or it overwrote items in the queue (but did not commit them).
+    interrupted,
   };
   using size_type = int;
 
@@ -92,20 +102,51 @@ public:
   auto possible_outcomes(std::experimental::pmr::memory_resource* memory) const
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
-    auto pushes = vector<push>{ memory };
+    auto required_thread_indexes = vector<int>{ memory };
+    auto optional_thread_indexes = vector<int>{ memory };
     for (auto thread_index = 0;
-         thread_index < int(producer_push_results.size());
+         thread_index < int(this->producer_push_results.size());
          ++thread_index) {
-      if (this->producer_push_results[thread_index] == push_result::pushed) {
-        pushes.push_back(push{ thread_index });
+      auto thread_push_result = this->producer_push_results[thread_index];
+      switch (thread_push_result) {
+        case push_result::pushed:
+          required_thread_indexes.push_back(thread_index);
+          break;
+        case push_result::interrupted:
+          optional_thread_indexes.push_back(thread_index);
+          break;
+        case push_result::skipped:
+          break;
       }
     }
 
-    auto expected_items_permutations = vector<vector<int>>{ memory };
-    enumerate_push_permutations(pushes, [&](vector<int>&& items) -> void {
-      expected_items_permutations.emplace_back(std::move(items));
-    });
-    return expected_items_permutations;
+    auto outcomes = vector<vector<int>>{ memory };
+    auto add_outcome = [&](vector<int>&& expected_items) -> void {
+      if (std::find(outcomes.begin(), outcomes.end(), expected_items) ==
+          outcomes.end()) {
+        outcomes.emplace_back(std::move(expected_items));
+      }
+    };
+    for_each_subset(
+      optional_thread_indexes,
+      [&](const vector<int>& included_optional_thread_indexes) -> void {
+        char buffer[1024];
+        auto temporary_memory =
+          monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+        auto thread_indexes =
+          concatenated_vectors(required_thread_indexes,
+                               included_optional_thread_indexes,
+                               &temporary_memory);
+        auto pushes = vector<push>{ &temporary_memory };
+        pushes.reserve(thread_indexes.size());
+        for (auto thread_index : thread_indexes) {
+          pushes.push_back(
+            push{ thread_index, this->producer_push_results[thread_index] });
+        }
+        enumerate_push_permutations(pushes, add_outcome);
+      });
+    return outcomes;
   }
 
 private:
@@ -115,13 +156,17 @@ private:
   private:
     auto members() const noexcept -> auto
     {
-      return std::tie(this->thread_index);
+      return std::tie(this->thread_index, this->result);
     }
 
   public:
     // The producer which called try_push. The producer_range function
     // determines what items were pushed.
     int thread_index;
+
+    // Whether the try_push call succeeded, failed and dropped items, or failed
+    // and preserved items.
+    push_result result;
 
     auto operator==(const push& other) const noexcept -> bool
     {
@@ -168,15 +213,42 @@ private:
       utilities::push_range(queue, 0, this->initial_push_size);
       for (auto& push : pushes) {
         auto [begin, end] = this->producer_range(push.thread_index);
-        utilities::push_range(queue, begin, end);
+        assert(this->producer_push_results[push.thread_index] == push.result);
+        switch (push.result) {
+          case push_result::interrupted:
+            this->shrink_queue(queue, this->capacity - (end - begin));
+            break;
+          case push_result::pushed:
+            utilities::push_range(queue, begin, end);
+            break;
+          case push_result::skipped:
+            assert(false && "unexpected push result: skipped");
+            break;
+        }
       }
 
       auto items = vector<int>{ &memory };
       queue.pop_all_into(items);
-      assert(static_cast<size_type>(items.size()) >= this->initial_push_size);
       assert(static_cast<size_type>(items.size()) <= this->total_push_size());
       callback(std::move(items));
     } while (std::next_permutation(pushes.begin(), pushes.end()));
+  }
+
+  template<class RingQueue>
+  static auto shrink_queue(RingQueue& queue,
+                           typename RingQueue::size_type max_size) -> void
+  {
+    using value_type = typename RingQueue::value_type;
+    char buffer[RingQueue::capacity * sizeof(value_type)];
+    auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
+
+    auto items = vector<value_type>{ &memory };
+    queue.pop_all_into(items);
+    auto new_item_count = std::min(items.size(), std::size_t(max_size));
+    auto begin_index = items.size() - new_item_count;
+    for (auto i = begin_index; i < items.size(); ++i) {
+      queue.push(1, [&](auto&& writer) { writer.set(0, items.at(i)); });
+    }
   }
 
   // TODO(strager): Deduplicate with

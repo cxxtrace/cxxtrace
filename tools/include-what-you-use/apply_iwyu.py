@@ -45,6 +45,7 @@ blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "test" / "test_clock.cpp",
     cxxtrace_project_path / "test" / "test_concurrency_test_runner.cpp",
     cxxtrace_project_path / "test" / "test_exhaustive_rng.cpp",
+    cxxtrace_project_path / "test" / "test_for_each_subset.cpp",
     cxxtrace_project_path / "test" / "test_linux_proc_cpuinfo.cpp",
     cxxtrace_project_path / "test" / "test_molecular.cpp",
     cxxtrace_project_path / "test" / "test_processor_id.cpp",

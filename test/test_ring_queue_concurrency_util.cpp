@@ -152,6 +152,57 @@ TEST_F(test_queue_push_outcomes, failed_pushes_leave_initial_push_unchanged)
   }
 }
 
+TEST_F(test_queue_push_outcomes,
+       interrupted_pushes_leave_initial_push_unchanged)
+{
+  auto initial_push_size = 2;
+  auto producer_1_push_size = 1;
+  auto producer_2_push_size = 1;
+
+  auto initial_a = 100;
+  auto initial_b = 101;
+  auto producer_1 = 102;
+  auto producer_2 = 103;
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/initial_push_size,
+      /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
+      /*producer_push_results=*/
+      { push_result::interrupted, push_result::interrupted },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    EXPECT_THAT(outcomes,
+                UnorderedElementsAre(vector<int>{ initial_a, initial_b }));
+  }
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/initial_push_size,
+      /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
+      /*producer_push_results=*/
+      { push_result::interrupted, push_result::pushed },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    EXPECT_THAT(
+      outcomes,
+      UnorderedElementsAre(vector<int>{ initial_a, initial_b, producer_2 }));
+  }
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/initial_push_size,
+      /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
+      /*producer_push_results=*/
+      { push_result::pushed, push_result::interrupted },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    EXPECT_THAT(
+      outcomes,
+      UnorderedElementsAre(vector<int>{ initial_a, initial_b, producer_1 }));
+  }
+}
+
 TEST_F(test_queue_push_outcomes, independently_overflowing_pushes_overflow)
 {
   auto operations = queue_push_operations<4>{
@@ -238,6 +289,59 @@ TEST_F(test_queue_push_outcomes,
 }
 
 TEST_F(test_queue_push_outcomes,
+       interrupted_mutually_overflowing_pushes_may_overwrite_pushed_items)
+{
+  auto initial_push_size = 0;
+  auto producer_1_push_size = 3;
+  auto producer_2_push_size = 3;
+
+  auto producer_1_a = 100;
+  auto producer_1_b = 101;
+  auto producer_1_c = 102;
+  auto producer_2_a = 103;
+  auto producer_2_b = 104;
+  auto producer_2_c = 105;
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/initial_push_size,
+      /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
+      /*producer_push_results=*/
+      { push_result::pushed, push_result::interrupted },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    EXPECT_THAT(outcomes,
+                UnorderedElementsAre(
+                  // Either:
+                  // * Producer 1 only. Producer 2's push was interrupted early
+                  //   (either before or after producer 1).
+                  // * Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ producer_1_a, producer_1_b, producer_1_c },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ producer_1_c }));
+  }
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/initial_push_size,
+      /*producer_push_sizes=*/{ producer_1_push_size, producer_2_push_size },
+      /*producer_push_results=*/
+      { push_result::interrupted, push_result::pushed },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    EXPECT_THAT(outcomes,
+                UnorderedElementsAre(
+                  // Either:
+                  // * Producer 1 only. Producer 2's push was interrupted early
+                  //   (either before or after producer 1).
+                  // * Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ producer_2_a, producer_2_b, producer_2_c },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ producer_2_c }));
+  }
+}
+
+TEST_F(test_queue_push_outcomes,
        failed_overflowing_push_leaves_initial_push_unchanged)
 {
   auto operations = queue_push_operations<4>{
@@ -253,5 +357,53 @@ TEST_F(test_queue_push_outcomes,
   EXPECT_THAT(
     outcomes,
     UnorderedElementsAre(vector<int>{ initial_a, initial_b, producer_1 }));
+}
+
+TEST_F(test_queue_push_outcomes,
+       interrupted_overflowing_push_possibly_overwrites_initial_push)
+{
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/2,
+      /*producer_push_sizes=*/{ 1, 3 },
+      /*producer_push_results=*/
+      { push_result::pushed, push_result::interrupted },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    auto initial_a = 100;
+    auto initial_b = 101;
+    auto producer_1 = 102;
+    EXPECT_THAT(outcomes,
+                UnorderedElementsAre(
+                  // Producer 1 only. Producer 2's push was interrupted early
+                  // (either before or after producer 1).
+                  vector<int>{ initial_a, initial_b, producer_1 },
+                  // Producer 1, then producer 2 (interrupted; overwrote).
+                  vector<int>{ producer_1 },
+                  // Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ initial_b, producer_1 }));
+  }
+
+  {
+    auto operations = queue_push_operations<4>{
+      /*initial_push_size=*/2,
+      /*producer_push_sizes=*/{ 1, 2 },
+      /*producer_push_results=*/
+      { push_result::pushed, push_result::interrupted },
+    };
+    auto outcomes = possible_queue_push_outcomes(operations);
+    auto initial_a = 100;
+    auto initial_b = 101;
+    auto producer_1 = 102;
+    EXPECT_THAT(outcomes,
+                UnorderedElementsAre(
+                  // Producer 1 only. Producer 2's push was interrupted early
+                  // (either before or after producer 1).
+                  vector<int>{ initial_a, initial_b, producer_1 },
+                  // Either:
+                  // * Producer 1, then producer 2 (interrupted; overwrote).
+                  // * Producer 2 (interrupted; overwrote), then producer 1.
+                  vector<int>{ initial_b, producer_1 }));
+  }
 }
 }
