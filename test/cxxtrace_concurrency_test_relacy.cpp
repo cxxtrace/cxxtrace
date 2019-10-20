@@ -96,6 +96,8 @@ run_concurrency_test_with_relacy_with_threads(concurrency_test* test) -> void
   auto options = rl::test_params{};
   options.context_bound = 3;
   options.search_type = relacy_search_type(test->test_depth());
+  // options.collect_history = true;
+  // options.output_history = true;
 
   test_wrapper::test = test;
   *options.output_stream << "Testing " << test->name() << "...\n";
@@ -170,6 +172,8 @@ concurrency_log(void (*make_message)(std::ostream&, void* opaque),
 auto
 concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int
 {
+  if (max_plus_one == 1)
+    return 0;
   return rl::rand(max_plus_one);
 }
 }

@@ -37,7 +37,7 @@ public:
 
   auto reserve(size_type size) noexcept(false) -> void
   {
-    this->output.reserve(this->start_index + size);
+    this->output.reserve(this->output.size() + size);
   }
 
 private:

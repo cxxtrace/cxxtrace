@@ -4,6 +4,7 @@
 
 #include "cxxtrace_concurrency_test.h"
 #include "relacy_synchronization.h"
+#include "rseq_scheduler.h"
 #include <limits>
 #include <ostream>
 #include <relacy/context_base.hpp>

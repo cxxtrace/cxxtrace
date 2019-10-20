@@ -57,6 +57,10 @@ CXXTRACE_WARNING_IGNORE_GCC("-Wunused-parameter")
 CXXTRACE_WARNING_POP
 #endif
 
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+#include "rseq_scheduler.h"
+#endif
+
 #if CXXTRACE_ENABLE_CDSCHECKER
 #define CXXTRACE_ASSERT(...)                                                   \
   do {                                                                         \
@@ -83,6 +87,19 @@ CXXTRACE_WARNING_POP
 namespace cxxtrace_test {
 namespace detail {
 extern std::experimental::pmr::memory_resource* concurrency_tests_memory;
+
+#if CXXTRACE_ENABLE_CDSCHECKER
+auto
+cdschecker_assert_failure(cxxtrace::czstring file_name, int line_number)
+  -> void;
+#endif
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+auto
+concurrency_stress_assert(cxxtrace::czstring message,
+                          cxxtrace::czstring file_name,
+                          int line_number) -> void;
+#endif
 }
 
 template<class Test, class... Args>
@@ -122,6 +139,7 @@ register_concurrency_test(int thread_count,
         // behavior in Relacy.
         new (&this->test_object) std::optional<Test>{};
       }
+
       std::apply(
         [this](const Args&... args) { this->test_object.emplace(args...); },
         this->args);
@@ -194,21 +212,6 @@ concurrency_log(Func&& func,
 auto
 concurrency_rng_next_integer_0(int max_plus_one) noexcept -> int;
 #endif
-
-namespace detail {
-#if CXXTRACE_ENABLE_CDSCHECKER
-auto
-cdschecker_assert_failure(cxxtrace::czstring file_name, int line_number)
-  -> void;
-#endif
-
-#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-auto
-concurrency_stress_assert(cxxtrace::czstring message,
-                          cxxtrace::czstring file_name,
-                          int line_number) -> void;
-#endif
-}
 }
 
 #endif

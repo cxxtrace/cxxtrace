@@ -32,6 +32,8 @@ public:
   template<class T>
   class thread_local_var;
 
+  static auto allow_preempt(debug_source_location) -> void;
+
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;
 

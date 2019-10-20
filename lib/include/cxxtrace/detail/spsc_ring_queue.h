@@ -107,19 +107,21 @@ public:
     }
     auto output_item_count = end_vindex - begin_vindex;
 
-    Sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
+    if (output_item_count > 0) {
+      Sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
 
-    {
-      const auto write_end_vindex =
-        this->write_end_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
-      if (write_end_vindex != end_vindex) {
-        // push was called concurrently. Undo potentially-corrupted reads in the
-        // output.
-        auto new_begin_vindex = get_begin_vindex(write_end_vindex);
-        assert(new_begin_vindex >= begin_vindex);
-        auto items_to_unoutput =
-          std::min(new_begin_vindex - begin_vindex, output_item_count);
-        output.pop_front_n(items_to_unoutput);
+      {
+        const auto write_end_vindex =
+          this->write_end_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        if (write_end_vindex != end_vindex) {
+          // push was called concurrently. Undo potentially-corrupted reads in
+          // the output.
+          auto new_begin_vindex = get_begin_vindex(write_end_vindex);
+          assert(new_begin_vindex >= begin_vindex);
+          auto items_to_unoutput =
+            std::min(new_begin_vindex - begin_vindex, output_item_count);
+          output.pop_front_n(items_to_unoutput);
+        }
       }
     }
 
@@ -137,6 +139,7 @@ private:
   public:
     auto set(size_type index, T value) noexcept -> void
     {
+      Sync::allow_preempt(CXXTRACE_HERE);
       this->storage[(this->write_begin_vindex + index) % capacity].store(
         std::move(value), CXXTRACE_HERE);
     }
@@ -160,14 +163,17 @@ private:
     assert(count > 0);
     assert(count < this->capacity);
 
+    Sync::allow_preempt(CXXTRACE_HERE);
     auto write_begin_vindex =
       this->write_begin_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+    Sync::allow_preempt(CXXTRACE_HERE);
     auto maybe_new_write_end_vindex = add(write_begin_vindex, count);
     if (!maybe_new_write_end_vindex.has_value()) {
       this->abort_due_to_overflow();
     }
     this->write_end_vindex.store(
       *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
+    Sync::allow_preempt(CXXTRACE_HERE);
     Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
     return { write_begin_vindex, *maybe_new_write_end_vindex };
@@ -175,6 +181,7 @@ private:
 
   auto end_push(size_type write_end_vindex) noexcept -> void
   {
+    Sync::allow_preempt(CXXTRACE_HERE);
     this->write_begin_vindex.store(
       write_end_vindex, std::memory_order_release, CXXTRACE_HERE);
   }
