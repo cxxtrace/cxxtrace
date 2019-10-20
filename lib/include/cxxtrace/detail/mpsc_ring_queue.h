@@ -43,6 +43,7 @@ enum class mpsc_ring_queue_push_result : bool
 //
 // TODO(strager): Add an API for the reader to detect when items are discarded.
 //
+// @see processor_local_mpsc_ring_queue
 // @see ring_queue
 // @see spsc_ring_queue
 template<class T,

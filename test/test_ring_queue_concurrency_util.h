@@ -4,6 +4,7 @@
 #include "concatenated_vectors.h"
 #include "for_each_subset.h"
 #include "memory_resource.h"
+#include "processor_local_mpsc_ring_queue.h"
 #include "reduce.h"
 #include <algorithm>
 #include <array>
@@ -26,9 +27,8 @@ public:
   using size_type = Size;
 
   template<class RingQueue>
-  static auto push_range(RingQueue& queue,
-                         size_type begin,
-                         size_type end) noexcept -> void
+  static auto push_range(RingQueue& queue, size_type begin, size_type end)
+    -> void
   {
     for (auto i = begin; i < end; ++i) {
       queue.push(
@@ -125,16 +125,21 @@ public:
     : subqueue_count{ subqueue_count }
     , initial_push_size{ initial_push_size }
     , producer_push_sizes{ producer_push_sizes }
-  {
-    for (auto i = std::size_t{ 0 }; i < producer_push_results.size(); ++i) {
-      if (producer_push_results[i].has_value()) {
-        this->producer_push_results[i] =
-          this->convert_push_result(*producer_push_results[i]);
-      } else {
-        this->producer_push_results[i] = push_result::skipped;
-      }
-    }
-  }
+    , producer_push_results{ this->convert_push_results(producer_push_results) }
+  {}
+
+  explicit queue_push_operations(
+    int subqueue_count,
+    size_type initial_push_size,
+    std::array<size_type, max_threads> producer_push_sizes,
+    std::array<
+      std::optional<cxxtrace_test::processor_local_mpsc_ring_queue_push_result>,
+      max_threads> producer_push_results)
+    : subqueue_count{ subqueue_count }
+    , initial_push_size{ initial_push_size }
+    , producer_push_sizes{ producer_push_sizes }
+    , producer_push_results{ this->convert_push_results(producer_push_results) }
+  {}
 
   // Return all possible states of the queue after the try_push calls.
   auto possible_outcomes(std::experimental::pmr::memory_resource* memory) const
@@ -348,6 +353,22 @@ private:
                                             this->producer_push_sizes.end());
   }
 
+  template<class PushResult, std::size_t Size>
+  static auto convert_push_results(
+    std::array<std::optional<PushResult>, Size> push_results) noexcept
+    -> std::array<push_result, Size>
+  {
+    auto result = std::array<push_result, Size>{};
+    for (auto i = std::size_t{ 0 }; i < push_results.size(); ++i) {
+      if (push_results[i].has_value()) {
+        result[i] = convert_push_result(*push_results[i]);
+      } else {
+        result[i] = push_result::skipped;
+      }
+    }
+    return result;
+  }
+
   static auto convert_push_result(
     cxxtrace::detail::mpsc_ring_queue_push_result r) noexcept -> push_result
   {
@@ -357,6 +378,20 @@ private:
         return push_result::pushed;
       case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
         return push_result::skipped;
+    }
+  }
+
+  static auto convert_push_result(
+    cxxtrace_test::processor_local_mpsc_ring_queue_push_result r) noexcept
+    -> push_result
+  {
+    using cxxtrace_test::processor_local_mpsc_ring_queue_push_result;
+    switch (r) {
+      case processor_local_mpsc_ring_queue_push_result::pushed:
+        return push_result::pushed;
+      case processor_local_mpsc_ring_queue_push_result::
+        push_interrupted_due_to_preemption:
+        return push_result::interrupted;
     }
   }
 

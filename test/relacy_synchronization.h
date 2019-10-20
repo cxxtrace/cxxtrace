@@ -4,6 +4,7 @@
 // IWYU pragma: no_include <ostream>
 
 #if CXXTRACE_ENABLE_RELACY
+#include "rseq_scheduler_synchronization_mixin.h"
 #include <array>
 #include <atomic>
 #include <cassert>
@@ -43,6 +44,8 @@ CXXTRACE_WARNING_POP
 namespace cxxtrace_test {
 #if CXXTRACE_ENABLE_RELACY
 class relacy_synchronization
+  : public rseq_scheduler_synchronization_mixin<relacy_synchronization,
+                                                rl::debug_info>
 {
 public:
   using debug_source_location = rl::debug_info;
@@ -67,6 +70,10 @@ private:
   static auto cast_memory_order(std::memory_order memory_order) noexcept
     -> rl::memory_order;
 };
+
+extern template class rseq_scheduler_synchronization_mixin<
+  relacy_synchronization,
+  rl::debug_info>;
 
 template<class T>
 class relacy_synchronization::atomic

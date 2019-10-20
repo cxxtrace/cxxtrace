@@ -1,7 +1,7 @@
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
 #include "memory_resource.h"
-#include "reduce.h"
+#include "processor_local_mpsc_ring_queue.h"
 #include "ring_queue_wrapper.h"
 #include "synchronization.h"
 #include "test_ring_queue_concurrency_util.h"
@@ -12,6 +12,7 @@
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <cxxtrace/string.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
@@ -26,6 +27,10 @@
 // IWYU pragma: no_include <relacy/stdlib/../context_base.hpp>
 // IWYU pragma: no_include <string>
 // IWYU pragma: no_include <vector>
+
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+#include "rseq_scheduler.h"
+#endif
 
 namespace {
 auto
@@ -54,6 +59,22 @@ operator<<(std::ostream& out, mpsc_ring_queue_push_result x) -> std::ostream&
 namespace cxxtrace_test {
 using sync = concurrency_test_synchronization;
 
+auto
+operator<<(std::ostream& out, processor_local_mpsc_ring_queue_push_result x)
+  -> std::ostream&
+{
+  switch (x) {
+    case processor_local_mpsc_ring_queue_push_result::pushed:
+      out << "pushed";
+      break;
+    case processor_local_mpsc_ring_queue_push_result::
+      push_interrupted_due_to_preemption:
+      out << "push_interrupted_due_to_preemption";
+      break;
+  }
+  return out;
+}
+
 template<class RingQueue>
 class ring_queue_relacy_test_base
   : public ring_queue_relacy_test_utilities<typename RingQueue::size_type>
@@ -65,6 +86,43 @@ protected:
   static_assert(std::is_same_v<typename RingQueue::value_type, int>);
 
   static constexpr auto capacity = RingQueue::capacity;
+
+  explicit ring_queue_relacy_test_base()
+    : ring_queue_relacy_test_base{ /*processor_count=*/1 }
+  {}
+
+  template<class RQ = RingQueue>
+  explicit ring_queue_relacy_test_base(
+    int processor_count,
+    std::enable_if_t<std::is_constructible_v<RQ, int>, void*> = nullptr)
+    : queue
+  {
+    processor_count
+  }
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+  , rseq { processor_count }
+#endif
+  {
+#if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+    CXXTRACE_ASSERT(processor_count == 1);
+#endif
+  }
+
+  template<class RQ = RingQueue>
+  explicit ring_queue_relacy_test_base(
+    int processor_count,
+    std::enable_if_t<std::is_constructible_v<RQ>, void*> = nullptr)
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+    : rseq
+  {
+    processor_count
+  }
+#endif
+  {
+#if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+    CXXTRACE_ASSERT(processor_count == 1);
+#endif
+  }
 
   auto push_range(size_type begin, size_type end) noexcept -> void
   {
@@ -137,7 +195,11 @@ protected:
       caller);
   }
 
-  ring_queue_wrapper<RingQueue> queue{};
+  ring_queue_wrapper<RingQueue> queue;
+
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+  rseq_scheduler<sync> rseq;
+#endif
 };
 
 template<class RingQueue>
@@ -358,28 +420,35 @@ public:
   using size_type = typename RingQueue::size_type;
 
   explicit pushing_is_atomic_or_fails_with_multiple_producers(
+    int processor_count,
     size_type initial_push_size,
     size_type producer_1_push_size,
     size_type producer_2_push_size)
-    : pushing_is_atomic_or_fails_with_multiple_producers{ initial_push_size,
+    : pushing_is_atomic_or_fails_with_multiple_producers{ processor_count,
+                                                          initial_push_size,
                                                           producer_1_push_size,
                                                           producer_2_push_size,
                                                           0 }
   {}
 
   explicit pushing_is_atomic_or_fails_with_multiple_producers(
+    int processor_count,
     size_type initial_push_size,
     size_type producer_1_push_size,
     size_type producer_2_push_size,
     size_type producer_3_push_size)
-    : initial_push_size{ initial_push_size }
+    : ring_queue_relacy_test_base<RingQueue>{ processor_count }
+    , processor_count{ processor_count }
+    , initial_push_size{ initial_push_size }
     , producer_push_sizes{ producer_1_push_size,
                            producer_2_push_size,
                            producer_3_push_size }
   {
+#if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+    CXXTRACE_ASSERT(processor_count == 1);
+#endif
     if (this->initial_push_size > 0) {
-      auto result = this->try_bulk_push_range(0, this->initial_push_size);
-      CXXTRACE_ASSERT(result == push_result::pushed);
+      this->bulk_push_range(0, this->initial_push_size);
     }
   }
 
@@ -404,11 +473,6 @@ public:
     auto buffer = std::array<std::byte, 1024>{};
     auto memory = monotonic_buffer_resource{ buffer.data(), buffer.size() };
 
-    CXXTRACE_ASSERT(std::any_of(
-      this->producer_push_results.begin(),
-      this->producer_push_results.end(),
-      [](std::optional<push_result> r) { return r == push_result::pushed; }));
-
     auto expected_items_permutations =
       this->expected_items_permutations(&memory);
     assert(!expected_items_permutations.empty());
@@ -430,12 +494,6 @@ public:
 private:
   using push_result = typename RingQueue::push_result;
 
-  auto total_push_size() const noexcept -> size_type
-  {
-    return this->initial_push_size + reduce(this->producer_push_sizes.begin(),
-                                            this->producer_push_sizes.end());
-  }
-
   auto producer_range(int thread_index) const noexcept
     -> std::pair<size_type, size_type>
   {
@@ -452,18 +510,37 @@ private:
     std::experimental::pmr::memory_resource* memory)
     -> std::experimental::pmr::vector<std::experimental::pmr::vector<int>>
   {
-    auto subqueue_count = 1;
     return queue_push_operations<RingQueue::capacity>{
-      subqueue_count,
+      this->subqueue_count(),
       this->initial_push_size,
       this->producer_push_sizes,
-      this->producer_push_results,
+      this->producer_push_results
     }
       .possible_outcomes(memory);
   }
 
+  constexpr auto subqueue_count() noexcept -> int
+  {
+    if constexpr (std::is_same_v<
+                    push_result,
+                    cxxtrace::detail::mpsc_ring_queue_push_result>) {
+      return 1;
+    } else if constexpr (std::is_same_v<
+                           push_result,
+                           cxxtrace_test::
+                             processor_local_mpsc_ring_queue_push_result>) {
+      return this->processor_count;
+    } else {
+      static_assert(std::is_void_v<RingQueue>,
+                    "subqueue_count not yet implemented for RingQueue");
+      CXXTRACE_ASSERT(false);
+      return 1;
+    }
+  }
+
   static inline constexpr auto max_threads = 3;
 
+  int processor_count;
   size_type initial_push_size;
   std::array<size_type, max_threads> producer_push_sizes;
 
@@ -522,6 +599,8 @@ template<
 auto
 register_multiple_producer_ring_queue_concurrency_tests() -> void
 {
+  auto processor_count = 1;
+
   {
     auto initial_push_size = 0;
     auto producer_1_push_size = 1;
@@ -530,6 +609,7 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
         pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, 4>>>(
         2,
         concurrency_test_depth::full,
+        processor_count,
         initial_push_size,
         producer_1_push_size,
         producer_2_push_size);
@@ -545,6 +625,7 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
       pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, 4>>>(
       3,
       concurrency_test_depth::full,
+      processor_count,
       initial_push_size,
       producer_1_push_size,
       producer_2_push_size,
@@ -561,11 +642,79 @@ register_multiple_producer_ring_queue_concurrency_tests() -> void
       pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, size>>>(
       2,
       concurrency_test_depth::full,
+      processor_count,
       initial_push_size,
       producer_1_push_size,
       producer_2_push_size);
   }
 }
+
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+template<
+  template<class T, std::size_t Capacity, class Index = int, class Sync = sync>
+  class RingQueue>
+auto
+register_processor_local_multiple_producer_ring_queue_concurrency_tests()
+  -> void
+{
+  {
+    constexpr auto thread_count = 2;
+    constexpr auto processor_count = 2;
+    constexpr auto initial_push_size = 0;
+    constexpr auto producer_1_push_size = 1;
+    constexpr auto producer_2_push_size = 1;
+    constexpr auto size = 4;
+    static_assert(
+      initial_push_size + producer_1_push_size + producer_2_push_size <= size);
+    register_concurrency_test<
+      pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, size>>>(
+      thread_count,
+      concurrency_test_depth::full,
+      processor_count,
+      initial_push_size,
+      producer_1_push_size,
+      producer_2_push_size);
+  }
+
+  {
+    constexpr auto thread_count = 2;
+    constexpr auto processor_count = 2;
+    constexpr auto initial_push_size = 3;
+    constexpr auto producer_1_push_size = 1;
+    constexpr auto producer_2_push_size = 1;
+    constexpr auto size = 4;
+    static_assert(
+      initial_push_size + producer_1_push_size + producer_2_push_size > size);
+    register_concurrency_test<
+      pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, size>>>(
+      thread_count,
+      concurrency_test_depth::full,
+      processor_count,
+      initial_push_size,
+      producer_1_push_size,
+      producer_2_push_size);
+  }
+
+  {
+    constexpr auto thread_count = 2;
+    constexpr auto processor_count = 2;
+    constexpr auto initial_push_size = 1;
+    constexpr auto producer_1_push_size = 2;
+    constexpr auto producer_2_push_size = 2;
+    constexpr auto size = 4;
+    static_assert(
+      initial_push_size + producer_1_push_size + producer_2_push_size > size);
+    register_concurrency_test<
+      pushing_is_atomic_or_fails_with_multiple_producers<RingQueue<int, size>>>(
+      thread_count,
+      concurrency_test_depth::shallow,
+      processor_count,
+      initial_push_size,
+      producer_1_push_size,
+      producer_2_push_size);
+  }
+}
+#endif
 
 auto
 register_concurrency_tests() -> void
@@ -574,8 +723,22 @@ register_concurrency_tests() -> void
     cxxtrace::detail::spsc_ring_queue>();
   register_single_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+  register_single_producer_ring_queue_concurrency_tests<
+    cxxtrace_test::processor_local_mpsc_ring_queue>();
+#endif
+
   register_multiple_producer_ring_queue_concurrency_tests<
     cxxtrace::detail::mpsc_ring_queue>();
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+  register_multiple_producer_ring_queue_concurrency_tests<
+    cxxtrace_test::processor_local_mpsc_ring_queue>();
+#endif
+
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+  register_processor_local_multiple_producer_ring_queue_concurrency_tests<
+    cxxtrace_test::processor_local_mpsc_ring_queue>();
+#endif
 }
 }
 

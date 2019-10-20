@@ -2,6 +2,7 @@
 #define CXXTRACE_TEST_CONCURRENCY_STRESS_SYNCHRONIZATION_H
 
 #include "pthread_thread_local_var.h"
+#include "rseq_scheduler_synchronization_mixin.h"
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/real_synchronization.h>
 
@@ -14,6 +15,9 @@
 namespace cxxtrace_test {
 class concurrency_stress_synchronization
   : public cxxtrace::detail::real_synchronization
+  , public rseq_scheduler_synchronization_mixin<
+      concurrency_stress_synchronization,
+      cxxtrace::detail::real_synchronization::debug_source_location>
 {
 public:
   using relaxed_semaphore =
@@ -28,7 +32,15 @@ public:
 
   template<class T>
   using thread_local_var = pthread_thread_local_var<T>;
+
+  using rseq_scheduler_synchronization_mixin<
+    concurrency_stress_synchronization,
+    debug_source_location>::allow_preempt;
 };
+
+extern template class rseq_scheduler_synchronization_mixin<
+  concurrency_stress_synchronization,
+  cxxtrace::detail::real_synchronization::debug_source_location>;
 }
 
 #endif

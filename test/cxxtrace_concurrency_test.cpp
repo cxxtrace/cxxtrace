@@ -29,7 +29,7 @@ namespace {
 // concurrency_test objects in our executable's .data section in the hopes that
 // CDSChecker snapshots this memory correctly.
 auto registered_concurrency_tests_storage =
-  std::array<std::byte, 128 * 1024>{ std::byte{ 42 } };
+  std::array<std::byte, 256 * 1024>{ std::byte{ 42 } };
 auto registered_concurrency_tests_memory =
   monotonic_buffer_resource{ registered_concurrency_tests_storage.data(),
                              registered_concurrency_tests_storage.size() };

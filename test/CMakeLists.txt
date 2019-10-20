@@ -137,6 +137,7 @@ function (CXXTRACE_ADD_CONCURRENCY_TESTS BASE_NAME)
     cxxtrace_concurrency_test_relacy.cpp
     relacy_synchronization.cpp
     rseq_scheduler.cpp
+    rseq_scheduler_synchronization_mixin.cpp
     ${SOURCES}
   )
   target_compile_definitions(
@@ -197,6 +198,7 @@ add_library(
   STATIC
   cxxtrace_concurrency_test_main_stress.cpp
   rseq_scheduler.cpp
+  rseq_scheduler_synchronization_mixin.cpp
 )
 target_compile_definitions(
   cxxtrace_test_concurrency_stress_main

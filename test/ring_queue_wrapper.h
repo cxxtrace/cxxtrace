@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_RING_QUEUE_WRAPPER_H
 #define CXXTRACE_RING_QUEUE_WRAPPER_H
 
+#include "processor_local_mpsc_ring_queue.h"
 #include "void_t.h"
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/queue_sink.h>
@@ -11,6 +12,10 @@
 #else
 #include <cstdio>
 #include <exception>
+#endif
+
+#if CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE
+#include "rseq_scheduler.h"
 #endif
 
 namespace cxxtrace_test {
@@ -29,6 +34,11 @@ public:
   using value_type = typename RingQueue::value_type;
 
   static inline constexpr const auto capacity = RingQueue::capacity;
+
+  template<class... Args>
+  explicit ring_queue_wrapper(Args&&... args)
+    : queue(std::forward<Args>(args)...)
+  {}
 
   auto reset() noexcept -> void { this->queue.reset(); }
 
@@ -73,24 +83,31 @@ public:
 
   static inline constexpr const auto capacity = RingQueue::capacity;
 
+  template<class... Args>
+  explicit ring_queue_wrapper(Args&&... args)
+    : queue(std::forward<Args>(args)...)
+  {}
+
   auto reset() noexcept -> void { this->queue.reset(); }
 
   template<class WriterFunction>
   auto push(size_type count, WriterFunction&& write) noexcept -> void
   {
-    auto result = this->try_push(count, std::forward<WriterFunction>(write));
-    switch (result) {
-      case push_result::not_pushed_due_to_contention:
-#if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_RELACY
-        CXXTRACE_ASSERT(false);
-#else
-        std::fprintf(stderr, "fatal: try_push failed due to contention\n");
-        std::terminate();
-#endif
-        break;
-      case push_result::pushed:
-        break;
+    auto push = [&] {
+      auto result = this->try_push(count, std::forward<WriterFunction>(write));
+      this->assert_push_succeeded(result);
+    };
+#if CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE
+    auto* scheduler = rseq_scheduler<concurrency_test_synchronization>::get();
+    if (scheduler) {
+      auto guard = scheduler->disable_preemption(CXXTRACE_HERE);
+      push();
+    } else {
+      push();
     }
+#else
+    push();
+#endif
   }
 
   template<class WriterFunction>
@@ -113,6 +130,45 @@ public:
   }
 
   RingQueue queue;
+
+private:
+  static auto assert_push_succeeded(
+    cxxtrace::detail::mpsc_ring_queue_push_result push_result) noexcept -> void
+  {
+    using cxxtrace::detail::mpsc_ring_queue_push_result;
+    switch (push_result) {
+      case mpsc_ring_queue_push_result::not_pushed_due_to_contention:
+#if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_RELACY
+        CXXTRACE_ASSERT(false);
+#else
+        std::fprintf(stderr, "fatal: try_push failed due to contention\n");
+        std::terminate();
+#endif
+        break;
+      case mpsc_ring_queue_push_result::pushed:
+        break;
+    }
+  }
+
+  static auto assert_push_succeeded(
+    cxxtrace_test::processor_local_mpsc_ring_queue_push_result push_result)
+    -> void
+  {
+    using cxxtrace_test::processor_local_mpsc_ring_queue_push_result;
+    switch (push_result) {
+      case processor_local_mpsc_ring_queue_push_result::
+        push_interrupted_due_to_preemption:
+#if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_RELACY
+        CXXTRACE_ASSERT(false);
+#else
+        std::fprintf(stderr, "fatal: try_push failed due to interrupt\n");
+        std::terminate();
+#endif
+        break;
+      case processor_local_mpsc_ring_queue_push_result::pushed:
+        break;
+    }
+  }
 };
 }
 }

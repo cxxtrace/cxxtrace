@@ -22,6 +22,8 @@ public:
   template<class T>
   class nonatomic;
 
+  static auto allow_preempt(debug_source_location) -> void;
+
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;
 };
@@ -135,6 +137,11 @@ public:
 private:
   T data /* uninitialized */;
 };
+
+inline auto real_synchronization::allow_preempt(debug_source_location) -> void
+{
+  // Do nothing.
+}
 
 inline auto
 real_synchronization::atomic_thread_fence(std::memory_order memory_order,
