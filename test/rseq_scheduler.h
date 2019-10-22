@@ -179,34 +179,7 @@ public:
   auto preempt_target_jmp_buf() noexcept -> ::jmp_buf&;
 
 private:
-  struct thread_state
-  {
-    auto in_critical_section() const noexcept -> bool;
-
-    [[noreturn]] auto preempt(debug_source_location) -> void;
-
-    // preempt_label is a nullable pointer to a statically-allocated string.
-    //
-    // If preempt_label is not null, the thread is within a critical section.
-    //
-    // preempt_label is zero-initialized by thread_local_var.
-    cxxtrace::czstring preempt_label;
-
-    // preempt_target and processor_id are valid if and only if
-    // in_critical_section().
-    ::jmp_buf preempt_target;
-    cxxtrace::detail::processor_id processor_id;
-
-    // preempt_callback is a nullable owning pointer to new-allocated memory.
-    //
-    // preempt_callback is a raw pointer so thread_state can be used with
-    // thread_local_var (which requires a trivial type).
-    //
-    // Invariant: preempt_callback == nullptr if !in_critical_section().
-    std::function<void()>* preempt_callback;
-  };
-
-  inline static thread_local_var<thread_state> thread_state_;
+  struct thread_state;
 
   auto exit_critical_section(debug_source_location) noexcept -> void;
 
@@ -217,6 +190,8 @@ private:
   auto take_unused_processor_id(debug_source_location)
     -> cxxtrace::detail::processor_id;
   auto wait_for_unused_processor(debug_source_location) -> void;
+
+  static auto current_thread_state() -> thread_state&;
 
   struct processor
   {

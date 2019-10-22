@@ -20,6 +20,48 @@
 
 namespace cxxtrace_test {
 template<class Sync>
+struct rseq_scheduler<Sync>::thread_state
+{
+  auto in_critical_section() const noexcept -> bool
+  {
+    return !!this->preempt_label;
+  }
+
+  [[noreturn]] auto preempt(debug_source_location caller) -> void
+  {
+    assert(this->in_critical_section());
+    cxxtrace_test::concurrency_log(
+      [&](std::ostream& out) { out << "goto " << this->preempt_label; },
+      caller);
+    auto* preempt_callback = this->preempt_callback;
+    if (preempt_callback) {
+      (*preempt_callback)();
+    }
+    ::longjmp(this->preempt_target, 1);
+  }
+
+  // preempt_label is a nullable pointer to a statically-allocated string.
+  //
+  // If preempt_label is not null, the thread is within a critical section.
+  //
+  // preempt_label is zero-initialized by thread_local_var.
+  cxxtrace::czstring preempt_label;
+
+  // preempt_target and processor_id are valid if and only if
+  // in_critical_section().
+  ::jmp_buf preempt_target;
+  cxxtrace::detail::processor_id processor_id;
+
+  // preempt_callback is a nullable owning pointer to new-allocated memory.
+  //
+  // preempt_callback is a raw pointer so thread_state can be used with
+  // thread_local_var (which requires a trivial type).
+  //
+  // Invariant: preempt_callback == nullptr if !in_critical_section().
+  std::function<void()>* preempt_callback;
+};
+
+template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
 {
   this->processor_id_count_ = processor_count;
@@ -30,7 +72,7 @@ auto
 rseq_scheduler<Sync>::get_current_processor_id(
   debug_source_location caller) noexcept -> cxxtrace::detail::processor_id
 {
-  const auto& state = *this->thread_state_;
+  const auto& state = this->current_thread_state();
   cxxtrace::detail::processor_id processor_id;
   if (state.in_critical_section()) {
     processor_id = state.processor_id;
@@ -47,7 +89,7 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::allow_preempt(debug_source_location caller) -> void
 {
-  auto& state = *thread_state_;
+  auto& state = current_thread_state();
   if (state.in_critical_section()) {
     auto should_preempt = concurrency_rng_next_integer_0(2) == 1;
     if (should_preempt) {
@@ -57,26 +99,11 @@ rseq_scheduler<Sync>::allow_preempt(debug_source_location caller) -> void
 }
 
 template<class Sync>
-[[noreturn]] auto
-rseq_scheduler<Sync>::thread_state::preempt(debug_source_location caller)
-  -> void
-{
-  assert(this->in_critical_section());
-  cxxtrace_test::concurrency_log(
-    [&](std::ostream& out) { out << "goto " << this->preempt_label; }, caller);
-  auto* preempt_callback = this->preempt_callback;
-  if (preempt_callback) {
-    (*preempt_callback)();
-  }
-  ::longjmp(this->preempt_target, 1);
-}
-
-template<class Sync>
 auto
 rseq_scheduler<Sync>::set_preempt_callback(std::function<void()>&& on_preempt)
   -> void
 {
-  auto& state = *thread_state_;
+  auto& state = current_thread_state();
   assert(state.in_critical_section());
   assert(!state.preempt_callback);
   state.preempt_callback = new std::function<void()>{ std::move(on_preempt) };
@@ -95,7 +122,7 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::in_critical_section() noexcept -> bool
 {
-  return thread_state_->in_critical_section();
+  return current_thread_state().in_critical_section();
 }
 
 template<class Sync>
@@ -110,7 +137,7 @@ rseq_scheduler<Sync>::enter_critical_section(
       out << "CXXTRACE_BEGIN_PREEMPTABLE(" << preempt_label << ')';
     },
     caller);
-  auto& state = *this->thread_state_;
+  auto& state = this->current_thread_state();
   CXXTRACE_ASSERT(
     !state.in_critical_section() &&
     "Critical sections cannot be nested, but nesting was detected");
@@ -123,7 +150,7 @@ auto
 rseq_scheduler<Sync>::finish_preempt(debug_source_location caller) noexcept
   -> void
 {
-  auto& state = *this->thread_state_;
+  auto& state = this->current_thread_state();
   assert(state.in_critical_section());
 
   auto preempt_label = state.preempt_label;
@@ -141,14 +168,7 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::preempt_target_jmp_buf() noexcept -> ::jmp_buf&
 {
-  return this->thread_state_->preempt_target;
-}
-
-template<class Sync>
-auto
-rseq_scheduler<Sync>::thread_state::in_critical_section() const noexcept -> bool
-{
-  return !!this->preempt_label;
+  return this->current_thread_state().preempt_target;
 }
 
 template<class Sync>
@@ -156,7 +176,7 @@ auto
 rseq_scheduler<Sync>::exit_critical_section(
   debug_source_location caller) noexcept -> void
 {
-  auto& state = *this->thread_state_;
+  auto& state = this->current_thread_state();
   state.preempt_label = nullptr;
   delete std::exchange(state.preempt_callback, nullptr);
   this->mark_processor_id_as_unused(state.processor_id, caller);
@@ -266,6 +286,14 @@ rseq_scheduler<Sync>::wait_for_unused_processor(debug_source_location caller)
   -> void
 {
   this->thread_runnable_.wait(caller);
+}
+
+template<class Sync>
+auto
+rseq_scheduler<Sync>::current_thread_state() -> thread_state&
+{
+  static auto state = thread_local_var<thread_state>{};
+  return *state;
 }
 
 template<class Sync>
