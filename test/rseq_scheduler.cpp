@@ -1,4 +1,5 @@
 #include "cxxtrace_concurrency_test.h"
+#include "relacy_synchronization.h"
 #include "rseq_scheduler.h"
 #include <atomic>
 #include <cassert>
@@ -10,8 +11,13 @@
 // IWYU pragma: no_include "relacy_thread_local_var.h"
 
 #if CXXTRACE_ENABLE_RELACY
+#include <cstdio>
+#include <exception>
+#include <new>
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
+#include <relacy/sync_var.hpp>
+#include <type_traits>
 #endif
 
 #if CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
@@ -44,6 +50,79 @@ public:
 private:
   atomic<bool> baton_ /* uninitialized */;
 };
+
+#if CXXTRACE_ENABLE_RELACY
+template<>
+class memory_order_baton<relacy_synchronization>
+{
+private:
+  using debug_source_location = relacy_synchronization::debug_source_location;
+
+  template<class Func>
+  auto with_sync_var(Func&& callback) -> auto
+  {
+#define CASE(thread_count)                                                     \
+  case thread_count:                                                           \
+    return std::forward<Func>(callback)(&this->sync_var_##thread_count##_);
+    switch (this->thread_count_) {
+      CASE(1)
+      CASE(2)
+      CASE(3)
+      CASE(4)
+      default:
+        std::fprintf(stderr,
+                     "fatal: with_sync_var not implemented for %d threads\n",
+                     this->thread_count_);
+        std::terminate();
+        break;
+    }
+#undef CASE
+  }
+
+public:
+  explicit memory_order_baton()
+    : thread_count_{ rl::ctx().get_thread_count() }
+  {
+    this->with_sync_var([](auto* sync_var) -> void {
+      using sync_var_type = std::remove_pointer_t<decltype(sync_var)>;
+      new (sync_var) sync_var_type{};
+    });
+  }
+
+  memory_order_baton(const memory_order_baton&) = delete;
+  memory_order_baton& operator=(const memory_order_baton&) = delete;
+
+  memory_order_baton(memory_order_baton&&) = delete;
+  memory_order_baton& operator=(memory_order_baton&&) = delete;
+
+  ~memory_order_baton()
+  {
+    this->with_sync_var([](auto* sync_var) -> void { sync_var->~sync_var(); });
+  }
+
+  auto acquire(debug_source_location) -> void { this->acquire_release(); }
+
+  auto release(debug_source_location) -> void { this->acquire_release(); }
+
+private:
+  auto acquire_release() -> void
+  {
+    this->with_sync_var([](auto* sync_var) -> void {
+      auto* thread = rl::ctx().threadx_;
+      sync_var->acq_rel(thread);
+    });
+  }
+
+  int thread_count_;
+  union
+  {
+    rl::sync_var<1> sync_var_1_;
+    rl::sync_var<2> sync_var_2_;
+    rl::sync_var<3> sync_var_3_;
+    rl::sync_var<4> sync_var_4_;
+  };
+};
+#endif
 }
 
 template<class Sync>
