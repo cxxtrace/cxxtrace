@@ -20,20 +20,45 @@
 #endif
 
 namespace cxxtrace_test {
+namespace {
+template<class Sync>
+class memory_order_baton
+{
+private:
+  template<class T>
+  using atomic = typename Sync::template atomic<T>;
+  using debug_source_location = typename Sync::debug_source_location;
+
+public:
+  auto acquire(debug_source_location caller) -> void
+  {
+    [[maybe_unused]] auto baton =
+      this->baton_.load(std::memory_order_seq_cst, caller);
+  }
+
+  auto release(debug_source_location caller) -> void
+  {
+    this->baton_.store(true, std::memory_order_seq_cst, caller);
+  }
+
+private:
+  atomic<bool> baton_ /* uninitialized */;
+};
+}
+
 template<class Sync>
 struct rseq_scheduler<Sync>::processor
 {
   auto maybe_acquire_baton(debug_source_location caller) -> void
   {
     if (this->has_baton) {
-      [[maybe_unused]] auto baton =
-        this->baton.load(std::memory_order_seq_cst, caller);
+      this->baton.acquire(caller);
     }
   }
 
   auto release_baton(debug_source_location caller) -> void
   {
-    this->baton.store(true, std::memory_order_seq_cst, caller);
+    this->baton.release(caller);
     this->has_baton = true;
   }
 
@@ -49,7 +74,7 @@ struct rseq_scheduler<Sync>::processor
   // processor_reservation_mutex_ provides synchronization (but not mutual
   // exclusion) for has_baton.
   bool has_baton{ false };
-  atomic<bool> baton{ true };
+  memory_order_baton<Sync> baton{};
 };
 
 template<class Sync>
