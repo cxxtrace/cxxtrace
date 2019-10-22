@@ -2,6 +2,7 @@
 #include "rseq_scheduler.h"
 #include <atomic>
 #include <cassert>
+#include <cstddef>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <ostream>
 #include <string>
@@ -63,9 +64,11 @@ struct rseq_scheduler<Sync>::thread_state
 
 template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
-{
-  this->processor_id_count_ = processor_count;
-}
+  : processors_{ static_cast<std::size_t>(processor_count) }
+{}
+
+template<class Sync>
+rseq_scheduler<Sync>::~rseq_scheduler() = default;
 
 template<class Sync>
 auto
@@ -192,9 +195,8 @@ rseq_scheduler<Sync>::get_any_unused_processor_id(debug_source_location caller)
 
   auto count_unused_processors = [this](const unique_lock&) -> int {
     auto count = 0;
-    for (auto processor_id = 0; processor_id < this->processor_id_count_;
-         ++processor_id) {
-      if (!this->processors_[processor_id].in_use) {
+    for (const auto& processor : this->processors_) {
+      if (!processor.in_use) {
         count += 1;
       }
     }
@@ -203,9 +205,7 @@ rseq_scheduler<Sync>::get_any_unused_processor_id(debug_source_location caller)
 
   auto get_unused_processor = [this](int unused_processors_to_skip,
                                      const unique_lock&) -> processor* {
-    for (auto processor_id = 0; processor_id < this->processor_id_count_;
-         ++processor_id) {
-      auto& processor = this->processors_[processor_id];
+    for (auto& processor : this->processors_) {
       if (!processor.in_use) {
         if (unused_processors_to_skip == 0) {
           return &processor;
@@ -243,7 +243,7 @@ rseq_scheduler<Sync>::mark_processor_id_as_unused(
   cxxtrace::detail::processor_id processor_id,
   debug_source_location caller) -> void
 {
-  auto& processor = this->processors_[processor_id];
+  auto& processor = this->processors_.at(processor_id);
   processor.release_baton(caller);
   {
     auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
@@ -260,9 +260,7 @@ rseq_scheduler<Sync>::take_unused_processor_id(debug_source_location caller)
 {
   auto try_take_unused_processor = [&]() -> processor* {
     auto lock = std::unique_lock{ this->processor_reservation_mutex_ };
-    for (auto processor_id = 0; processor_id < this->processor_id_count_;
-         ++processor_id) {
-      auto& processor = this->processors_[processor_id];
+    for (auto& processor : this->processors_) {
       if (!processor.in_use) {
         processor.in_use = true;
         return &processor;

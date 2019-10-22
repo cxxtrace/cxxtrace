@@ -2,7 +2,6 @@
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
 #include "synchronization.h"
-#include <array>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
@@ -10,6 +9,7 @@
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
+#include <vector>
 // IWYU pragma: no_include "cdschecker_thread_local_var.h"
 // IWYU pragma: no_include "pthread_thread_local_var.h"
 // IWYU pragma: no_include "relacy_thread_local_var.h"
@@ -116,6 +116,7 @@ private:
 
 public:
   explicit rseq_scheduler(int processor_count);
+  ~rseq_scheduler();
 
   auto get_current_processor_id(debug_source_location) noexcept
     -> cxxtrace::detail::processor_id;
@@ -213,8 +214,6 @@ private:
     atomic<bool> baton{ true };
   };
 
-  static constexpr auto maximum_processor_count = 3;
-
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
   //
   // NOTE(strager): We use a real mutex (and not a modelled mutex) for two
@@ -224,8 +223,7 @@ private:
   //   algorithm.
   // * Using a modelled mutex adds undesired performance overhead.
   std::mutex processor_reservation_mutex_;
-  std::array<processor, maximum_processor_count> processors_;
-  int processor_id_count_;
+  std::vector<processor> processors_;
 
   // thread_runnable_ is awaited when all processors are in use.
   // thread_runnable_ is posted when a processor becomes unused.
