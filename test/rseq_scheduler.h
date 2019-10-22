@@ -180,6 +180,7 @@ public:
   auto preempt_target_jmp_buf() noexcept -> ::jmp_buf&;
 
 private:
+  struct processor;
   struct thread_state;
 
   auto exit_critical_section(debug_source_location) noexcept -> void;
@@ -193,26 +194,6 @@ private:
   auto wait_for_unused_processor(debug_source_location) -> void;
 
   static auto current_thread_state() -> thread_state&;
-
-  struct processor
-  {
-    auto maybe_acquire_baton(debug_source_location) -> void;
-    auto release_baton(debug_source_location) -> void;
-
-    bool in_use{ false };
-
-    // Model synchronization when a processor switches threads.
-    //
-    // If a processor is running thread A, then switches to running thread B,
-    // all writes from A should be visible on thread B. maybe_acquire_baton and
-    // release_baton use the baton variable to synchronize on thread switch.
-    //
-    // has_baton can only be accessed for the thread owning this processor.
-    // processor_reservation_mutex_ provides synchronization (but not mutual
-    // exclusion) for has_baton.
-    bool has_baton{ false };
-    atomic<bool> baton{ true };
-  };
 
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
   //

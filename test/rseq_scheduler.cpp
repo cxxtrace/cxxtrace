@@ -21,6 +21,38 @@
 
 namespace cxxtrace_test {
 template<class Sync>
+struct rseq_scheduler<Sync>::processor
+{
+  auto maybe_acquire_baton(debug_source_location caller) -> void
+  {
+    if (this->has_baton) {
+      [[maybe_unused]] auto baton =
+        this->baton.load(std::memory_order_seq_cst, caller);
+    }
+  }
+
+  auto release_baton(debug_source_location caller) -> void
+  {
+    this->baton.store(true, std::memory_order_seq_cst, caller);
+    this->has_baton = true;
+  }
+
+  bool in_use{ false };
+
+  // Model synchronization when a processor switches threads.
+  //
+  // If a processor is running thread A, then switches to running thread B,
+  // all writes from A should be visible on thread B. maybe_acquire_baton and
+  // release_baton use the baton variable to synchronize on thread switch.
+  //
+  // has_baton can only be accessed for the thread owning this processor.
+  // processor_reservation_mutex_ provides synchronization (but not mutual
+  // exclusion) for has_baton.
+  bool has_baton{ false };
+  atomic<bool> baton{ true };
+};
+
+template<class Sync>
 struct rseq_scheduler<Sync>::thread_state
 {
   auto in_critical_section() const noexcept -> bool
@@ -292,26 +324,6 @@ rseq_scheduler<Sync>::current_thread_state() -> thread_state&
 {
   static auto state = thread_local_var<thread_state>{};
   return *state;
-}
-
-template<class Sync>
-auto
-rseq_scheduler<Sync>::processor::maybe_acquire_baton(
-  debug_source_location caller) -> void
-{
-  if (this->has_baton) {
-    [[maybe_unused]] auto baton =
-      this->baton.load(std::memory_order_seq_cst, caller);
-  }
-}
-
-template<class Sync>
-auto
-rseq_scheduler<Sync>::processor::release_baton(debug_source_location caller)
-  -> void
-{
-  this->baton.store(true, std::memory_order_seq_cst, caller);
-  this->has_baton = true;
 }
 
 template class rseq_scheduler<concurrency_test_synchronization>;
