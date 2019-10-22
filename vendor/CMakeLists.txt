@@ -147,3 +147,11 @@ if (APPLE)
   target_compile_definitions(relacy INTERFACE _XOPEN_SOURCE=700)
 endif ()
 target_compile_definitions(relacy INTERFACE RL_DO_ASSERT)
+# HACK(strager): Relacy defines global replacements for some allocation
+# functions (operator new and operator delete). However, among other problems,
+# Relacy does not define the sized deallocation functions. Disable the sized
+# deallocation functions to reduce the chance of bugs.
+# TODO(strager): Apply -fno-sized-deallocation pervasively. For example, we
+# should compile the cxxtrace library with -fno-sized-deallocation, even though
+# it doesn't depend on the relacy library.
+target_compile_options(relacy INTERFACE -fno-sized-deallocation)
