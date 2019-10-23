@@ -164,6 +164,11 @@ struct rseq_scheduler<Sync>::thread_state
     return !!this->preempt_label;
   }
 
+  auto is_preemption_disabled() const noexcept -> bool
+  {
+    return this->disable_preemption_count > 0;
+  }
+
   [[noreturn]] auto preempt(debug_source_location caller) -> void
   {
     assert(this->in_critical_section());
@@ -184,10 +189,16 @@ struct rseq_scheduler<Sync>::thread_state
   // preempt_label is zero-initialized by thread_local_var.
   cxxtrace::czstring preempt_label;
 
-  // preempt_target and processor_id are valid if and only if
-  // in_critical_section().
+  // preempt_target is valid if and only if in_critical_section().
   ::jmp_buf preempt_target;
+
+  // processor_id is valid if and only if (in_critical_section() ||
+  // is_preemption_disabled()).
   cxxtrace::detail::processor_id processor_id;
+
+  // disable_preemption_count is a reference count of the number of live
+  // disable_preemption_guard objects.
+  int disable_preemption_count;
 
   // preempt_callback is a nullable owning pointer to new-allocated memory.
   //
@@ -197,6 +208,20 @@ struct rseq_scheduler<Sync>::thread_state
   // Invariant: preempt_callback == nullptr if !in_critical_section().
   std::function<void()>* preempt_callback;
 };
+
+template<class Sync>
+rseq_scheduler<Sync>::disable_preemption_guard::disable_preemption_guard(
+  rseq_scheduler* scheduler,
+  debug_source_location caller)
+  : scheduler_{ scheduler }
+  , caller_{ caller }
+{}
+
+template<class Sync>
+rseq_scheduler<Sync>::disable_preemption_guard::~disable_preemption_guard()
+{
+  this->scheduler_->enable_preemption(this->caller_);
+}
 
 template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
@@ -213,7 +238,7 @@ rseq_scheduler<Sync>::get_current_processor_id(
 {
   const auto& state = this->current_thread_state();
   cxxtrace::detail::processor_id processor_id;
-  if (state.in_critical_section()) {
+  if (state.in_critical_section() || state.is_preemption_disabled()) {
     processor_id = state.processor_id;
   } else {
     processor_id = this->get_any_unused_processor_id(caller);
@@ -229,6 +254,9 @@ auto
 rseq_scheduler<Sync>::allow_preempt(debug_source_location caller) -> void
 {
   auto& state = current_thread_state();
+  if (state.is_preemption_disabled()) {
+    return;
+  }
   if (state.in_critical_section()) {
     auto should_preempt = concurrency_rng_next_integer_0(2) == 1;
     if (should_preempt) {
@@ -258,6 +286,43 @@ rseq_scheduler<Sync>::end_preemptable(debug_source_location caller) -> void
 }
 
 template<class Sync>
+[[nodiscard]] auto
+rseq_scheduler<Sync>::disable_preemption(debug_source_location caller)
+  -> disable_preemption_guard
+{
+  ::cxxtrace_test::concurrency_log(
+    [&](::std::ostream& out) { out << "rseq_scheduler::disable_preemption"; },
+    caller);
+
+  auto& state = this->current_thread_state();
+  CXXTRACE_ASSERT(!state.in_critical_section());
+  if (!state.is_preemption_disabled()) {
+    // TODO(strager): Take a processor lazily to avoid redundant Relacy
+    // iterations.
+    state.processor_id = this->take_unused_processor_id(caller);
+  }
+  state.disable_preemption_count += 1;
+  return disable_preemption_guard{ this, caller };
+}
+
+template<class Sync>
+auto
+rseq_scheduler<Sync>::enable_preemption(debug_source_location caller) -> void
+{
+  ::cxxtrace_test::concurrency_log(
+    [&](::std::ostream& out) { out << "rseq_scheduler::enable_preemption"; },
+    caller);
+
+  auto& state = this->current_thread_state();
+  CXXTRACE_ASSERT(!state.in_critical_section());
+  CXXTRACE_ASSERT(state.is_preemption_disabled());
+  state.disable_preemption_count -= 1;
+  if (!state.is_preemption_disabled()) {
+    this->mark_processor_id_as_unused(state.processor_id, caller);
+  }
+}
+
+template<class Sync>
 auto
 rseq_scheduler<Sync>::in_critical_section() noexcept -> bool
 {
@@ -281,7 +346,9 @@ rseq_scheduler<Sync>::enter_critical_section(
     !state.in_critical_section() &&
     "Critical sections cannot be nested, but nesting was detected");
   state.preempt_label = preempt_label;
-  state.processor_id = this->take_unused_processor_id(caller);
+  if (!state.is_preemption_disabled()) {
+    state.processor_id = this->take_unused_processor_id(caller);
+  }
 }
 
 template<class Sync>
@@ -318,7 +385,9 @@ rseq_scheduler<Sync>::exit_critical_section(
   auto& state = this->current_thread_state();
   state.preempt_label = nullptr;
   delete std::exchange(state.preempt_callback, nullptr);
-  this->mark_processor_id_as_unused(state.processor_id, caller);
+  if (!state.is_preemption_disabled()) {
+    this->mark_processor_id_as_unused(state.processor_id, caller);
+  }
 }
 
 template<class Sync>

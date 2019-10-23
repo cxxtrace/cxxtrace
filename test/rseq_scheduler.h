@@ -115,6 +115,27 @@ private:
   using thread_local_var = typename Sync::template thread_local_var<T>;
 
 public:
+  class disable_preemption_guard
+  {
+  public:
+    disable_preemption_guard(const disable_preemption_guard&) = delete;
+    disable_preemption_guard& operator=(const disable_preemption_guard&) =
+      delete;
+
+    disable_preemption_guard(disable_preemption_guard&&) = delete;
+    disable_preemption_guard& operator=(disable_preemption_guard&&) = delete;
+
+    ~disable_preemption_guard();
+
+  private:
+    explicit disable_preemption_guard(rseq_scheduler*, debug_source_location);
+
+    rseq_scheduler* scheduler_;
+    debug_source_location caller_;
+
+    friend class rseq_scheduler;
+  };
+
   explicit rseq_scheduler(int processor_count);
   ~rseq_scheduler();
 
@@ -146,6 +167,9 @@ public:
   // TODO(strager): Require a matching call to end_preemptable for each call to
   // CXXTRACE_BEGIN_PREEMPTABLE.
   auto end_preemptable(debug_source_location) -> void;
+
+  [[nodiscard]] auto disable_preemption(debug_source_location)
+    -> disable_preemption_guard;
 
   // This function exists for assertions only. Do not use the result of this
   // function to influence your algorithm.
@@ -193,6 +217,8 @@ private:
     -> cxxtrace::detail::processor_id;
   auto wait_for_unused_processor(debug_source_location) -> void;
 
+  auto enable_preemption(debug_source_location) -> void;
+
   static auto current_thread_state() -> thread_state&;
 
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
@@ -209,6 +235,8 @@ private:
   // thread_runnable_ is awaited when all processors are in use.
   // thread_runnable_ is posted when a processor becomes unused.
   relaxed_semaphore thread_runnable_;
+
+  friend class disable_preemption_guard;
 };
 
 extern template class rseq_scheduler<concurrency_test_synchronization>;

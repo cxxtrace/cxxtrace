@@ -406,6 +406,60 @@ public:
   auto tear_down() -> void {}
 };
 
+class test_current_processor_id_is_constant_if_preempt_is_disabled
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    auto guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+
+    auto processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    auto processor_id_2 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_2 == processor_id);
+
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+    {
+      auto processor_id_3 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+      CXXTRACE_ASSERT(processor_id_3 == processor_id);
+      this->rseq.allow_preempt(CXXTRACE_HERE);
+      auto processor_id_4 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+      CXXTRACE_ASSERT(processor_id_4 == processor_id);
+    }
+    this->rseq.end_preemptable(CXXTRACE_HERE);
+
+  preempted:
+    auto processor_id_5 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_5 == processor_id);
+  }
+
+  auto tear_down() -> void {}
+};
+
+class test_current_processor_id_is_constant_if_preempt_is_disabled_nested
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    auto outer_guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+    auto processor_id_1 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    {
+      auto inner_guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+      auto processor_id_2 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+      CXXTRACE_ASSERT(processor_id_2 == processor_id_1);
+    }
+    auto processor_id_3 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_3 == processor_id_1);
+  }
+
+  auto tear_down() -> void {}
+};
+
 class test_threads_have_different_processor_ids_within_critical_section
   : public rseq_scheduler_test_base
 {
@@ -463,6 +517,64 @@ public:
   preempted:;
     // NOTE(strager): reset_processor_id_for_current_thread() has already been
     // called.
+  }
+
+  auto tear_down() -> void {}
+
+  static constexpr auto invalid_processor_id =
+    ~cxxtrace::detail::processor_id{ 0 };
+  static constexpr auto thread_count = 2;
+  std::array<sync::atomic<cxxtrace::detail::processor_id>, thread_count>
+    thread_processor_ids;
+};
+
+class test_threads_have_different_processor_ids_if_preemption_is_disabled
+  : public rseq_scheduler_test_base
+{
+public:
+  explicit test_threads_have_different_processor_ids_if_preemption_is_disabled(
+    int processor_count) noexcept
+    : rseq_scheduler_test_base{ processor_count }
+  {
+    for (auto& thread_processor_id : this->thread_processor_ids) {
+      thread_processor_id.store(this->invalid_processor_id, CXXTRACE_HERE);
+    }
+  }
+
+  auto run_thread(int thread_index) -> void
+  {
+    auto reset_processor_id_for_current_thread = [&] {
+      this->thread_processor_ids[thread_index].store(
+        this->invalid_processor_id, std::memory_order_seq_cst, CXXTRACE_HERE);
+    };
+
+    auto guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+
+    auto processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id != this->invalid_processor_id);
+
+    auto assert_other_threads_are_not_executing_on_current_processor = [&] {
+      for (auto other_thread_index = 0;
+           other_thread_index < int(this->thread_processor_ids.size());
+           ++other_thread_index) {
+        if (other_thread_index == thread_index) {
+          continue;
+        }
+        auto other_thread_processor_id =
+          this->thread_processor_ids[other_thread_index].load(
+            std::memory_order_seq_cst, CXXTRACE_HERE);
+        if (other_thread_processor_id != this->invalid_processor_id) {
+          CXXTRACE_ASSERT(other_thread_processor_id != processor_id);
+        }
+      }
+    };
+
+    this->thread_processor_ids[thread_index].store(
+      processor_id, std::memory_order_seq_cst, CXXTRACE_HERE);
+    auto processor_id_2 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    CXXTRACE_ASSERT(processor_id_2 == processor_id);
+    assert_other_threads_are_not_executing_on_current_processor();
+    reset_processor_id_for_current_thread();
   }
 
   auto tear_down() -> void {}
@@ -1121,6 +1233,112 @@ public:
   sync::nonatomic<int> counter{ 0 };
 };
 
+class test_preempt_never_happens_if_preempt_is_disabled
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    auto guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+
+    {
+      for (auto i = 0; i < 3; ++i) {
+        CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+        this->rseq.allow_preempt(CXXTRACE_HERE);
+        this->rseq.allow_preempt(CXXTRACE_HERE);
+        this->rseq.end_preemptable(CXXTRACE_HERE);
+      }
+      return;
+
+    preempted:
+      CXXTRACE_ASSERT(false);
+    }
+  }
+
+  auto tear_down() -> void {}
+};
+
+// NOTE(strager): This test is a manual test. Ensure the test prints all of the
+// following at least one time each:
+// * result: stayed on same processor
+// * result: switched to different processor
+// TODO(strager): Extend the test framework to make writing an assertion
+// possible, automating this test.
+class
+  test_thread_can_change_processor_id_after_preemption_is_disabled_then_reenabled
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    auto processor_id_1 =
+      this->disable_preemption_and_get_current_processor_id();
+    auto processor_id_2 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
+    if (processor_id_1 == processor_id_2) {
+      std::fprintf(stderr, "result: stayed on same processor\n");
+    } else {
+      std::fprintf(stderr, "result: switched to different processor\n");
+    }
+  }
+
+  auto disable_preemption_and_get_current_processor_id()
+    -> cxxtrace::detail::processor_id
+  {
+    auto guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+    return this->rseq.get_current_processor_id(CXXTRACE_HERE);
+  }
+
+  auto tear_down() -> void {}
+};
+
+// NOTE(strager): This test is a manual test. Ensure the test prints 'result:
+// preempted' and 'result: not preempted' at least one time each.
+// TODO(strager): Extend the test framework to make writing an assertion
+// possible, automating this test.
+class test_preempt_can_happen_after_preemption_is_disabled_then_reenabled
+  : public rseq_scheduler_test_base
+{
+public:
+  using rseq_scheduler_test_base::rseq_scheduler_test_base;
+
+  auto run_thread([[maybe_unused]] int thread_index) -> void
+  {
+    this->disable_preemption_and_enter_critical_section();
+    this->enter_critical_section_allowing_preemption();
+  }
+
+  auto disable_preemption_and_enter_critical_section() -> void
+  {
+    auto guard = this->rseq.disable_preemption(CXXTRACE_HERE);
+
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+    this->rseq.allow_preempt(CXXTRACE_HERE);
+    this->rseq.end_preemptable(CXXTRACE_HERE);
+    return;
+
+  preempted:
+    CXXTRACE_ASSERT(false);
+  }
+
+  auto enter_critical_section_allowing_preemption() -> void
+  {
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
+    this->rseq.allow_preempt(CXXTRACE_HERE);
+    this->rseq.end_preemptable(CXXTRACE_HERE);
+    std::fprintf(stderr, "result: not preempted\n");
+    return;
+
+  preempted:
+    std::fprintf(stderr, "result: preempted\n");
+  }
+
+  auto tear_down() -> void {}
+};
+
 auto
 register_concurrency_tests() -> void
 {
@@ -1153,11 +1371,24 @@ register_concurrency_tests() -> void
     test_current_processor_id_is_constant_with_one_processor>(
     2, concurrency_test_depth::full, 1);
   register_concurrency_test<
+    test_current_processor_id_is_constant_if_preempt_is_disabled>(
+    2, concurrency_test_depth::full, 2);
+  register_concurrency_test<
+    test_current_processor_id_is_constant_if_preempt_is_disabled_nested>(
+    2, concurrency_test_depth::full, 2);
+  register_concurrency_test<
     test_threads_have_different_processor_ids_within_critical_section>(
     test_threads_have_different_processor_ids_within_critical_section::
       thread_count,
     concurrency_test_depth::full,
     test_threads_have_different_processor_ids_within_critical_section::
+      thread_count);
+  register_concurrency_test<
+    test_threads_have_different_processor_ids_if_preemption_is_disabled>(
+    test_threads_have_different_processor_ids_if_preemption_is_disabled::
+      thread_count,
+    concurrency_test_depth::full,
+    test_threads_have_different_processor_ids_if_preemption_is_disabled::
       thread_count);
   register_concurrency_test<
     test_threads_outside_critical_sections_have_different_processor_ids_than_threads_inside_critical_sections>(
@@ -1188,5 +1419,13 @@ register_concurrency_tests() -> void
   register_concurrency_test<
     test_critical_section_implies_mutual_exclusion_with_one_processor>(
     3, concurrency_test_depth::full, 1);
+  register_concurrency_test<test_preempt_never_happens_if_preempt_is_disabled>(
+    1, concurrency_test_depth::full, 1);
+  register_concurrency_test<
+    test_preempt_can_happen_after_preemption_is_disabled_then_reenabled>(
+    1, concurrency_test_depth::full, 2);
+  register_concurrency_test<
+    test_thread_can_change_processor_id_after_preemption_is_disabled_then_reenabled>(
+    1, concurrency_test_depth::full, 3);
 }
 }
