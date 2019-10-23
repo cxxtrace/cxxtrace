@@ -1148,7 +1148,7 @@ register_concurrency_tests() -> void
     2, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_current_processor_id_is_constant_within_critical_section>(
-    1, concurrency_test_depth::full, 1);
+    1, concurrency_test_depth::full, 2);
   register_concurrency_test<
     test_current_processor_id_is_constant_with_one_processor>(
     2, concurrency_test_depth::full, 1);
