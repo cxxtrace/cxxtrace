@@ -6,10 +6,7 @@
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-#include "libdispatch_semaphore.h"
-#include "posix_semaphore.h"
-#include "pthread_thread_local_var.h"
-#include <cxxtrace/detail/real_synchronization.h>
+#include "concurrency_stress_synchronization.h"
 #endif
 
 #if CXXTRACE_ENABLE_RELACY
@@ -23,7 +20,7 @@ using concurrency_test_synchronization =
 #if CXXTRACE_ENABLE_CDSCHECKER
   cdschecker_synchronization
 #elif CXXTRACE_ENABLE_CONCURRENCY_STRESS
-  cxxtrace::detail::real_synchronization
+  concurrency_stress_synchronization
 #elif CXXTRACE_ENABLE_RELACY
   relacy_synchronization
 #else

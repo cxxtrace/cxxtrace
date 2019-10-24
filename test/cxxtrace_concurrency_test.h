@@ -23,7 +23,7 @@
 #endif
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS
-#include <cxxtrace/detail/real_synchronization.h>
+#include "concurrency_stress_synchronization.h"
 #include <cxxtrace/detail/thread.h>
 #include <cxxtrace/string.h>
 #endif
