@@ -72,8 +72,7 @@ public:
   auto try_increment_counter() -> bool
   {
     auto processor_id = cxxtrace::detail::processor_id{};
-    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
-    {
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
       processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       assert(processor_id < this->per_processor_counters.size());
       this->rseq.allow_preempt(CXXTRACE_HERE);
@@ -94,8 +93,7 @@ public:
       if (this->bug_3) {
         this->rseq.allow_preempt(CXXTRACE_HERE);
       }
-    }
-    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
     return true;
   preempted:
     return false;
@@ -208,8 +206,7 @@ public:
   {
     processor_data* data;
     auto acquired_lock = false;
-    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
-    {
+    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
       auto processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       assert(processor_id < this->per_processor_data.size());
       this->rseq.allow_preempt(CXXTRACE_HERE);
@@ -226,14 +223,13 @@ public:
       }
       if (acquired_lock) {
         // NOTE(strager): We must not call allow_preempt after try_lock.
-        // Otherwise, we will have acquired the lock but we would forget that we
-        // acquired the lock.
+        // Otherwise, we will have acquired the lock but we would forget that
+        // we acquired the lock.
         if (this->bug_2) {
           this->rseq.allow_preempt(CXXTRACE_HERE);
         }
       }
-    }
-    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
     if (acquired_lock) {
       switch (Style) {
         case spin_lock_style::librseq_arm:

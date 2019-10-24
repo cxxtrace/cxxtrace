@@ -74,33 +74,37 @@ namespace cxxtrace_test {
 //   // Critical sections must not be nested in source code.
 //   //
 //   // Critical sections must not be nested in execution order.
-//   CXXTRACE_BEGIN_PREEMPTABLE(my_rseq, preempt_goto_label);
+//   //
+//   // A call to CXXTRACE_BEGIN_PREEMPTABLE does not require a trailing
+//   // semicolon.
+//   CXXTRACE_BEGIN_PREEMPTABLE(my_rseq, preempt_goto_label)
 //
-//   // Determine which per-processor data your algorithm should modify.
-//   auto processor_id = my_rseq.get_current_processor_id(CXXTRACE_HERE);
-//   assert(processor_id < my_data.size());
-//   auto& data = my_data[processor_id];
+//     // Determine which per-processor data your algorithm should modify.
+//     auto processor_id = my_rseq.get_current_processor_id(CXXTRACE_HERE);
+//     assert(processor_id < my_data.size());
+//     auto& data = my_data[processor_id];
 //
-//   // allow_preemptable either does nothing or jumps to abort_ip
-//   // (preempt_goto_label). Sprinkle calls to allow_preemptable throughout
-//   // your algorithm (ideally between each CPU instruction) to model arbitrary
-//   // thread preemptions.
-//   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
+//     // allow_preemptable either does nothing or jumps to abort_ip
+//     // (preempt_goto_label). Sprinkle calls to allow_preemptable throughout
+//     // your algorithm (ideally between each CPU instruction) to model
+//     // arbitrary thread preemptions.
+//     rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
-//   /* (Do some work.) */
+//     /* (Do some work.) */
 //
-//   // Communicate with the preempt handler with volatile automatic variables.
-//   did_phase_1 = true;
+//     // Communicate with the preempt handler with volatile automatic
+//     // variables.
+//     did_phase_1 = true;
 //
-//   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
+//     rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
-//   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
+//     rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
-//   /* (Do more work.) */
+//     /* (Do more work.) */
 //
-//   rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
+//     rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
-//   /* (Publish your data before exiting the critical section.) */
+//     /* (Publish your data before exiting the critical section.) */
 //
 //   // CXXTRACE_END_PREEMPTABLE exits a critical section. Calling
 //   // CXXTRACE_END_PREEMPTABLE is like executing the instruction at
@@ -115,6 +119,9 @@ namespace cxxtrace_test {
 //   // CXXTRACE_BEGIN_PREEMPTABLE. Each call to CXXTRACE_END_PREEMPTABLE must
 //   // have exactly one preceeding call to CXXTRACE_BEGIN_PREEMPTABLE in the
 //   // same function.
+//   //
+//   // A call to CXXTRACE_END_PREEMPTABLE does not require a trailing
+//   // semicolon.
 //   CXXTRACE_END_PREEMPTABLE(my_rseq, preempt_goto_label);
 //
 //   // Outside a critical section, allow_preemptable does nothing. In other
@@ -271,7 +278,7 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
 // allow_preempt?
 #define CXXTRACE_BEGIN_PREEMPTABLE(scheduler, preempt_label)                   \
   { /* Introduce a scope to be closed by CXXTRACE_END_PREEMPTABLE. */          \
-    do {                                                                       \
+    {                                                                          \
       auto& _cxxtrace_scheduler = (scheduler);                                 \
       if (setjmp(_cxxtrace_scheduler.preempt_target_jmp_buf()) != 0) {         \
         _cxxtrace_scheduler.finish_preempt(CXXTRACE_HERE);                     \
@@ -279,14 +286,14 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
       }                                                                        \
       _cxxtrace_scheduler.enter_critical_section(#preempt_label,               \
                                                  CXXTRACE_HERE);               \
-    } while (false)
+    }
 
 #define CXXTRACE_END_PREEMPTABLE(scheduler, preempt_label)                     \
   } /* Terminate the scope introduced by CXXTRACE_BEGIN_PREEMPTABLE. */        \
-  do {                                                                         \
+  {                                                                            \
     auto& _cxxtrace_scheduler = (scheduler);                                   \
     _cxxtrace_scheduler.end_preemptable(CXXTRACE_HERE);                        \
-  } while (false)
+  }
 
 #if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_CONCURRENCY_STRESS ||        \
   CXXTRACE_ENABLE_RELACY
