@@ -224,12 +224,25 @@ rseq_scheduler<Sync>::disable_preemption_guard::~disable_preemption_guard()
 }
 
 template<class Sync>
-rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
-  : processors_{ static_cast<std::size_t>(processor_count) }
-{}
+auto
+rseq_scheduler<Sync>::get() -> rseq_scheduler*
+{
+  return instance_.load();
+}
 
 template<class Sync>
-rseq_scheduler<Sync>::~rseq_scheduler() = default;
+rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
+  : processors_{ static_cast<std::size_t>(processor_count) }
+{
+  instance_.store(this);
+}
+
+template<class Sync>
+rseq_scheduler<Sync>::~rseq_scheduler()
+{
+  auto* old_instance = instance_.exchange(nullptr);
+  assert(old_instance == this);
+}
 
 template<class Sync>
 auto
@@ -253,7 +266,7 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::allow_preempt(debug_source_location caller) -> void
 {
-  auto& state = current_thread_state();
+  auto& state = this->current_thread_state();
   if (state.is_preemption_disabled()) {
     return;
   }
@@ -270,7 +283,7 @@ auto
 rseq_scheduler<Sync>::set_preempt_callback(std::function<void()>&& on_preempt)
   -> void
 {
-  auto& state = current_thread_state();
+  auto& state = this->current_thread_state();
   assert(state.in_critical_section());
   assert(!state.preempt_callback);
   state.preempt_callback = new std::function<void()>{ std::move(on_preempt) };
@@ -326,7 +339,7 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::in_critical_section() noexcept -> bool
 {
-  return current_thread_state().in_critical_section();
+  return this->current_thread_state().in_critical_section();
 }
 
 template<class Sync>
