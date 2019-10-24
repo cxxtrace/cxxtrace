@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
+#include <new>
 #include <ostream>
 #include <string>
 #include <utility>
@@ -13,7 +14,6 @@
 #if CXXTRACE_ENABLE_RELACY
 #include <cstdio>
 #include <exception>
-#include <new>
 #include <relacy/context.hpp>
 #include <relacy/context_base.hpp>
 #include <relacy/sync_var.hpp>
@@ -234,6 +234,14 @@ template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
   : processors_{ static_cast<std::size_t>(processor_count) }
 {
+  using thread_states_type =
+    typename Sync::template thread_local_var<thread_state>;
+  static_assert(alignof(decltype(this->thread_states_storage_)) >=
+                alignof(thread_states_type));
+  static_assert(sizeof(this->thread_states_storage_) >=
+                sizeof(thread_states_type));
+  new (&this->thread_states_storage_) thread_states_type{};
+
   instance_.store(this);
 }
 
@@ -242,6 +250,12 @@ rseq_scheduler<Sync>::~rseq_scheduler()
 {
   auto* old_instance = instance_.exchange(nullptr);
   assert(old_instance == this);
+
+  using thread_states_type =
+    typename Sync::template thread_local_var<thread_state>;
+  std::launder(
+    reinterpret_cast<thread_states_type*>(&this->thread_states_storage_))
+    ->~thread_states_type();
 }
 
 template<class Sync>
@@ -508,8 +522,11 @@ template<class Sync>
 auto
 rseq_scheduler<Sync>::current_thread_state() -> thread_state&
 {
-  static auto state = thread_local_var<thread_state>{};
-  return *state;
+  using thread_states_type =
+    typename Sync::template thread_local_var<thread_state>;
+  auto& thread_states = *std::launder(
+    reinterpret_cast<thread_states_type*>(&this->thread_states_storage_));
+  return *thread_states;
 }
 
 template class rseq_scheduler<concurrency_test_synchronization>;
