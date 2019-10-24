@@ -10,6 +10,7 @@
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
+#include <type_traits>
 #include <vector>
 // IWYU pragma: no_include "cdschecker_thread_local_var.h"
 // IWYU pragma: no_include "pthread_thread_local_var.h"
@@ -273,6 +274,12 @@ private:
   // thread_runnable_ is awaited when all processors are in use.
   // thread_runnable_ is posted when a processor becomes unused.
   relaxed_semaphore thread_runnable_;
+
+  // thread_states_storage_ holds an object of type
+  // cxxtrace_test::thread_local_var<thread_state>. std::aligned_storage is used
+  // to keep most of the guts in rseq_scheduler.cpp (i.e. outside this header
+  // file).
+  std::aligned_storage_t<1024> thread_states_storage_;
 
   friend class disable_preemption_guard;
 };
