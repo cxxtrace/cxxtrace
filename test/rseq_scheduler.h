@@ -81,17 +81,17 @@ namespace cxxtrace_test {
 //
 //   /* (Publish your data before exiting the critical section.) */
 //
-//   // end_preemptable exits a critical section. Calling end_preemptable is
-//   // like executing the instruction at rseq_cs::post_commit_ip.
-//   // end_preemptable must be called before returning from the function which
-//   // called CXXTRACE_BEGIN_PREEMPTABLE.
+//   // CXXTRACE_END_PREEMPTABLE exits a critical section. Calling
+//   // CXXTRACE_END_PREEMPTABLE is like executing the instruction at
+//   // rseq_cs::post_commit_ip. end_preemptable must be called before returning
+//   // from the function which called CXXTRACE_BEGIN_PREEMPTABLE.
 //   //
-//   // end_preemptable does not imply any memory ordering.
-//   my_rseq.end_preemptable(CXXTRACE_HERE);
+//   // CXXTRACE_END_PREEMPTABLE does not imply any memory ordering.
+//   CXXTRACE_END_PREEMPTABLE(my_rseq, preempt_goto_label);
 //
 //   // Outside a critical section, allow_preemptable does nothing. In other
-//   // words, after calling end_preemptable, preempt_goto_label is forgotten
-//   // and will not be jumped to.
+//   // words, after calling CXXTRACE_END_PREEMPTABLE, preempt_goto_label is
+//   // forgotten and will not be jumped to.
 //   /* rseq_scheduler::allow_preemptable(CXXTRACE_HERE); */
 //
 //   // Avoid falling through to preempt_goto_label below.
@@ -155,18 +155,12 @@ public:
   // Sprinkle calls to allow_preempt throughout your algorithm. Ideally, call
   // allow_preempt between each modelled machine code instruction.
   //
-  // Calling allow_preempt immediately before calling end_preemptable is likely
-  // an error in your algorithm.
+  // Calling allow_preempt immediately before calling CXXTRACE_END_PREEMPTABLE
+  // is likely an error in your algorithm.
   //
   // [1] See set_preempt_callback for optional steps performed before exiting
   //     the critical section.
   static auto allow_preempt(debug_source_location) -> void;
-
-  // TODO(strager): Convert end_preemptable into a macro to mirror
-  // CXXTRACE_BEGIN_PREEMPTABLE.
-  // TODO(strager): Require a matching call to end_preemptable for each call to
-  // CXXTRACE_BEGIN_PREEMPTABLE.
-  auto end_preemptable(debug_source_location) -> void;
 
   [[nodiscard]] auto disable_preemption(debug_source_location)
     -> disable_preemption_guard;
@@ -202,6 +196,10 @@ public:
   // This function is private to rseq_scheduler. It is visible only so it can be
   // used in macros.
   auto preempt_target_jmp_buf() noexcept -> ::jmp_buf&;
+
+  // This function is private to rseq_scheduler. It is visible only so it can be
+  // used in macros.
+  auto end_preemptable(debug_source_location) -> void;
 
 private:
   struct processor;
@@ -251,6 +249,14 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
       goto preempt_label;                                                      \
     }                                                                          \
     _cxxtrace_scheduler.enter_critical_section(#preempt_label, CXXTRACE_HERE); \
+  } while (false)
+
+// TODO(strager): Require a matching call to CXXTRACE_END_PREEMPTABLE for each
+// call to CXXTRACE_BEGIN_PREEMPTABLE.
+#define CXXTRACE_END_PREEMPTABLE(scheduler, preempt_label)                     \
+  do {                                                                         \
+    auto& _cxxtrace_scheduler = (scheduler);                                   \
+    _cxxtrace_scheduler.end_preemptable(CXXTRACE_HERE);                        \
   } while (false)
 
 #if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_CONCURRENCY_STRESS ||        \

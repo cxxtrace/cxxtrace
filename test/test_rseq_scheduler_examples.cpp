@@ -95,7 +95,7 @@ public:
         this->rseq.allow_preempt(CXXTRACE_HERE);
       }
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return true;
   preempted:
     return false;
@@ -233,7 +233,7 @@ public:
         }
       }
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     if (acquired_lock) {
       switch (Style) {
         case spin_lock_style::librseq_arm:

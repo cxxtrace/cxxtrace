@@ -96,7 +96,7 @@ public:
     this->before_allow_preempt[index] = true;
     this->rseq.allow_preempt(CXXTRACE_HERE);
     this->after_allow_preempt[index] = true;
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
   preempted:
     this->preempted[index] = true;
@@ -144,7 +144,7 @@ public:
     CXXTRACE_ASSERT(thread_index == 0);
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
     this->before_allow_preempt = true;
     this->rseq.allow_preempt(CXXTRACE_HERE);
@@ -179,7 +179,7 @@ public:
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->rseq.allow_preempt(CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -268,7 +268,7 @@ public:
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->rseq.allow_preempt(CXXTRACE_HERE);
     this->not_preempted_count[index] += 1;
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -367,7 +367,7 @@ public:
                         processor_id);
       }
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -396,7 +396,7 @@ public:
       auto processor_id_4 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       CXXTRACE_ASSERT(processor_id_4 == processor_id);
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
   preempted:
     auto processor_id_5 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
@@ -428,7 +428,7 @@ public:
       auto processor_id_4 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       CXXTRACE_ASSERT(processor_id_4 == processor_id);
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
   preempted:
     auto processor_id_5 = this->rseq.get_current_processor_id(CXXTRACE_HERE);
@@ -511,7 +511,7 @@ public:
       assert_other_threads_are_not_executing_on_current_processor();
       reset_processor_id_for_current_thread();
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -679,7 +679,7 @@ public:
       this->rseq.allow_preempt(CXXTRACE_HERE);
       reset_processor_id_for_current_thread();
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -733,7 +733,7 @@ public:
 
     this->rseq.allow_preempt(CXXTRACE_HERE);
     reset_processor_id_for_current_thread();
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -786,7 +786,7 @@ public:
         std::fprintf(stderr, "result: thread switched to another processor\n");
       }
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -817,7 +817,7 @@ public:
         CXXTRACE_HERE);
       state.thread_updated_counter[thread_index] = true;
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -893,7 +893,7 @@ public:
     first_processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
     is_data_stored =
       this->is_data_stored.load(std::memory_order_relaxed, CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
     if (force_acquire_fence) {
       sync::atomic_thread_fence(std::memory_order_acquire, CXXTRACE_HERE);
@@ -902,7 +902,7 @@ public:
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     second_processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
     data_after = this->data.load(std::memory_order_relaxed, CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
     if (is_data_stored) {
       if (data_after != 42) {
@@ -979,7 +979,7 @@ public:
   {
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->data.store(42, std::memory_order_relaxed, CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
     if (force_release_fence) {
       sync::atomic_thread_fence(std::memory_order_release, CXXTRACE_HERE);
@@ -987,7 +987,7 @@ public:
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->is_data_stored.store(true, std::memory_order_relaxed, CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -1066,7 +1066,7 @@ public:
       did_store_data = true;
       this->rseq.allow_preempt(CXXTRACE_HERE);
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -1146,7 +1146,7 @@ public:
       this->producer_processor_id.store(
         processor_id, std::memory_order_release, CXXTRACE_HERE);
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:;
@@ -1205,7 +1205,7 @@ public:
       this->counter.store(counter_value + 1, CXXTRACE_HERE);
       this->thread_did_update_counter[thread_index] = true;
     }
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
 
   preempted:;
   }
@@ -1248,7 +1248,7 @@ public:
         CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
         this->rseq.allow_preempt(CXXTRACE_HERE);
         this->rseq.allow_preempt(CXXTRACE_HERE);
-        this->rseq.end_preemptable(CXXTRACE_HERE);
+        CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
       }
       return;
 
@@ -1317,7 +1317,7 @@ public:
 
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->rseq.allow_preempt(CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -1328,7 +1328,7 @@ public:
   {
     CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted);
     this->rseq.allow_preempt(CXXTRACE_HERE);
-    this->rseq.end_preemptable(CXXTRACE_HERE);
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     std::fprintf(stderr, "result: not preempted\n");
     return;
 
