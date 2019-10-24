@@ -43,6 +43,8 @@ public:
     this->before_allow_preempt = true;
     this->rseq.allow_preempt(CXXTRACE_HERE);
     this->after_allow_preempt = true;
+
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -239,6 +241,7 @@ public:
     // Avoid calling end_preemptable so we exit this iteration with
     // in_critical_section()==true.
     CXXTRACE_ASSERT(this->rseq.in_critical_section());
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
@@ -314,6 +317,7 @@ public:
     this->before_allow_preempt[thread_index] = true;
     this->rseq.allow_preempt(CXXTRACE_HERE);
     this->after_allow_preempt[thread_index] = true;
+    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted);
     return;
 
   preempted:
