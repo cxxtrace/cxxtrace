@@ -312,7 +312,7 @@ public:
             this->is_lock_held.load(std::memory_order_seq_cst, CXXTRACE_HERE);
           break;
       }
-      rseq_scheduler<sync>::allow_preempt(CXXTRACE_HERE);
+      rseq_scheduler<sync>::get()->allow_preempt(CXXTRACE_HERE);
       if (was_lock_held) {
         return false;
       } else {

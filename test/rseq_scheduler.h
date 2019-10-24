@@ -2,6 +2,7 @@
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
 #include "synchronization.h"
+#include <atomic>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
@@ -171,6 +172,8 @@ public:
     friend class rseq_scheduler;
   };
 
+  static auto get() -> rseq_scheduler*;
+
   explicit rseq_scheduler(int processor_count);
   ~rseq_scheduler();
 
@@ -195,14 +198,14 @@ public:
   //
   // [1] See set_preempt_callback for optional steps performed before exiting
   //     the critical section.
-  static auto allow_preempt(debug_source_location) -> void;
+  auto allow_preempt(debug_source_location) -> void;
 
   [[nodiscard]] auto disable_preemption(debug_source_location)
     -> disable_preemption_guard;
 
   // This function exists for assertions only. Do not use the result of this
   // function to influence your algorithm.
-  static auto in_critical_section() noexcept -> bool;
+  auto in_critical_section() noexcept -> bool;
 
   // Register a hook when preemption occurs.
   //
@@ -252,7 +255,9 @@ private:
 
   auto enable_preemption(debug_source_location) -> void;
 
-  static auto current_thread_state() -> thread_state&;
+  auto current_thread_state() -> thread_state&;
+
+  static inline std::atomic<rseq_scheduler*> instance_{ nullptr };
 
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
   //
