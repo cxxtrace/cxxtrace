@@ -84,15 +84,15 @@ The relacy directory contains Relacy Race Detector, a tool for testing C++
 synchronization algorithms.
 
 Copyright: Copyright (c) 2008-2013, Dmitry S. Vyukov
-Download URL: https://github.com/dvyukov/relacy/archive/dc6be4854d82491483b1781254753706df68a8b3.tar.gz
-Download date: November 30, 2018
-Git commit: dc6be4854d82491483b1781254753706df68a8b3
+Download URL: https://github.com/dvyukov/relacy/archive/acc09bbe65a1837a08912774c7fed178547514e6.tar.gz
+Download date: October 25, 2019
+Git commit: acc09bbe65a1837a08912774c7fed178547514e6
 License file: relacy/LICENSE
 License type: Custom
 Location: relacy
 Project URL: https://github.com/dvyukov/relacy
-Release URL: https://github.com/dvyukov/relacy/tree/dc6be4854d82491483b1781254753706df68a8b3
-Release date: November 22, 2018
+Release URL: https://github.com/dvyukov/relacy/tree/acc09bbe65a1837a08912774c7fed178547514e6
+Release date: October 24, 2019
 Version: N/A
 
 ## Cotire
