@@ -12,7 +12,6 @@
 #include <string>
 // IWYU pragma: no_include "relacy_backoff.h"
 // IWYU pragma: no_include "relacy_synchronization.h"
-// IWYU pragma: no_include <cxxtrace/detail/real_synchronization.h>
 // IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_ENABLE_RELACY

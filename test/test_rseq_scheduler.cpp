@@ -13,8 +13,11 @@
 #include <ostream>
 #include <string>
 // IWYU pragma: no_include "relacy_synchronization.h"
-// IWYU pragma: no_include <cxxtrace/detail/real_synchronization.h>
 // IWYU pragma: no_include <relacy/context_base_impl.hpp>
+
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS
+#include <cxxtrace/detail/real_synchronization.h>
+#endif
 
 #if CXXTRACE_ENABLE_RELACY
 #include <relacy/base.hpp>

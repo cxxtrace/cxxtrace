@@ -3,6 +3,7 @@
 #endif
 
 #include "concurrency_stress.h"
+#include "concurrency_stress_synchronization.h"
 #include "concurrency_test_runner.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
@@ -90,7 +91,7 @@ auto
 concurrency_log([[maybe_unused]] void (*make_message)(std::ostream&,
                                                       void* opaque),
                 [[maybe_unused]] void* opaque,
-                cxxtrace::detail::real_synchronization::debug_source_location)
+                concurrency_stress_synchronization::debug_source_location)
   -> void
 {
   // TODO(strager): Log into a temporary buffer, and dump the buffer on failure.

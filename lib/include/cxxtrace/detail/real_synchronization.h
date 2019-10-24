@@ -4,15 +4,6 @@
 #include <atomic>
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
-#include <cxxtrace/detail/have.h>
-
-namespace cxxtrace_test {
-class libdispatch_semaphore;
-class posix_semaphore;
-
-template<class T>
-class pthread_thread_local_var; // IWYU pragma: keep
-}
 
 namespace cxxtrace {
 namespace detail {
@@ -30,19 +21,6 @@ public:
 
   template<class T>
   class nonatomic;
-
-  using relaxed_semaphore =
-#if CXXTRACE_HAVE_LIBDISPATCH_SEMAPHORE
-    cxxtrace_test::libdispatch_semaphore
-#elif CXXTRACE_HAVE_POSIX_SEMAPHORE
-    cxxtrace_test::posix_semaphore
-#else
-#error "Unknown platform"
-#endif
-    ;
-
-  template<class T>
-  using thread_local_var = cxxtrace_test::pthread_thread_local_var<T>;
 
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;
