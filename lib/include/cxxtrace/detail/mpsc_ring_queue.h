@@ -121,23 +121,26 @@ public:
     }
     auto output_item_count = end_vindex - begin_vindex;
 
-    // FIXME(strager): This fence (and the fence in begin_push) should be
-    // redundant. Why does
-    // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
-    // CDSChecker without this fence? Doesn't the implicitly-seq_cst
-    // compare_exchange_strong enforce acq_rel ordering already?
-    Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
+    if (output_item_count > 0) {
+      // FIXME(strager): This fence (and the fence in begin_push) should be
+      // redundant. Why does
+      // ring_queue_overflow_drops_some_but_not_all_items_relacy_test fail with
+      // CDSChecker without this fence? Doesn't the implicitly-seq_cst
+      // compare_exchange_strong enforce acq_rel ordering already?
+      Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
-    {
-      const auto write_end_vindex = this->write_end_vindex.load(CXXTRACE_HERE);
-      if (write_end_vindex != end_vindex) {
-        // push was called concurrently. Undo potentially-corrupted reads in the
-        // output.
-        auto new_begin_vindex = get_begin_vindex(write_end_vindex);
-        assert(new_begin_vindex >= begin_vindex);
-        auto items_to_unoutput =
-          std::min(new_begin_vindex - begin_vindex, output_item_count);
-        output.pop_front_n(items_to_unoutput);
+      {
+        const auto write_end_vindex =
+          this->write_end_vindex.load(CXXTRACE_HERE);
+        if (write_end_vindex != end_vindex) {
+          // push was called concurrently. Undo potentially-corrupted reads in
+          // the output.
+          auto new_begin_vindex = get_begin_vindex(write_end_vindex);
+          assert(new_begin_vindex >= begin_vindex);
+          auto items_to_unoutput =
+            std::min(new_begin_vindex - begin_vindex, output_item_count);
+          output.pop_front_n(items_to_unoutput);
+        }
       }
     }
 

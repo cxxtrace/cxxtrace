@@ -107,19 +107,21 @@ public:
     }
     auto output_item_count = end_vindex - begin_vindex;
 
-    Sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
+    if (output_item_count > 0) {
+      Sync::atomic_thread_fence(std::memory_order_seq_cst, CXXTRACE_HERE);
 
-    {
-      const auto write_end_vindex =
-        this->write_end_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
-      if (write_end_vindex != end_vindex) {
-        // push was called concurrently. Undo potentially-corrupted reads in the
-        // output.
-        auto new_begin_vindex = get_begin_vindex(write_end_vindex);
-        assert(new_begin_vindex >= begin_vindex);
-        auto items_to_unoutput =
-          std::min(new_begin_vindex - begin_vindex, output_item_count);
-        output.pop_front_n(items_to_unoutput);
+      {
+        const auto write_end_vindex =
+          this->write_end_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
+        if (write_end_vindex != end_vindex) {
+          // push was called concurrently. Undo potentially-corrupted reads in
+          // the output.
+          auto new_begin_vindex = get_begin_vindex(write_end_vindex);
+          assert(new_begin_vindex >= begin_vindex);
+          auto items_to_unoutput =
+            std::min(new_begin_vindex - begin_vindex, output_item_count);
+          output.pop_front_n(items_to_unoutput);
+        }
       }
     }
 
