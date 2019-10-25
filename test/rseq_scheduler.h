@@ -1,17 +1,20 @@
 #ifndef CXXTRACE_TEST_RSEQ_SCHEDULER_H
 #define CXXTRACE_TEST_RSEQ_SCHEDULER_H
 
+#include "memory_resource.h"
 #include "synchronization.h"
+#include <array>
 #include <atomic>
+#include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <cxxtrace/string.h>
+#include <experimental/vector>
 #include <functional>
 #include <mutex>
 #include <setjmp.h>
 #include <type_traits>
-#include <vector>
 // IWYU pragma: no_include "cdschecker_thread_local_var.h"
 // IWYU pragma: no_include "pthread_thread_local_var.h"
 // IWYU pragma: no_include "relacy_thread_local_var.h"
@@ -260,6 +263,9 @@ private:
 
   static inline std::atomic<rseq_scheduler*> instance_{ nullptr };
 
+  std::array<std::byte, 1024> processors_storage_;
+  monotonic_buffer_resource processors_memory_;
+
   // processor_reservation_mutex_ protects processor::in_use (in processors_).
   //
   // NOTE(strager): We use a real mutex (and not a modelled mutex) for two
@@ -269,7 +275,7 @@ private:
   //   algorithm.
   // * Using a modelled mutex adds undesired performance overhead.
   std::mutex processor_reservation_mutex_;
-  std::vector<processor> processors_;
+  std::experimental::pmr::vector<processor> processors_;
 
   // thread_runnable_ is awaited when all processors are in use.
   // thread_runnable_ is posted when a processor becomes unused.
