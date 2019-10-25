@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
+#include <cxxtrace/detail/queue_sink.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
@@ -64,7 +65,7 @@ public:
   {
     auto result = std::experimental::pmr::vector<int>{ memory };
     for (auto& subqueue : this->subqueues_) {
-      subqueue.pop_all_into(result);
+      subqueue.pop_all_into(cxxtrace::detail::vector_queue_sink{ result });
     }
     return result;
   }
@@ -319,7 +320,7 @@ private:
     auto memory = monotonic_buffer_resource{ buffer, sizeof(buffer) };
 
     auto items = vector<value_type>{ &memory };
-    queue.pop_all_into(items);
+    queue.pop_all_into(cxxtrace::detail::vector_queue_sink{ items });
     auto new_item_count = std::min(items.size(), std::size_t(max_size));
     auto begin_index = items.size() - new_item_count;
     for (auto i = begin_index; i < items.size(); ++i) {

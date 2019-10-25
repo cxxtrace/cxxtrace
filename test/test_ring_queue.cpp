@@ -290,6 +290,25 @@ TYPED_TEST(test_ring_queue, overflowing_size_type_is_not_supported_yet)
     "Writer overflowed size_type");
 }
 
+TYPED_TEST(test_ring_queue, reusing_queue_sink_keeps_all_items)
+{
+  auto queue = RING_QUEUE<int, 64>{};
+  auto items = std::vector<int>{};
+  auto sink = cxxtrace::detail::vector_queue_sink{ items };
+
+  queue.push(
+    1, [](auto data) noexcept->void { data.set(0, 100); });
+  queue.pop_all_into(sink);
+  queue.push(
+    1, [](auto data) noexcept->void { data.set(0, 200); });
+  queue.pop_all_into(sink);
+  queue.push(
+    1, [](auto data) noexcept->void { data.set(0, 300); });
+  queue.pop_all_into(sink);
+
+  ASSERT_THAT(items, ElementsAre(100, 200, 300));
+}
+
 namespace {
 template<class RingQueue>
 auto

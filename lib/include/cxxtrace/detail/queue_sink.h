@@ -35,9 +35,9 @@ public:
     this->output.erase(begin, begin + size);
   }
 
-  auto reserve(size_type size) noexcept(false) -> void
+  auto reserve_back(size_type size) noexcept(false) -> void
   {
-    this->output.reserve(this->start_index + size);
+    this->output.reserve(this->output.size() + size);
   }
 
 private:
@@ -68,9 +68,9 @@ public:
     this->sink.pop_front_n(size);
   }
 
-  auto reserve(size_type size) noexcept(false) -> void
+  auto reserve_back(size_type size) noexcept(false) -> void
   {
-    this->sink.reserve(size);
+    this->sink.reserve_back(size);
   }
 
 private:
@@ -81,6 +81,9 @@ private:
 
   transform_vector_queue_sink<T, identity_functor, Allocator> sink;
 };
+
+template<class T, class Allocator>
+vector_queue_sink(std::vector<T, Allocator>&)->vector_queue_sink<T, Allocator>;
 }
 }
 

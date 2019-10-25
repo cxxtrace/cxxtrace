@@ -100,7 +100,7 @@ public:
 
       begin_vindex = get_begin_vindex(write_end_vindex);
       end_vindex = write_begin_vindex;
-      output.reserve(end_vindex - begin_vindex);
+      output.reserve_back(end_vindex - begin_vindex);
       for (auto i = begin_vindex; i < end_vindex; ++i) {
         output.push_back(this->storage[i % this->capacity].load(CXXTRACE_HERE));
       }

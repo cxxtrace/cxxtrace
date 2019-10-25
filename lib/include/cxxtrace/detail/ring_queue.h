@@ -75,7 +75,7 @@ public:
     }
     auto end_vindex = this->write_vindex;
 
-    output.reserve(end_vindex - begin_vindex);
+    output.reserve_back(end_vindex - begin_vindex);
     for (auto i = begin_vindex; i < end_vindex; ++i) {
       output.push_back(this->storage[i % this->capacity]);
     }
