@@ -232,7 +232,10 @@ rseq_scheduler<Sync>::get() -> rseq_scheduler*
 
 template<class Sync>
 rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
-  : processors_{ static_cast<std::size_t>(processor_count) }
+  : processors_memory_{ this->processors_storage_.data(),
+                        this->processors_storage_.size() }
+  , processors_{ static_cast<std::size_t>(processor_count),
+                 &this->processors_memory_ }
 {
   using thread_states_type =
     typename Sync::template thread_local_var<thread_state>;
