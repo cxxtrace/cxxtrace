@@ -251,7 +251,7 @@ rseq_scheduler<Sync>::rseq_scheduler(int processor_count)
 template<class Sync>
 rseq_scheduler<Sync>::~rseq_scheduler()
 {
-  auto* old_instance = instance_.exchange(nullptr);
+  [[maybe_unused]] auto* old_instance = instance_.exchange(nullptr);
   assert(old_instance == this);
 
   using thread_states_type =
