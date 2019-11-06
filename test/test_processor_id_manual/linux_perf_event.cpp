@@ -238,8 +238,9 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
   auto process_id = this->impl_->process_id;
 
   auto executions = thread_executions{};
-  for (const auto& [processor_number, processor_tracer] :
-       this->impl_->processor_tracers) {
+  for (const auto& tracer_entry : this->impl_->processor_tracers) {
+    auto processor_number = tracer_entry.first;
+    auto& processor_tracer = tracer_entry.second;
     auto processor_id =
       this->impl_->get_processor_id_from_processor_number(processor_number);
 
