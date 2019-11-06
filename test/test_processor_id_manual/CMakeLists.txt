@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 include(cxxtrace_cotire)
 
 find_package(CxxtraceStdFilesystem REQUIRED)
+find_package(Threads REQUIRED)
 
 if (APPLE)
   add_library(test_processor_id_manual_tracer STATIC dtrace.cpp)
@@ -39,6 +40,7 @@ target_link_libraries(
   test_processor_id_manual
   PRIVATE
   CxxtraceStdFilesystem
+  Threads::Threads # @@@
   cxxtrace
   cxxtrace_support
   gtest
