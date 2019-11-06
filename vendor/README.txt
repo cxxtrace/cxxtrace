@@ -26,7 +26,7 @@ framework for C++ code.
 
 Copyright: Copyright 2014 Google Inc. All rights reserved.
 Download URL: https://github.com/google/benchmark/archive/v1.4.1.tar.gz
-Download date: October 27, 2018
+Download date: November 5, 2019
 Git commit: e776aa0275e293707b6a0901e0e8d8a8a3679508
 License file: LICENSE
 License type: Apache-2.0
