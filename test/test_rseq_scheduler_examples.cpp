@@ -94,7 +94,8 @@ public:
       }
     CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
     return true;
-  preempted:
+
+    CXXTRACE_ON_PREEMPT(this->rseq, preempted)
     return false;
   }
 
@@ -246,7 +247,8 @@ public:
     } else {
       return nullptr;
     }
-  preempted:
+
+    CXXTRACE_ON_PREEMPT(this->rseq, preempted)
     return nullptr;
   }
 

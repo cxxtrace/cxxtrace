@@ -57,7 +57,6 @@ namespace cxxtrace_test {
 //
 //   // Calling CXXTRACE_BEGIN_PREEMPTABLE is like setting rseq::rseq_cs for the
 //   // current thread. CXXTRACE_BEGIN_PREEMPTABLE enters a critical section.
-//   // rseq_cs::abort_ip is set to preempt_goto_label.
 //   //
 //   // The CXXTRACE_BEGIN_PREEMPTABLE macro introduces a scope which must be
 //   // terminated by CXXTRACE_END_PREEMPTABLE. In other words,
@@ -76,6 +75,13 @@ namespace cxxtrace_test {
 //   //   CXXTRACE_BEGIN_PREEMPTABLE and CXXTRACE_END_PREEMPTABLE calls must
 //   //   have the same indentation).
 //   //
+//   // CXXTRACE_BEGIN_PREEMPTABLE sets rseq_cs::abort_ip to a label declared by
+//   // CXXTRACE_ON_PREEMPT. The name of the label is based on
+//   // CXXTRACE_BEGIN_PREEMPTABLE's second argument (preempt_goto_label in this
+//   // example). After calling CXXTRACE_BEGIN_PREEMPTABLE, a call to
+//   // allow_preempt will jump (using goto) to the label declared by
+//   // CXXTRACE_ON_PREEMPT.
+//   //
 //   // Critical sections must not be nested in source code.
 //   //
 //   // Critical sections must not be nested in execution order.
@@ -90,9 +96,9 @@ namespace cxxtrace_test {
 //     auto& data = my_data[processor_id];
 //
 //     // allow_preemptable either does nothing or jumps to abort_ip
-//     // (preempt_goto_label). Sprinkle calls to allow_preemptable throughout
-//     // your algorithm (ideally between each CPU instruction) to model
-//     // arbitrary thread preemptions.
+//     // (i.e. a label declared by CXXTRACE_ON_PREEMPT). Sprinkle calls to
+//     // allow_preemptable throughout your algorithm (ideally between each CPU
+//     // instruction) to model arbitrary thread preemptions.
 //     rseq_scheduler::allow_preemptable(CXXTRACE_HERE);
 //
 //     /* (Do some work.) */
@@ -130,16 +136,23 @@ namespace cxxtrace_test {
 //   CXXTRACE_END_PREEMPTABLE(my_rseq, preempt_goto_label);
 //
 //   // Outside a critical section, allow_preemptable does nothing. In other
-//   // words, after calling CXXTRACE_END_PREEMPTABLE, preempt_goto_label is
-//   // forgotten and will not be jumped to.
+//   // words, after calling CXXTRACE_END_PREEMPTABLE, CXXTRACE_ON_PREEMPT
+//   // is forgotten and will not be jumped to.
 //   /* rseq_scheduler::allow_preemptable(CXXTRACE_HERE); */
 //
-//   // Avoid falling through to preempt_goto_label below.
+//   // Avoid falling through to CXXTRACE_ON_PREEMPT below. Executing
+//   // CXXTRACE_ON_PREEMPT is a run-time error.
 //   return;
 //
-//   // allow_preemptable might jump to the preempt_goto_label.
-//   // preempt_goto_label is like the target of rseq_cs::abort_ip.
-//   preempt_goto_label:
+//   // allow_preemptable might jump here (using goto).
+//   //
+//   // CXXTRACE_ON_PREEMPT declares a label. The label is like the target of
+//   // rseq_cs::abort_ip.
+//   //
+//   // Corresponding calls to CXXTRACE_BEGIN_PREEMPTABLE,
+//   // CXXTRACE_END_PREEMPTABLE, and CXXTRACE_ON_PREEMPT must be called with
+//   // the same arguments.
+//   CXXTRACE_ON_PREEMPT(preempt_goto_label)
 //
 //   /* (Do cleanup work. Maybe retry, calling CXXTRACE_BEGIN_PREEMPTABLE
 //      again.) */
@@ -189,9 +202,9 @@ public:
   // Within a critical section, allow_preempt will non-deterministically do
   // exactly one of the following:
   //
-  // * Exit the critical section [1], then execute 'goto preempt_goto_label;',
-  //   where preempt_goto_label is the label given to
-  //   CXXTRACE_BEGIN_PREEMPTABLE.
+  // * Exit the critical section [1], then execute 'goto
+  //   CXXTRACE_PREEMPT_LABEL_NAME_(preempt_goto_label);', where
+  //   preempt_goto_label is the name given to CXXTRACE_BEGIN_PREEMPTABLE.
   // * Nothing.
   //
   // Sprinkle calls to allow_preempt throughout your algorithm. Ideally, call
@@ -300,7 +313,7 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
       auto& _cxxtrace_scheduler = (scheduler);                                 \
       if (setjmp(_cxxtrace_scheduler.preempt_target_jmp_buf()) != 0) {         \
         _cxxtrace_scheduler.finish_preempt(CXXTRACE_HERE);                     \
-        goto preempt_label;                                                    \
+        goto CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label);                      \
       }                                                                        \
       _cxxtrace_scheduler.enter_critical_section(#preempt_label,               \
                                                  CXXTRACE_HERE);               \
@@ -312,6 +325,14 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
     auto& _cxxtrace_scheduler = (scheduler);                                   \
     _cxxtrace_scheduler.end_preemptable(CXXTRACE_HERE);                        \
   }
+
+#define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
+  __builtin_trap();                                                            \
+  CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label)                                  \
+    :;
+
+#define CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label)                            \
+  _cxxtrace_abort_##preempt_label
 
 #if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_CONCURRENCY_STRESS ||        \
   CXXTRACE_ENABLE_RELACY

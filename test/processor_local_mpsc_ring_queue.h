@@ -93,7 +93,7 @@ public:
     CXXTRACE_END_PREEMPTABLE(rseq, preempted)
     return push_result::pushed;
 
-  preempted:
+    CXXTRACE_ON_PREEMPT(rseq, preempted)
     return push_result::push_interrupted_due_to_preemption;
   }
 
