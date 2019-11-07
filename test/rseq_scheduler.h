@@ -59,9 +59,9 @@ namespace cxxtrace_test {
 //   // current thread. CXXTRACE_BEGIN_PREEMPTABLE enters a critical section.
 //   //
 //   // The CXXTRACE_BEGIN_PREEMPTABLE macro introduces a scope which must be
-//   // terminated by CXXTRACE_END_PREEMPTABLE. In other words,
+//   // terminated by CXXTRACE_ON_PREEMPT. In other words,
 //   // CXXTRACE_BEGIN_PREEMPTABLE contains a dangling {, and
-//   // CXXTRACE_END_PREEMPTABLE contains a dangling }. This scope has several
+//   // CXXTRACE_ON_PREEMPT contains a dangling }. This scope has several
 //   // consequences, including the following:
 //   //
 //   // * Automatic variables declared within the critical section are
@@ -69,11 +69,11 @@ namespace cxxtrace_test {
 //   // * Automatic variables declared within the critical section are
 //   //   destructed before exiting the critical section.
 //   // * Each call to CXXTRACE_BEGIN_PREEMPTABLE must preceed exactly one
-//   //   corresponding call to CXXTRACE_END_PREEMPTABLE in the same function.
-//   //   CXXTRACE_END_PREEMPTABLE must be called in the same scope which
+//   //   corresponding call to CXXTRACE_ON_PREEMPT in the same function.
+//   //   CXXTRACE_ON_PREEMPT must be called in the same scope which
 //   //   CXXTRACE_BEGIN_PREEMPTABLE was called in (i.e. matching
-//   //   CXXTRACE_BEGIN_PREEMPTABLE and CXXTRACE_END_PREEMPTABLE calls must
-//   //   have the same indentation).
+//   //   CXXTRACE_BEGIN_PREEMPTABLE and CXXTRACE_ON_PREEMPT calls must have the
+//   //   same indentation).
 //   //
 //   // CXXTRACE_BEGIN_PREEMPTABLE sets rseq_cs::abort_ip to a label declared by
 //   // CXXTRACE_ON_PREEMPT. The name of the label is based on
@@ -82,13 +82,15 @@ namespace cxxtrace_test {
 //   // allow_preempt will jump (using goto) to the label declared by
 //   // CXXTRACE_ON_PREEMPT.
 //   //
+//   // A call to CXXTRACE_BEGIN_PREEMPTABLE does not need to be followed by a
+//   // block. However, CXXTRACE_BEGIN_PREEMPTABLE introduces a block on your
+//   // behalf, so a block is recommended to make the code easier to read.
+//   //
 //   // Critical sections must not be nested in source code.
 //   //
-//   // Critical sections must not be nested in execution order.
-//   //
-//   // A call to CXXTRACE_BEGIN_PREEMPTABLE does not require a trailing
-//   // semicolon.
-//   CXXTRACE_BEGIN_PREEMPTABLE(my_rseq, preempt_goto_label)
+//   // Critical sections must not be nested in execution order (e.g. through
+//   // function calls).
+//   CXXTRACE_BEGIN_PREEMPTABLE (my_rseq, preempt_goto_label) {
 //
 //     // Determine which per-processor data your algorithm should modify.
 //     auto processor_id = my_rseq.get_current_processor_id(CXXTRACE_HERE);
@@ -117,45 +119,99 @@ namespace cxxtrace_test {
 //
 //     /* (Publish your data before exiting the critical section.) */
 //
-//   // CXXTRACE_END_PREEMPTABLE exits a critical section. Calling
-//   // CXXTRACE_END_PREEMPTABLE is like executing the instruction at
-//   // rseq_cs::post_commit_ip. end_preemptable must be called before returning
-//   // from the function which called CXXTRACE_BEGIN_PREEMPTABLE.
+//   // CXXTRACE_ON_PREEMPT exits a critical section and enters an abort
+//   // handler.
+//   //
+//   // Calling CXXTRACE_ON_PREEMPT is like executing the instruction at
+//   // rseq_cs::post_commit_ip. CXXTRACE_ON_PREEMPT marks the end of the
+//   // critical section started by CXXTRACE_BEGIN_PREEMPTABLE.
+//   //
+//   // Additionally, calling CXXTRACE_ON_PREEMPT is like starting the
+//   // instruction at rseq_cs::abort_ip. CXXTRACE_ON_PREEMPT marks the start of
+//   // the preempt handler jumped to by allow_preemptable.
+//   //
+//   // Think of CXXTRACE_BEGIN_PREEMPTABLE and CXXTRACE_ON_PREEMPT like C++'s
+//   // try and catch. CXXTRACE_BEGIN_PREEMPTABLE starts a try block (critical
+//   // section). CXXTRACE_ON_PREEMPT starts a catch block (abort handler). Any
+//   // exception (preempt) which occurs inside the try block (critical section)
+//   // transfers control flow to the catch block (preempt handler).
+//   //
+//   // If control flow enters CXXTRACE_ON_PREEMPT from above,
+//   // CXXTRACE_ON_PREEMPT jumps to the corresponding call to
+//   // CXXTRACE_END_PREEMPTABLE, skipping the immediately-following code.
+//   //
+//   // If control flow enters CXXTRACE_ON_PREEMPT from a call to
+//   // allow_preemptable, CXXTRACE_ON_PREEMPT executes the following code.
+//   //
+//   // CXXTRACE_ON_PREEMPT must be called before returning from the function
+//   // which called CXXTRACE_BEGIN_PREEMPTABLE.
+//   //
+//   // CXXTRACE_ON_PREEMPT does not imply any memory ordering.
+//   //
+//   // Internally, CXXTRACE_ON_PREEMPT declares a label. The label is the
+//   // target of rseq_cs::abort_ip.
+//   //
+//   // The CXXTRACE_ON_PREEMPT macro closes the scope opened by
+//   // CXXTRACE_BEGIN_PREEMPTABLE. In other words, CXXTRACE_ON_PREEMPT contains
+//   // a dangling }, corresponding to a dangling { in
+//   // CXXTRACE_BEGIN_PREEMPTABLE. Each call to CXXTRACE_ON_PREEMPT must have
+//   // exactly one preceeding call to CXXTRACE_BEGIN_PREEMPTABLE in the same
+//   // function.
+//   //
+//   // The CXXTRACE_ON_PREEMPT macro introduces a scope which must be
+//   // terminated by CXXTRACE_END_PREEMPTABLE. In other words,
+//   // CXXTRACE_ON_PREEMPT contains a dangling {, and CXXTRACE_END_PREEMPTABLE
+//   // contains a dangling }. This scope has several consequences, including
+//   // the following:
+//   //
+//   // * Automatic variables declared within the preempt handler are
+//   //   inaccessible outside the preempt handler.
+//   // * Automatic variables declared within the preempt handler are destructed
+//   //   before exiting the preempt handler.
+//   // * Each call to CXXTRACE_ON_PREEMPT must preceed exactly one
+//   //   corresponding call to CXXTRACE_END_PREEMPTABLE in the same function.
+//   //   CXXTRACE_END_PREEMPTABLE must be called in the same scope which
+//   //   CXXTRACE_ON_PREEMPT was called in (i.e. matching CXXTRACE_ON_PREEMPT
+//   //   and CXXTRACE_END_PREEMPTABLE calls must have the same indentation).
+//   //
+//   // Corresponding calls to CXXTRACE_BEGIN_PREEMPTABLE,
+//   // CXXTRACE_END_PREEMPTABLE, and CXXTRACE_ON_PREEMPT must be called with
+//   // the same arguments.
+//   //
+//   // A call to CXXTRACE_ON_PREEMPT does not need to be followed by a block.
+//   // However, CXXTRACE_ON_PREEMPT introduces a block on your behalf, so a
+//   // block is recommended to make the code easier to read.
+//   } CXXTRACE_ON_PREEMPT (my_rseq, preempt_goto_label) {
+//
+//     // Within the preempt handler, allow_preemptable does nothing. Unless
+//     // CXXTRACE_BEGIN_PREEMPTABLE is called again, execution will not jump to
+//     // CXXTRACE_ON_PREEMPT.
+//     /* rseq_scheduler::allow_preemptable(CXXTRACE_HERE); */
+//
+//     /* (Do cleanup work. Maybe retry, calling CXXTRACE_BEGIN_PREEMPTABLE
+//        again.) */
+//
+//   // CXXTRACE_END_PREEMPTABLE exits an abort handler.
+//   //
+//   // CXXTRACE_END_PREEMPTABLE must be called before returning from the
+//   // function which called CXXTRACE_BEGIN_PREEMPTABLE.
 //   //
 //   // CXXTRACE_END_PREEMPTABLE does not imply any memory ordering.
 //   //
 //   // The CXXTRACE_END_PREEMPTABLE macro closes the scope opened by
-//   // CXXTRACE_BEGIN_PREEMPTABLE. In other words, CXXTRACE_END_PREEMPTABLE
-//   // contains a dangling }, corresponding to a dangling { in
-//   // CXXTRACE_BEGIN_PREEMPTABLE. Each call to CXXTRACE_END_PREEMPTABLE must
-//   // have exactly one preceeding call to CXXTRACE_BEGIN_PREEMPTABLE in the
-//   // same function.
+//   // CXXTRACE_ON_PREEMPT. In other words, CXXTRACE_END_PREEMPTABLE contains a
+//   // dangling }, corresponding to a dangling { in CXXTRACE_ON_PREEMPT. Each
+//   // call to CXXTRACE_END_PREEMPTABLE must have exactly one preceeding call
+//   // to CXXTRACE_ON_PREEMPT in the same function.
 //   //
 //   // A call to CXXTRACE_END_PREEMPTABLE does not require a trailing
 //   // semicolon.
-//   CXXTRACE_END_PREEMPTABLE(my_rseq, preempt_goto_label);
+//   } CXXTRACE_END_PREEMPTABLE(my_rseq, preempt_goto_label);
 //
 //   // Outside a critical section, allow_preemptable does nothing. In other
 //   // words, after calling CXXTRACE_END_PREEMPTABLE, CXXTRACE_ON_PREEMPT
 //   // is forgotten and will not be jumped to.
 //   /* rseq_scheduler::allow_preemptable(CXXTRACE_HERE); */
-//
-//   // Avoid falling through to CXXTRACE_ON_PREEMPT below. Executing
-//   // CXXTRACE_ON_PREEMPT is a run-time error.
-//   return;
-//
-//   // allow_preemptable might jump here (using goto).
-//   //
-//   // CXXTRACE_ON_PREEMPT declares a label. The label is like the target of
-//   // rseq_cs::abort_ip.
-//   //
-//   // Corresponding calls to CXXTRACE_BEGIN_PREEMPTABLE,
-//   // CXXTRACE_END_PREEMPTABLE, and CXXTRACE_ON_PREEMPT must be called with
-//   // the same arguments.
-//   CXXTRACE_ON_PREEMPT(preempt_goto_label)
-//
-//   /* (Do cleanup work. Maybe retry, calling CXXTRACE_BEGIN_PREEMPTABLE
-//      again.) */
 template<class Sync>
 class rseq_scheduler
 {
@@ -308,31 +364,40 @@ extern template class rseq_scheduler<concurrency_test_synchronization>;
 // TODO(strager): Should CXXTRACE_BEGIN_PREEMPTABLE implicitly call
 // allow_preempt?
 #define CXXTRACE_BEGIN_PREEMPTABLE(scheduler, preempt_label)                   \
-  { /* Introduce a scope to be closed by CXXTRACE_END_PREEMPTABLE. */          \
+  { /* Introduce a scope to be closed by CXXTRACE_ON_PREEMPT. */               \
     {                                                                          \
       auto& _cxxtrace_scheduler = (scheduler);                                 \
       if (setjmp(_cxxtrace_scheduler.preempt_target_jmp_buf()) != 0) {         \
         _cxxtrace_scheduler.finish_preempt(CXXTRACE_HERE);                     \
-        goto CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label);                      \
+        goto CXXTRACE_ON_PREEMPT_LABEL_NAME_(preempt_label);                   \
       }                                                                        \
       _cxxtrace_scheduler.enter_critical_section(#preempt_label,               \
                                                  CXXTRACE_HERE);               \
     }
 
-#define CXXTRACE_END_PREEMPTABLE(scheduler, preempt_label)                     \
+#define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
+  goto CXXTRACE_END_PREEMPTABLE_LABEL_NAME_(preempt_label);                    \
   } /* Terminate the scope introduced by CXXTRACE_BEGIN_PREEMPTABLE. */        \
-  {                                                                            \
+  { /* Introduce a scope to be closed by CXXTRACE_END_PREEMPTABLE. */          \
+    CXXTRACE_ON_PREEMPT_LABEL_NAME_(preempt_label)                             \
+      :;
+
+#define CXXTRACE_END_PREEMPTABLE(scheduler, preempt_label)                     \
+  } /* Terminate the scope introduced by CXXTRACE_ON_PREEMPT. */               \
+  /* Falling off the end of CXXTRACE_ON_PREEMPT's block should not execute */  \
+  /* end_preemptable. */                                                       \
+  if (false) {                                                                 \
+    CXXTRACE_END_PREEMPTABLE_LABEL_NAME_(preempt_label)                        \
+      :;                                                                       \
     auto& _cxxtrace_scheduler = (scheduler);                                   \
     _cxxtrace_scheduler.end_preemptable(CXXTRACE_HERE);                        \
   }
 
-#define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
-  __builtin_trap();                                                            \
-  CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label)                                  \
-    :;
-
-#define CXXTRACE_PREEMPT_LABEL_NAME_(preempt_label)                            \
+#define CXXTRACE_ON_PREEMPT_LABEL_NAME_(preempt_label)                         \
   _cxxtrace_abort_##preempt_label
+
+#define CXXTRACE_END_PREEMPTABLE_LABEL_NAME_(preempt_label)                    \
+  _cxxtrace_end_##preempt_label
 
 #if CXXTRACE_ENABLE_CDSCHECKER || CXXTRACE_ENABLE_CONCURRENCY_STRESS ||        \
   CXXTRACE_ENABLE_RELACY

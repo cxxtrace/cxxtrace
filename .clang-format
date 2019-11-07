@@ -4,5 +4,4 @@ IncludeBlocks: Merge
 IncludeCategories: [{Regex: '.*', Priority: 0}]
 SortIncludes: true
 
-MacroBlockBegin: '^CXXTRACE_BEGIN_PREEMPTABLE$'
-MacroBlockEnd: '^CXXTRACE_END_PREEMPTABLE$'
+ForEachMacros: ['CXXTRACE_BEGIN_PREEMPTABLE', 'CXXTRACE_ON_PREEMPT']
