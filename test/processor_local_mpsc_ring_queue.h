@@ -85,16 +85,17 @@ public:
   auto try_push(size_type count, WriterFunction&& write) noexcept -> push_result
   {
     auto rseq = Sync::get_rseq();
-    CXXTRACE_BEGIN_PREEMPTABLE(rseq, preempted)
+    CXXTRACE_BEGIN_PREEMPTABLE (rseq, preempted) {
       auto processor_id = rseq.get_current_processor_id(CXXTRACE_HERE);
       assert(processor_id < this->queue_by_processor.size());
       auto& queue = this->queue_by_processor[processor_id];
       queue.push(count, std::forward<WriterFunction>(write));
+    }
+    CXXTRACE_ON_PREEMPT (rseq, preempted) {
+      return push_result::push_interrupted_due_to_preemption;
+    }
     CXXTRACE_END_PREEMPTABLE(rseq, preempted)
     return push_result::pushed;
-
-    CXXTRACE_ON_PREEMPT(rseq, preempted)
-    return push_result::push_interrupted_due_to_preemption;
   }
 
   template<class Sink>

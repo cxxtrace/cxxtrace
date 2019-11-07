@@ -173,7 +173,7 @@ struct rseq_scheduler<Sync>::thread_state
   {
     assert(this->in_critical_section());
     cxxtrace_test::concurrency_log(
-      [&](std::ostream& out) { out << "goto " << this->preempt_label; },
+      [&](std::ostream& out) { out << "preempt " << this->preempt_label; },
       caller);
     auto* preempt_callback = this->preempt_callback;
     if (preempt_callback) {

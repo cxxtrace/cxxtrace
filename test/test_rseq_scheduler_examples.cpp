@@ -71,7 +71,7 @@ public:
   auto try_increment_counter() -> bool
   {
     auto processor_id = cxxtrace::detail::processor_id{};
-    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
+    CXXTRACE_BEGIN_PREEMPTABLE (this->rseq, preempted) {
       processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       assert(processor_id < this->per_processor_counters.size());
       this->rseq.allow_preempt(CXXTRACE_HERE);
@@ -92,11 +92,12 @@ public:
       if (this->bug_3) {
         this->rseq.allow_preempt(CXXTRACE_HERE);
       }
+    }
+    CXXTRACE_ON_PREEMPT (this->rseq, preempted) {
+      return false;
+    }
     CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
     return true;
-
-    CXXTRACE_ON_PREEMPT(this->rseq, preempted)
-    return false;
   }
 
   auto tear_down() -> void
@@ -206,7 +207,7 @@ public:
   {
     processor_data* data;
     auto acquired_lock = false;
-    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
+    CXXTRACE_BEGIN_PREEMPTABLE (this->rseq, preempted) {
       auto processor_id = this->rseq.get_current_processor_id(CXXTRACE_HERE);
       assert(processor_id < this->per_processor_data.size());
       this->rseq.allow_preempt(CXXTRACE_HERE);
@@ -229,6 +230,10 @@ public:
           this->rseq.allow_preempt(CXXTRACE_HERE);
         }
       }
+    }
+    CXXTRACE_ON_PREEMPT (this->rseq, preempted) {
+      return nullptr;
+    }
     CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
     if (acquired_lock) {
       switch (Style) {
@@ -247,9 +252,6 @@ public:
     } else {
       return nullptr;
     }
-
-    CXXTRACE_ON_PREEMPT(this->rseq, preempted)
-    return nullptr;
   }
 
   auto critical_section(processor_data* data) -> void
