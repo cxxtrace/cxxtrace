@@ -11,6 +11,7 @@
 #include <functional>
 #include <numeric>
 #include <ostream>
+#include <setjmp.h>
 #include <string>
 // IWYU pragma: no_include "relacy_synchronization.h"
 // IWYU pragma: no_include <relacy/context_base_impl.hpp>
@@ -239,11 +240,17 @@ public:
     // Coerce model checkers into executing another iteration.
     concurrency_rng_next_integer_0(2);
 
-    CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
-      // Avoid calling end_preemptable so we exit this iteration with
-      // in_critical_section()==true.
-      CXXTRACE_ASSERT(this->rseq.in_critical_section());
-    CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
+    ::jmp_buf jump_buffer /* uninitialized */;
+    if (setjmp(jump_buffer) == 0) {
+      CXXTRACE_BEGIN_PREEMPTABLE(this->rseq, preempted)
+        // Avoid calling CXXTRACE_END_PREEMPTABLE so we exit this iteration with
+        // in_critical_section()==true.
+        CXXTRACE_ASSERT(this->rseq.in_critical_section());
+        ::longjmp(jump_buffer, 1); // Jump to 'next' below.
+      CXXTRACE_END_PREEMPTABLE(this->rseq, preempted)
+    }
+    // next: Come from longjmp above.
+    CXXTRACE_ASSERT(this->rseq.in_critical_section());
     return;
 
     CXXTRACE_ON_PREEMPT(this->rseq, preempted)
