@@ -1,6 +1,6 @@
 #include "event.h"
+#include "gtest_scoped_trace.h"
 #include "nlohmann_json.h"
-#include "stringify.h"
 #include "thread.h"
 #include <algorithm>
 #include <atomic>
@@ -133,7 +133,7 @@ TEST_F(test_chrome_trace_event_format, events_have_required_fields)
   auto trace_events = get(parsed, "traceEvents");
   for (const auto& event : trace_events) {
     using value_t = nlohmann::json::value_t;
-    SCOPED_TRACE(stringify(event));
+    CXXTRACE_SCOPED_TRACE() << event;
     EXPECT_EQ(get(event, "ph").type(), value_t::string);
     auto ph = std::string{ event.value<std::string>("ph", "") };
     if (ph == "B" || ph == "E") {
@@ -218,8 +218,8 @@ TEST_F(test_chrome_trace_event_format,
             });
 
   for (const auto& test_case : test_cases) {
-    SCOPED_TRACE(
-      stringify("span_enter_nanoseconds = ", test_case.span_enter_nanoseconds));
+    CXXTRACE_SCOPED_TRACE()
+      << "span_enter_nanoseconds = " << test_case.span_enter_nanoseconds;
 
     this->clock.set_next_time_point(
       std::chrono::nanoseconds{ test_case.span_enter_nanoseconds });
@@ -271,7 +271,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
     auto main_span = CXXTRACE_SPAN("category", "main span");
   }
   auto main_thread_id = cxxtrace::get_current_thread_id();
-  SCOPED_TRACE(stringify("main_thread_id: ", main_thread_id));
+  CXXTRACE_SCOPED_TRACE() << "main_thread_id: " << main_thread_id;
 
   auto thread_1_id = std::atomic<cxxtrace::thread_id>{};
   std::thread{
@@ -280,7 +280,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
       thread_1_id = cxxtrace::get_current_thread_id();
     }
   }.join();
-  SCOPED_TRACE(stringify("thread_1_id: ", thread_1_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_1_id: " << thread_1_id;
 
   auto thread_2_id = std::atomic<cxxtrace::thread_id>{};
   std::thread{
@@ -289,7 +289,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
       thread_2_id = cxxtrace::get_current_thread_id();
     }
   }.join();
-  SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_2_id: " << thread_2_id;
 
   auto parsed = this->write_snapshot_and_parse();
   auto trace_events = drop_metadata_events(get(parsed, "traceEvents"));
@@ -297,7 +297,7 @@ TEST_F(test_chrome_trace_event_format, spans_include_thread_id)
   auto found_thread_1_span = false;
   auto found_thread_2_span = false;
   for (const auto& event : trace_events) {
-    SCOPED_TRACE(stringify(event));
+    CXXTRACE_SCOPED_TRACE() << event;
     auto event_thread_id = get(event, "tid");
     auto event_name = get(event, "name");
     if (event_name == "main span") {
@@ -356,7 +356,7 @@ TEST_F(test_chrome_trace_event_format, metadata_includes_thread_names)
   auto found_live_thread_name = false;
   auto found_dead_thread_name = false;
   for (const auto& event : trace_events) {
-    SCOPED_TRACE(stringify(event));
+    CXXTRACE_SCOPED_TRACE() << event;
     if (get(event, "ph") == "M" && get(event, "name") == "thread_name") {
       auto event_thread_id = get(event, "tid");
       if (event_thread_id == main_thread_id) {
@@ -383,7 +383,7 @@ TEST_F(test_chrome_trace_event_format,
        events_parse_as_json_with_funky_ostream_locale)
 {
   for (auto locale_name : { "C", "en_US.UTF-8", "fr_FR.UTF-8" }) {
-    SCOPED_TRACE(locale_name);
+    CXXTRACE_SCOPED_TRACE() << locale_name;
 
     auto locale = std::locale{};
     try {

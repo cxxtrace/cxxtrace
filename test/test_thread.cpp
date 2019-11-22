@@ -1,4 +1,5 @@
 #include "event.h"
+#include "stringify.h"
 #include "thread.h"
 #include <algorithm>
 #include <chrono>

@@ -1,5 +1,5 @@
 #include "exhaustive_rng.h"
-#include "stringify.h"
+#include "gtest_scoped_trace.h"
 #include <gtest/gtest.h>
 #include <iterator>
 #include <numeric>
@@ -42,7 +42,7 @@ TEST_P(test_exhaustive_rng_n, exhaust_with_one_next_n_call_per_lap)
   auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < number_count) {
-    SCOPED_TRACE(stringify("lap ", lap_count));
+    CXXTRACE_SCOPED_TRACE() << "lap " << lap_count;
     auto actual_number = rng.next_integer_0(number_count);
     EXPECT_EQ(actual_number, expected_numbers[lap_count]);
     rng.lap();
@@ -68,7 +68,7 @@ TEST(test_exhaustive_rng, exhaust_with_two_next_256_calls_per_lap)
   auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < 256 * 256) {
-    SCOPED_TRACE(stringify("lap ", lap_count));
+    CXXTRACE_SCOPED_TRACE() << "lap " << lap_count;
     auto actual_number_0 = rng.next_integer_0(256);
     auto actual_number_1 = rng.next_integer_0(256);
     EXPECT_EQ((std::pair{ actual_number_0, actual_number_1 }),
@@ -177,7 +177,7 @@ TEST(test_exhaustive_rng, exhaust_with_one_or_two_next256_calls_per_lap)
   auto rng = exhaustive_rng{};
   auto lap_count = std::size_t{ 0 };
   while (lap_count < expected_numbers.size()) {
-    SCOPED_TRACE(stringify("lap ", lap_count));
+    CXXTRACE_SCOPED_TRACE() << "lap " << lap_count;
     auto actual_number_0 = rng.next_integer_0(256);
     auto actual_number_1 = std::optional<int>{};
     if (expected_numbers[lap_count].second.has_value()) {
@@ -239,7 +239,7 @@ TEST(test_exhaustive_rng, exhaust_with_three_next32_calls_per_lap)
   auto rng = exhaustive_rng{};
   auto lap_count = 0;
   while (lap_count < expected_laps) {
-    SCOPED_TRACE(stringify("lap ", lap_count));
+    CXXTRACE_SCOPED_TRACE() << "lap " << lap_count;
     auto actual_number_0 = rng.next_integer_0(32);
     auto actual_number_1 = rng.next_integer_0(32);
     auto actual_number_2 = rng.next_integer_0(32);

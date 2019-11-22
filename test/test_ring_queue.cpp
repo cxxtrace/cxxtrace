@@ -1,7 +1,7 @@
 #include "exhaustive_rng.h"
+#include "gtest_scoped_trace.h"
 #include "reference_ring_queue.h"
 #include "ring_queue_wrapper.h"
-#include "stringify.h"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -255,9 +255,9 @@ TYPED_TEST(test_ring_queue_against_reference,
   auto rng = exhaustive_rng{};
   while (!rng.done() && !this->HasFailure()) {
     auto reader_offset = rng.next_integer_0(this->capacity * 5);
-    SCOPED_TRACE(stringify("reader_offset = ", reader_offset));
+    CXXTRACE_SCOPED_TRACE() << "reader_offset = " << reader_offset;
     auto writer_lead = rng.next_integer_0(this->capacity * 5);
-    SCOPED_TRACE(stringify("writer_lead = ", writer_lead));
+    CXXTRACE_SCOPED_TRACE() << "writer_lead = " << writer_lead;
 
     this->push_n(reader_offset);
     this->reset();

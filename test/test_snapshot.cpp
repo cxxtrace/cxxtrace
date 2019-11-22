@@ -1,5 +1,5 @@
 #include "event.h"
-#include "stringify.h"
+#include "gtest_scoped_trace.h"
 #include "test_span.h"
 #include "thread.h"
 #include <atomic>
@@ -71,8 +71,8 @@ TYPED_TEST(test_snapshot, name_of_live_threads)
   thread_1_ready.wait();
   thread_2_ready.wait();
 
-  SCOPED_TRACE(stringify("thread_1_id: ", thread_1_id));
-  SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_1_id: " << thread_1_id;
+  CXXTRACE_SCOPED_TRACE() << "thread_2_id: " << thread_2_id;
 
   auto snapshot = cxxtrace::samples_snapshot{ this->take_all_samples() };
   EXPECT_STREQ(snapshot.thread_name(thread_1_id), "thread 1 name");
@@ -110,8 +110,8 @@ TYPED_TEST(test_snapshot, name_of_dead_threads)
   thread_1.join();
   thread_2.join();
 
-  SCOPED_TRACE(stringify("thread_1_id: ", thread_1_id));
-  SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_1_id: " << thread_1_id;
+  CXXTRACE_SCOPED_TRACE() << "thread_2_id: " << thread_2_id;
 
   auto snapshot = cxxtrace::samples_snapshot{ this->take_all_samples() };
   EXPECT_STREQ(snapshot.thread_name(thread_1_id), "thread 1 name");

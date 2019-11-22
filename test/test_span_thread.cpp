@@ -1,5 +1,5 @@
 #include "event.h"
-#include "stringify.h"
+#include "gtest_scoped_trace.h"
 #include "test_span.h"
 #include <algorithm>
 #include <array>
@@ -48,7 +48,7 @@ TYPED_TEST(test_span, span_samples_include_thread_id)
     auto main_span = CXXTRACE_SPAN("category", "main span");
   }
   auto main_thread_id = cxxtrace::get_current_thread_id();
-  SCOPED_TRACE(stringify("main_thread_id: ", main_thread_id));
+  CXXTRACE_SCOPED_TRACE() << "main_thread_id: " << main_thread_id;
 
   auto thread_1_id = std::atomic<cxxtrace::thread_id>{};
   std::thread{
@@ -57,7 +57,7 @@ TYPED_TEST(test_span, span_samples_include_thread_id)
       thread_1_id = cxxtrace::get_current_thread_id();
     }
   }.join();
-  SCOPED_TRACE(stringify("thread_1_id: ", thread_1_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_1_id: " << thread_1_id;
 
   auto thread_2_id = std::atomic<cxxtrace::thread_id>{};
   std::thread{
@@ -66,7 +66,7 @@ TYPED_TEST(test_span, span_samples_include_thread_id)
       thread_2_id = cxxtrace::get_current_thread_id();
     }
   }.join();
-  SCOPED_TRACE(stringify("thread_2_id: ", thread_2_id));
+  CXXTRACE_SCOPED_TRACE() << "thread_2_id: " << thread_2_id;
 
   ASSERT_NE(thread_1_id, main_thread_id);
   ASSERT_NE(thread_2_id, main_thread_id);

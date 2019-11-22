@@ -1,4 +1,4 @@
-#include "stringify.h"
+#include "gtest_scoped_trace.h"
 #include <cxxtrace/detail/add.h>
 #include <gtest/gtest.h>
 #include <limits>
@@ -18,7 +18,7 @@ TEST(test_add, signed_addition_with_no_overflow)
 
   for (auto x = wide_type{ 0 }; x < wide_type{ max }; ++x) {
     for (auto y = wide_type{ 0 }; y < wide_type{ max } - x; ++y) {
-      SCOPED_TRACE(stringify("x = ", x, "; y = ", y));
+      CXXTRACE_SCOPED_TRACE() << "x = " << x << "; y = " << y;
       ASSERT_LE(x + y, wide_type{ max });
 
       auto maybe_sum =
@@ -86,7 +86,8 @@ TYPED_TEST(test_add_using_type, random)
   for (auto i = 0; i < iterations; ++i) {
     auto x = x_distribution(rng);
     auto y = y_distribution(rng);
-    SCOPED_TRACE(stringify("x = ", wide_type{ x }, "; y = ", wide_type{ y }));
+    CXXTRACE_SCOPED_TRACE()
+      << "x = " << wide_type{ x } << "; y = " << wide_type{ y };
 
     auto wide_sum = wide_type{ x } + wide_type{ y };
     auto should_overflow = wide_sum > wide_type{ max };
