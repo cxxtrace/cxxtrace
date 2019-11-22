@@ -18,6 +18,10 @@ file_descriptor::file_descriptor(int fd) noexcept
   assert(fd == this->invalid_fd || fd >= 0);
 }
 
+file_descriptor::file_descriptor(file_descriptor&& other) noexcept
+  : file_descriptor{ std::exchange(other.fd_, this->invalid_fd) }
+{}
+
 file_descriptor::~file_descriptor() noexcept(false)
 {
   this->reset();

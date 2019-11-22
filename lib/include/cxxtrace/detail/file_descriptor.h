@@ -17,6 +17,9 @@ public:
   file_descriptor(const file_descriptor&) = delete;
   file_descriptor& operator=(const file_descriptor&) = delete;
 
+  file_descriptor(file_descriptor&&) noexcept;
+  file_descriptor& operator=(file_descriptor&&) = delete;
+
   ~file_descriptor() noexcept(false);
 
   auto close() noexcept(false) -> void;

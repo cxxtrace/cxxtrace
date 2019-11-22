@@ -26,6 +26,7 @@
   {"symbol": ["std::atomic_flag", "private", "<atomic>", "public"]},
   {"symbol": ["std::atomic_signal_fence", "private", "<atomic>", "public"]},
   {"symbol": ["std::atomic_thread_fence", "private", "<atomic>", "public"]},
+  {"symbol": ["std::byte", "private", "<cstddef>", "public"]},
   {"symbol": ["std::char_traits", "private", "<string>", "public"]},
   {"symbol": ["std::errc", "private", "<system_error>", "public"]},
   {"symbol": ["std::memory_order", "private", "<atomic>", "public"]},

@@ -4,6 +4,19 @@ project(cxxtrace)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vendor/cotire/CMake")
 
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+  set(CXXTRACE_BUILD_CHECK_RSEQ_DEFAULT TRUE)
+else ()
+  set(CXXTRACE_BUILD_CHECK_RSEQ_DEFAULT FALSE)
+endif ()
+set(
+  CXXTRACE_BUILD_CHECK_RSEQ
+  ${CXXTRACE_BUILD_CHECK_RSEQ_DEFAULT}
+  CACHE
+  BOOL
+  "Compile the check_rseq utility."
+)
+
 set(
   CXXTRACE_CDSCHECKER
   TRUE
@@ -24,6 +37,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 add_subdirectory(vendor)
 
+if (CXXTRACE_BUILD_CHECK_RSEQ)
+  add_subdirectory(check_rseq)
+endif ()
 add_subdirectory(example)
 add_subdirectory(lib)
 include(CTest)

@@ -5,6 +5,9 @@ include(cxxtrace_cotire)
 
 find_package(CxxtraceStdFilesystem REQUIRED)
 
+if (CXXTRACE_BUILD_CHECK_RSEQ)
+  add_subdirectory(check_rseq)
+endif ()
 add_subdirectory(test_processor_id_manual)
 add_subdirectory(test_ring_queue)
 
