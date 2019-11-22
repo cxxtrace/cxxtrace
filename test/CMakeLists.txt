@@ -268,6 +268,7 @@ add_library(
   linux_proc_cpuinfo.cpp
   memory_resource.cpp
   posix_semaphore.cpp
+  posix_spawn.cpp
   pretty_type_name.cpp
   thread.cpp
 )

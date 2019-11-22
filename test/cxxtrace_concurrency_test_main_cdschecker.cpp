@@ -4,6 +4,7 @@
 
 #include "cdschecker_allocator.h"
 #include "cxxtrace_concurrency_test_base.h"
+#include "posix_spawn.h"
 #include "stringify.h" // IWYU pragma: keep
 #include <algorithm>
 #include <cassert>
@@ -19,11 +20,9 @@
 #include <dlfcn.h>
 #include <iterator>
 #include <ostream>
-#include <spawn.h>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <sys/wait.h>
 #include <system_error>
 #include <unistd.h>
 #include <vector>
@@ -74,11 +73,6 @@ auto
 run_child_process(cxxtrace::czstring executable_path,
                   const std::vector<cxxtrace::czstring>& argv)
   -> child_process_result;
-
-auto wait_for_child_process_to_exit(::pid_t) -> int;
-
-auto
-get_exit_code_from_waitpid_status(int status) noexcept -> int;
 
 auto
 current_executable_path() -> std::string;
@@ -254,64 +248,6 @@ create_pipe() -> pipe_result
                       cxxtrace::detail::file_descriptor{ fds[1] } };
 }
 
-class spawn_file_actions
-{
-public:
-  explicit spawn_file_actions() noexcept(false)
-  {
-    auto rc = ::posix_spawn_file_actions_init(&this->actions);
-    if (rc != 0) {
-      throw std::system_error{ rc,
-                               std::generic_category(),
-                               "posix_spawn_file_actions_init failed" };
-    }
-  }
-
-  spawn_file_actions(const spawn_file_actions&) = delete;
-  spawn_file_actions& operator=(const spawn_file_actions&) = delete;
-
-  spawn_file_actions(spawn_file_actions&&) = delete;
-  spawn_file_actions& operator=(spawn_file_actions&&) = delete;
-
-  ~spawn_file_actions() noexcept(false)
-  {
-    auto rc = ::posix_spawn_file_actions_destroy(&this->actions);
-    if (rc != 0) {
-      throw std::system_error{ rc,
-                               std::generic_category(),
-                               "posix_spawn_file_actions_destroy failed" };
-    }
-  }
-
-  auto get() const noexcept -> const posix_spawn_file_actions_t*
-  {
-    return &this->actions;
-  }
-
-  auto add_close(int fd) noexcept(false) -> void
-  {
-    auto rc = ::posix_spawn_file_actions_addclose(&this->actions, fd);
-    if (rc != 0) {
-      throw std::system_error{ rc,
-                               std::generic_category(),
-                               "posix_spawn_file_actions_addclose failed" };
-    }
-  }
-
-  auto add_dup2(int fd, int new_fd) noexcept(false) -> void
-  {
-    auto rc = ::posix_spawn_file_actions_adddup2(&this->actions, fd, new_fd);
-    if (rc != 0) {
-      throw std::system_error{ rc,
-                               std::generic_category(),
-                               "posix_spawn_file_actions_adddup2 failed" };
-    }
-  }
-
-private:
-  posix_spawn_file_actions_t actions;
-};
-
 auto
 run_child_process(cxxtrace::czstring executable_path,
                   const std::vector<cxxtrace::czstring>& argv)
@@ -319,41 +255,28 @@ run_child_process(cxxtrace::czstring executable_path,
 {
   auto output_pipe = create_pipe();
 
-  auto make_real_argv = [](const std::vector<cxxtrace::czstring>& const_argv)
-    -> std::vector<cxxtrace::zstring> {
-    auto real_argv = std::vector<cxxtrace::zstring>{};
-    std::transform(const_argv.begin(),
-                   const_argv.end(),
-                   std::back_inserter(real_argv),
-                   [](cxxtrace::czstring arg) {
-                     return const_cast<cxxtrace::zstring>(arg);
-                   });
+  auto make_real_argv = [](const std::vector<cxxtrace::czstring>& argv)
+    -> std::vector<cxxtrace::czstring> {
+    auto real_argv =
+      std::vector<cxxtrace::czstring>{ argv.begin(), argv.end() };
     real_argv.emplace_back(nullptr);
     return real_argv;
   };
 
   auto create_process = [&]() -> ::pid_t {
     auto real_argv = make_real_argv(argv);
-    char* const* envp{ nullptr };
-    auto file_actions = spawn_file_actions{};
+    const cxxtrace::czstring* envp{ nullptr };
+    auto file_actions = cxxtrace_test::spawn_file_actions{};
     file_actions.add_dup2(output_pipe.writer.get(), STDOUT_FILENO);
     file_actions.add_dup2(output_pipe.writer.get(), STDERR_FILENO);
     file_actions.add_close(output_pipe.reader.get());
     file_actions.add_close(output_pipe.writer.get());
-    auto process_id = ::pid_t{};
-    auto rc = ::posix_spawnp(&process_id,
-                             executable_path,
-                             file_actions.get(),
-                             nullptr,
-                             real_argv.data(),
-                             envp);
-    if (rc != 0) {
-      throw std::system_error{ rc,
-                               std::generic_category(),
-                               cxxtrace_test::stringify(
-                                 "posix_spawnp failed for executable ",
-                                 executable_path) };
-    }
+    auto process_id = cxxtrace_test::posix_spawnp(
+      /*file=*/executable_path,
+      /*file_actions=*/file_actions.get(),
+      /*attributes=*/nullptr,
+      /*argv=*/real_argv.data(),
+      /*envp=*/envp);
     return process_id;
   };
 
@@ -395,41 +318,9 @@ run_child_process(cxxtrace::czstring executable_path,
   auto output =
     capture_and_forward_pipe_output(output_pipe.reader.get(), STDERR_FILENO);
 
-  auto status = wait_for_child_process_to_exit(process_id);
-  auto exit_code = get_exit_code_from_waitpid_status(status);
+  auto status = cxxtrace_test::wait_for_child_process_to_exit(process_id);
+  auto exit_code = cxxtrace_test::get_exit_code_from_waitpid_status(status);
   return child_process_result{ output, exit_code };
-}
-
-auto
-wait_for_child_process_to_exit(::pid_t process_id) -> int
-{
-  auto status = int{};
-retry:
-  auto rc = ::waitpid(process_id, &status, 0);
-  if (rc == -1) {
-    auto error = errno;
-    if (error == EINTR) {
-      goto retry;
-    }
-    throw std::system_error{ error, std::generic_category(), "waitpid failed" };
-  }
-  return status;
-}
-
-auto
-get_exit_code_from_waitpid_status(int status) noexcept -> int
-{
-  if (WIFEXITED(status)) {
-    return WEXITSTATUS(status);
-  }
-  if (WIFSIGNALED(status)) {
-    auto exit_code = WTERMSIG(status) + 128;
-    assert(exit_code != EXIT_SUCCESS);
-    return exit_code;
-  }
-  assert(!WIFSTOPPED(status));
-  assert(false && "waitpid returned an unexpected status code");
-  return EXIT_FAILURE;
 }
 
 auto
