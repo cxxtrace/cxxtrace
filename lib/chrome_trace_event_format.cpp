@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
+#include <cxxtrace/detail/iostream.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
@@ -18,20 +19,6 @@
 // IWYU pragma: no_include <vector>
 
 namespace cxxtrace {
-namespace {
-// Reset the formatting options to their defaults.
-//
-// See std::basic_ios<>::init for details.
-auto
-reset_ostream_formatting(std::ostream& stream)
-{
-  stream.fill(stream.widen(' '));
-  stream.flags(std::ios_base::dec | std::ios_base::skipws);
-  stream.precision(6);
-  stream.width(0);
-}
-}
-
 chrome_trace_event_writer::chrome_trace_event_writer(
   std::ostream* output) noexcept
   : output{ output }
@@ -41,7 +28,7 @@ auto
 chrome_trace_event_writer::write_snapshot(const samples_snapshot& snapshot)
   -> void
 {
-  reset_ostream_formatting(*this->output);
+  detail::reset_ostream_formatting(*this->output);
 
   *this->output << "{\"traceEvents\": [";
   auto should_output_comma = false;
