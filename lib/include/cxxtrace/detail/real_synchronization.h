@@ -5,6 +5,10 @@
 #include <cxxtrace/detail/atomic_base.h>
 #include <cxxtrace/detail/debug_source_location.h>
 
+// @@@ conditional
+#include <cxxtrace/detail/processor.h>
+#include <cxxtrace/detail/rseq.h>
+
 namespace cxxtrace {
 namespace detail {
 class real_synchronization
@@ -22,10 +26,38 @@ public:
   template<class T>
   class nonatomic;
 
+  // @@@ move out of line.
+  class rseq_handle
+  {
+  public:
+    explicit rseq_handle(::rseq* rseq)
+      : rseq_{ rseq }
+    {}
+
+    auto get_current_processor_id(debug_source_location)
+      -> cxxtrace::detail::processor_id
+    {
+      return registered_rseq::read_cpu_id(*this->rseq_);
+    }
+
+    auto get_rseq() -> ::rseq* { return this->rseq_; }
+
+  private:
+    ::rseq* rseq_;
+  };
+
   static auto allow_preempt(debug_source_location) -> void;
 
   static auto atomic_thread_fence(std::memory_order,
                                   debug_source_location) noexcept -> void;
+
+  // @@@ conditionally compile
+  static auto get_rseq() -> rseq_handle
+  {
+    // @@@ hack!
+    thread_local auto rr = registered_rseq::register_current_thread();
+    return rseq_handle{ rr.get() };
+  }
 };
 
 template<class T>

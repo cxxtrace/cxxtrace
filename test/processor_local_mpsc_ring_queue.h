@@ -3,16 +3,21 @@
 
 #include <cxxtrace/detail/workarounds.h>
 
-// TODO(strager): Support processor_local_mpsc_ring_queue for production code
-// (outside model checkers).
-#if (CXXTRACE_ENABLE_CONCURRENCY_STRESS || CXXTRACE_ENABLE_CDSCHECKER ||       \
-     CXXTRACE_ENABLE_RELACY) &&                                                \
-  !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+#if !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
+// @@@ inline?
 #define CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE 1
 #endif
 
 #if CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE
+
+// @@@ consolidate
+#if CXXTRACE_ENABLE_CONCURRENCY_STRESS || CXXTRACE_ENABLE_CDSCHECKER ||        \
+  CXXTRACE_ENABLE_RELACY
 #include "rseq_scheduler.h"
+#else
+#include <cxxtrace/detail/rseq.h>
+#endif
+
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/debug_source_location.h>
@@ -70,6 +75,11 @@ public:
   // queue is (Capacity * processor_count). Switch to a better name.
   static inline constexpr const auto capacity = size_type{ Capacity };
 
+  // @@@ delete this overload
+  explicit processor_local_mpsc_ring_queue()
+    : processor_local_mpsc_ring_queue{ 8 }
+  {}
+
   explicit processor_local_mpsc_ring_queue(int processor_count)
     : queue_by_processor{ static_cast<std::size_t>(processor_count) }
   {}
@@ -81,9 +91,28 @@ public:
     }
   }
 
+#pragma GCC push_options
+  // @@@ document and tidy
+#pragma GCC optimize("align-loops=1") // OK
+  //#pragma GCC optimize ("align-labels=1", "align-jumps=1", "align-loops=1") //
+  // OK #pragma GCC optimize ("align-labels=1", "align-loops=1") // OK #pragma
+  // GCC optimize ("align-labels=1", "align-jumps=1") // BAD (nops) #pragma GCC
+  // optimize ("align-labels=1") // BAD (nops)
   template<class WriterFunction>
-  auto try_push(size_type count, WriterFunction&& write) noexcept -> push_result
+  [[gnu::noinline]] [[gnu::flatten]] auto try_push(
+    size_type count,
+    WriterFunction&& write) noexcept -> push_result
   {
+    // @@@ bugs:
+    //
+    // [x] Code at post_commit_ip is:
+    //     <abort signature>
+    //     jmp abort_ip
+    // [x] abort_ip doesn't have abort signature.
+    // [x] Code at post_commit_ip is after stack cleanup; should be before
+    //     return (mov + pop + ret)
+    // [x] GCC aligns goto labels with nops. Aligning is harmful.
+
     auto rseq = Sync::get_rseq();
     CXXTRACE_BEGIN_PREEMPTABLE (rseq, preempted) {
       auto processor_id = rseq.get_current_processor_id(CXXTRACE_HERE);
@@ -97,6 +126,7 @@ public:
     CXXTRACE_END_PREEMPTABLE(rseq, preempted)
     return push_result::pushed;
   }
+#pragma GCC pop_options
 
   template<class Sink>
   auto pop_all_into(Sink&& output) -> void

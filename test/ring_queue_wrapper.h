@@ -14,7 +14,9 @@
 #include <exception>
 #endif
 
-#if CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE
+#if (CXXTRACE_ENABLE_CONCURRENCY_STRESS || CXXTRACE_ENABLE_CDSCHECKER ||       \
+     CXXTRACE_ENABLE_RELACY) &&                                                \
+  !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
 #include "rseq_scheduler.h"
 #endif
 
@@ -97,7 +99,9 @@ public:
       auto result = this->try_push(count, std::forward<WriterFunction>(write));
       this->assert_push_succeeded(result);
     };
-#if CXXTRACE_ENABLE_PROCESSOR_LOCAL_MPSC_RING_QUEUE
+#if (CXXTRACE_ENABLE_CONCURRENCY_STRESS || CXXTRACE_ENABLE_CDSCHECKER ||       \
+     CXXTRACE_ENABLE_RELACY) &&                                                \
+  !CXXTRACE_WORK_AROUND_CDSCHECKER_DETERMINISM
     auto* scheduler = rseq_scheduler<concurrency_test_synchronization>::get();
     if (scheduler) {
       auto guard = scheduler->disable_preemption(CXXTRACE_HERE);

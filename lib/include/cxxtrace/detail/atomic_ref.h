@@ -20,6 +20,13 @@ public:
     return this->atomic().load(memory_order);
   }
 
+  auto store(T new_value,
+             std::memory_order memory_order = std::memory_order_seq_cst) const
+    noexcept -> void
+  {
+    this->atomic().store(new_value, memory_order);
+  }
+
 private:
   auto atomic() const noexcept -> std::atomic<T>&
   {
