@@ -36,6 +36,62 @@ Release URL: https://github.com/google/benchmark/releases/tag/v1.4.1
 Release date: May 25, 2018
 Version: v1.4.1
 
+## capstone
+
+The capstone directory contains a lightweight multi-platform, multi-architecture
+disassembly framework.
+
+The following directories have been deleted to reduce storage consumption and
+simplify license compliance:
+
+* capstone/arch/M68K/M68KDisassembler.c
+* capstone/bindings/
+* capstone/docs/
+* capstone/msvc/
+* capstone/suite/
+* capstone/tests/
+* capstone/xcode/
+
+Copyright: Copyright (c) 2013, COSEINC. All rights reserved.; Copyright (c) 2003-2013 University of Illinois at Urbana-Champaign. All rights reserved.; Copyright (c) 2000-2006 Apple Computer, Inc. All rights reserved.; Copyright (c) 1992, 1993 The Regents of the University of California. All rights reserved.; Copyright (c) 1995 NeXT Computer, Inc. All Rights Reserved
+Download URL: https://github.com/aquynh/capstone/archive/4.0.1.tar.gz
+Download date: November 21, 2019
+Git commit: f9c6a90489be7b3637ff1c7298e45efafe7cf1b9
+License file: LICENSE.TXT, LICENSE_LLVM.TXT, arch/X86/qsort.h
+License type: BSD-3-Clause, NCSA, APSL-2.0
+Location: capstone
+Project URL: https://www.capstone-engine.org/
+Release URL: https://www.capstone-engine.org/Version-4.0.1-changelog
+Release date: January 10, 2019
+Version: 4.0.1
+
+## elfutils
+
+The elfutils directory contains libelf, a library for manipulating ELF program
+files.
+
+The following directories have been deleted to reduce storage consumption:
+
+* elfutils/backends/
+* elfutils/libasm/
+* elfutils/libcpu/
+* elfutils/libdw/
+* elfutils/libdwfl/
+* elfutils/libebl/
+* elfutils/po/
+* elfutils/tests/
+
+Copyright: Copyright (C) 1995-2019 Free Software Foundation, Inc.; Copyright (C) 2000-2010, 2014, 2015, 2016, 2018 Red Hat, Inc.
+Download URL: ftp://sourceware.org/pub/elfutils/0.177/elfutils-0.177.tar.bz2
+Download date: November 3, 2019
+Git commit: 5643e037cb7a38ed5d52f50421be706ea8014e3d
+License file: COPYING-GPLV2
+License type: GPL-2.0-or-later
+Location: elfutils
+Project URL: https://sourceware.org/elfutils/
+Release URL: ftp://sourceware.org/pub/elfutils/0.177/
+Release date: August 14, 2019
+Version: 0.177
+
 ## googletest
 
 The googletest directory contains Google Test, a testing framework for C++
@@ -94,6 +150,30 @@ Project URL: https://github.com/dvyukov/relacy
 Release URL: https://github.com/dvyukov/relacy/tree/acc09bbe65a1837a08912774c7fed178547514e6
 Release date: October 24, 2019
 Version: N/A
+
+## zlib
+
+The zlib directory contains zlib, a massively spiffy yet delicately unobtrusive
+compression library.
+
+The following directories have been deleted to simplify license compliance:
+
+* zlib/amiga/
+* zlib/contrib/
+
+Additionally, zlib/zconf.h has been renamed to zlib/zconf.h.included.
+
+Copyright: (C) 1995-2017 Jean-loup Gailly and Mark Adler; Copyright (c) 1996 L. Peter Deutsch
+Download URL: https://www.zlib.net/zlib-1.2.11.tar.gz
+Download date: November 22, 2019
+Git commit: cacf7f1d4e3d44d871b605da3b647f07d718623f
+License file: README
+License type: Zlib
+Location: zlib
+Project URL: http://zlib.net/
+Release URL: https://github.com/madler/zlib/releases/tag/v1.2.11
+Release date: January 15, 2017
+Version: 1.2.11
 
 ## Cotire
 

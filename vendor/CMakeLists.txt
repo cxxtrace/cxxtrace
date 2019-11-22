@@ -155,3 +155,9 @@ target_compile_definitions(relacy INTERFACE RL_DO_ASSERT)
 # should compile the cxxtrace library with -fno-sized-deallocation, even though
 # it doesn't depend on the relacy library.
 target_compile_options(relacy INTERFACE -fno-sized-deallocation)
+
+include(capstone.cmake)
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+  include(elfutils.cmake)
+endif ()
+include(zlib.cmake)
