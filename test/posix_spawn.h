@@ -40,6 +40,9 @@ wait_for_child_process_to_exit(::pid_t process_id) -> int;
 
 auto
 get_exit_code_from_waitpid_status(int status) noexcept -> int;
+
+cxxtrace::zstring*
+get_current_process_environment() noexcept;
 }
 
 #endif

@@ -182,4 +182,15 @@
 #define CXXTRACE_HAVE_LIBDISPATCH_SEMAPHORE 1
 #endif
 
+#if defined(__APPLE__)
+// ::_NSGetEnviron
+// <crt_externs.h>
+#define CXXTRACE_HAVE_NS_GET_ENVIRON 1
+#endif
+
+#if defined(__linux__)
+// ::environ
+#define CXXTRACE_HAVE_ENVIRON 1
+#endif
+
 #endif

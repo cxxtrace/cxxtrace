@@ -265,7 +265,6 @@ run_child_process(cxxtrace::czstring executable_path,
 
   auto create_process = [&]() -> ::pid_t {
     auto real_argv = make_real_argv(argv);
-    const cxxtrace::czstring* envp{ nullptr };
     auto file_actions = cxxtrace_test::spawn_file_actions{};
     file_actions.add_dup2(output_pipe.writer.get(), STDOUT_FILENO);
     file_actions.add_dup2(output_pipe.writer.get(), STDERR_FILENO);
@@ -276,7 +275,7 @@ run_child_process(cxxtrace::czstring executable_path,
       /*file_actions=*/file_actions.get(),
       /*attributes=*/nullptr,
       /*argv=*/real_argv.data(),
-      /*envp=*/envp);
+      /*envp=*/cxxtrace_test::get_current_process_environment());
     return process_id;
   };
 

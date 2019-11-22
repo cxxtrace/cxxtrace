@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstdlib>
+#include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
 #include <ostream>
 #include <spawn.h>
@@ -10,6 +11,10 @@
 #include <system_error>
 #include <unistd.h>
 // IWYU pragma: no_include "stringify_impl.h"
+
+#if CXXTRACE_HAVE_NS_GET_ENVIRON
+#include <crt_externs.h>
+#endif
 
 namespace cxxtrace_test {
 spawn_file_actions::spawn_file_actions() noexcept(false)
@@ -68,6 +73,7 @@ posix_spawnp(cxxtrace::czstring file,
              const cxxtrace::czstring* envp) -> ::pid_t
 {
   assert(argv);
+  assert(envp);
   ::pid_t process_id /* uninitialized */;
   auto rc = ::posix_spawnp(&process_id,
                            file,
@@ -114,5 +120,21 @@ get_exit_code_from_waitpid_status(int status) noexcept -> int
   assert(!WIFSTOPPED(status));
   assert(false && "waitpid returned an unexpected status code");
   return EXIT_FAILURE;
+}
+
+#if CXXTRACE_HAVE_ENVIRON
+extern "C" cxxtrace::zstring* environ;
+#endif
+
+cxxtrace::zstring*
+get_current_process_environment() noexcept
+{
+#if CXXTRACE_HAVE_ENVIRON
+  return environ;
+#elif CXXTRACE_HAVE_NS_GET_ENVIRON
+  return *::_NSGetEnviron();
+#else
+#error "Unknown platform"
+#endif
 }
 }
