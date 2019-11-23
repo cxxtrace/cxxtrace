@@ -8,6 +8,7 @@ should be in PATH.
 
 import argparse
 import contextlib
+import enum
 import functools
 import importlib.util
 import io
@@ -158,13 +159,6 @@ def compute_and_apply_fixes_for_compilation_database(
 
     cwd = os.getcwd()
 
-    @functools.lru_cache(maxsize=None)
-    def get_clang_resource_dir(clang_exe: str) -> pathlib.Path:
-        clang_output = subprocess.check_output(
-            [clang_exe, "--print-resource-dir"], encoding="utf-8"
-        )
-        return pathlib.Path(clang_output.rstrip("\n\r"))
-
     for entry in compilation_db:
         compile_command_raw = entry["command"]
         if not isinstance(compile_command_raw, str):
@@ -180,14 +174,16 @@ def compute_and_apply_fixes_for_compilation_database(
         source_file = pathlib.Path(compile_command[-1])  # HACK(strager)
         relative_source_file = relative_path(source_file, cwd)
         sys.stderr.write(f"Checking {relative_source_file} ...\n")
+        compile_cwd = pathlib.Path(compile_cwd_raw)
 
+        include_paths = get_include_paths_from_real_compiler_invocation(
+            command=compile_command, cwd=compile_cwd
+        )
         iwyu_command = [iwyu_tool.IWYU_EXECUTABLE] + compile_command[1:]
-        clang_resource_dir = get_clang_resource_dir(compile_command[0])
         iwyu_command = fix_iwyu_command(
-            command=iwyu_command, clang_resource_dir=clang_resource_dir
+            command=iwyu_command, include_paths=include_paths
         )
 
-        compile_cwd = pathlib.Path(compile_cwd_raw)
         fixes = compute_fixes(
             iwyu_command=iwyu_command,
             command_cwd=compile_cwd,
@@ -303,7 +299,7 @@ class IWYUFixes(typing.NamedTuple):
 
 
 def fix_iwyu_command(
-    command: typing.Sequence[str], clang_resource_dir: pathlib.Path
+    command: typing.Sequence[str], include_paths: "IncludePaths"
 ) -> typing.List[str]:
     """Hackily work around deficiencies in include-what-you-use.
 
@@ -312,39 +308,92 @@ def fix_iwyu_command(
 
     fixed_command = command[0:1]
 
-    fixed_command.append("-isystem")
-    fixed_command.append(str(clang_resource_dir / "include"))
-
     arg_index = 1
     while arg_index < len(command):
         arg = command[arg_index]
 
-        # HACK(strager): If a header is found through -I, include-what-you-use
-        # suggests #include "header.h" instead of #include <header.h>. We want
-        # the latter form, so replace -I/directory with -isystem /directory.
+        # HACK(strager): include-what-you-use ignores -isysroot and is unaware
+        # of the compiler's implicit header search paths. (For example, because
+        # include-what-you-use is Clang-based, implicit search paths
+        # can differ if the build command is for GCC.) Drop all -I, -isystem,
+        # etc. options, using include_paths instead as the source of truth.
         if arg.startswith("-I"):
             if arg == "-I":
                 raise NotImplementedError("'-I /directory' not implemented")
-            fixed_command.append("-isystem")
-            fixed_command.append(arg[len("-I") :])
             arg_index += 1
             continue
-
-        # HACK(strager): include-what-you-use ignores -isysroot. Replace
-        # -isysroot with -isystem.
-        if arg == "-isysroot":
-            fixed_command.append("-isystem")
-            arg_index += 1
-            fixed_command.append(
-                str(pathlib.Path(command[arg_index]) / "usr" / "include")
-            )
-            arg_index += 1
+        if arg in ("-iframework", "-isysroot", "-isystem"):
+            arg_index += 2
             continue
 
         fixed_command.append(arg)
         arg_index += 1
 
+    for path in include_paths.angle_paths:
+        # NOTE(strager): If a header is found through -I, include-what-you-use
+        # suggests #include "header.h" instead of #include <header.h>. We want
+        # the latter form, so always emit -isystem and never -I.
+        fixed_command.append("-isystem")
+        fixed_command.append(str(path))
     return fixed_command
+
+
+def get_include_paths_from_real_compiler_invocation(
+    command: typing.Sequence[str], cwd: pathlib.Path
+) -> "IncludePaths":
+    command = list(command)
+    command.extend(("-Wp,-v", "-E", "-o", "/dev/null"))
+    # HACK(strager): GCC complains if -o is specified twice. When this happens,
+    # despite failing with a non-zero exit code, GCC still prints the include
+    # paths we want. Only bother checking the exit code if we don't get the
+    # output we expect.
+    compile_result = subprocess.run(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
+    include_paths = parse_include_paths_from_verbose_compiler_output(
+        compile_result.stdout
+    )
+    if not include_paths.angle_paths:
+        compile_result.check_returncode()
+        raise Exception(
+            f"Failed to parse include paths from output of compiler: {command!r}"
+        )
+    return include_paths
+
+
+def parse_include_paths_from_verbose_compiler_output(output: str) -> "IncludePaths":
+    class State(enum.Enum):
+        ANGLE_PATHS = "ANGLE_PATHS"
+        DONE = "DONE"
+        INITIAL = "INITIAL"
+
+    angle_paths = []
+    state = State.INITIAL
+    for line in output.splitlines():
+        if state == State.INITIAL:
+            if line == "#include <...> search starts here:":
+                state = State.ANGLE_PATHS
+        elif state == State.ANGLE_PATHS:
+            if line.startswith(" "):
+                if line.endswith(" (framework directory)"):
+                    # Skip macOS framework directories for now.
+                    # TODO(strager): Ultimately translate into -iframework.
+                    pass
+                else:
+                    angle_paths.append(pathlib.Path(line[1:]))
+            else:
+                state = state.DONE
+        elif state == State.DONE:
+            pass
+    return IncludePaths(angle_paths=tuple(angle_paths))
+
+
+class IncludePaths(typing.NamedTuple):
+    angle_paths: typing.Tuple[pathlib.Path]
 
 
 def include_what_you_use_share_path() -> pathlib.Path:
