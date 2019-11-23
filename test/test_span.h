@@ -14,6 +14,7 @@
 #include <cxxtrace/spsc_ring_queue_thread_local_storage.h>
 #include <cxxtrace/unbounded_storage.h>
 #include <cxxtrace/unbounded_unsafe_storage.h>
+#include <gtest/gtest.h>
 
 namespace cxxtrace_test {
 struct mpsc_ring_queue_processor_local_test_storage_tag

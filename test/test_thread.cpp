@@ -2,6 +2,7 @@
 #include "stringify.h"
 #include "thread.h"
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
