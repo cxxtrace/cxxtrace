@@ -2,20 +2,19 @@
 #include "gtest_scoped_trace.h"
 #include "reference_ring_queue.h"
 #include "ring_queue_wrapper.h"
-#include <algorithm>
-#include <array>
-#include <cassert>
 #include <cstddef>
-#include <cstring>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
+#include <cxxtrace/detail/real_synchronization.h>
 #include <cxxtrace/detail/ring_queue.h>
 #include <cxxtrace/detail/spsc_ring_queue.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <iterator>
+#include <initializer_list>
 #include <limits>
+#include <ostream>
 #include <signal.h>
-#include <type_traits>
+#include <sstream>
+#include <utility>
 #include <vector>
 
 #define RING_QUEUE typename TestFixture::template ring_queue

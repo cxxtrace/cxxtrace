@@ -5,4 +5,5 @@
   {"include": ["<sys/_types/_pid_t.h>", "private", "<unistd.h>", "public"]},
   {"include": ["<sys/_types/_timespec.h>", "private", "<sys/time.h>", "public"]},
   {"include": ["<sys/errno.h>", "private", "<errno.h>", "public"]},
+  {"include": ["<sys/signal.h>", "private", "<signal.h>", "public"]},
 ]

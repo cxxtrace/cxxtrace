@@ -151,6 +151,20 @@ class TestFixIWYUCommand(unittest.TestCase):
         )
         self.assertEqual(fixed_command, ["c++", "-o", "file.o", "file.cpp"])
 
+    def test_fixing_strips_pch_includes(self) -> None:
+        fixed_command = apply_iwyu.fix_iwyu_command(
+            command=[
+                "c++",
+                "-o",
+                "file.o",
+                "-include",
+                "my_prefix_file.hxx",
+                "file.cpp",
+            ],
+            include_paths=apply_iwyu.IncludePaths(angle_paths=()),
+        )
+        self.assertEqual(fixed_command, ["c++", "-o", "file.o", "file.cpp"])
+
     def test_fixing_rewrites_header_search_path_i_to_isystem(self) -> None:
         fixed_command = apply_iwyu.fix_iwyu_command(
             command=["c++", "-o", "file.o", "file.cpp", "-Ifirst_dir", "-Isecond_dir"],

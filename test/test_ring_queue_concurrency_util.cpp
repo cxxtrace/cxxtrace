@@ -1,10 +1,9 @@
 #include "test_ring_queue_concurrency_util.h"
 #include <algorithm>
-#include <array>
-#include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <vector>
 
 using testing::UnorderedElementsAre;

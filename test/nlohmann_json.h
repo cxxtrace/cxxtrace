@@ -2,6 +2,7 @@
 #define CXXTRACE_NLOHMANN_JSON
 
 #include <nlohmann/json.hpp>
+#include <string>
 
 // Reduce compilation times by compiling some class templates in their own
 // translation unit (nlohmann_json.cpp).

@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_EVENT_H
 #define CXXTRACE_EVENT_H
 
-#include <condition_variable>
+#include <condition_variable> // IWYU pragma: keep
 #include <mutex>
 
 namespace cxxtrace_test {

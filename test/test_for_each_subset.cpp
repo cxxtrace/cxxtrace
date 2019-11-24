@@ -1,5 +1,6 @@
 #include "for_each_subset.h"
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <vector>
 
 using testing::UnorderedElementsAre;

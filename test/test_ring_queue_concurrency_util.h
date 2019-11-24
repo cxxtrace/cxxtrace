@@ -11,13 +11,15 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/mpsc_ring_queue.h>
-#include <cxxtrace/detail/queue_sink.h>
+#include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/ring_queue.h>
 #include <experimental/memory_resource>
 #include <experimental/vector>
 #include <iterator>
 #include <optional>
+#include <tuple>
 #include <utility>
+#include <vector>
 
 namespace cxxtrace_test {
 template<class Size>

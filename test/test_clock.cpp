@@ -1,12 +1,22 @@
-#include "cxxtrace_algorithm.h"
+#include "cxxtrace_algorithm.h" // IWYU pragma: keep
+#include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/clock_extra.h> // IWYU pragma: keep
 #include <cxxtrace/detail/have.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <iterator>
+#include <ratio>
 #include <thread>
+#include <utility>
 #include <vector>
+// IWYU pragma: no_include "cxxtrace_algorithm_impl.h"
+
+#if CXXTRACE_HAVE_CLOCK_GETTIME
+#include <time.h>
+#endif
 
 using namespace std::chrono_literals;
 using testing::ElementsAre;

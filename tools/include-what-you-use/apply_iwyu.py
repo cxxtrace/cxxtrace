@@ -38,30 +38,14 @@ top_level_cxxtrace_source_directories = (
 blacklisted_cxxtrace_inputs = {
     cxxtrace_project_path / "example" / "group_and_sort_parallel.cpp",
     cxxtrace_project_path / "test" / "concurrency_test_runner.cpp",
-    cxxtrace_project_path / "test" / "event.cpp",
-    cxxtrace_project_path / "test" / "exhaustive_rng.cpp",
-    cxxtrace_project_path / "test" / "nlohmann_json.cpp",
-    cxxtrace_project_path / "test" / "test_add.cpp",
     cxxtrace_project_path / "test" / "test_chrome_trace_event_format.cpp",
-    cxxtrace_project_path / "test" / "test_clock.cpp",
-    cxxtrace_project_path / "test" / "test_concurrency_test_runner.cpp",
-    cxxtrace_project_path / "test" / "test_exhaustive_rng.cpp",
-    cxxtrace_project_path / "test" / "test_for_each_subset.cpp",
-    cxxtrace_project_path / "test" / "test_linux_proc_cpuinfo.cpp",
-    cxxtrace_project_path / "test" / "test_molecular.cpp",
     cxxtrace_project_path / "test" / "test_processor_id.cpp",
     cxxtrace_project_path / "test" / "test_processor_id_manual" / "dtrace.cpp",
-    cxxtrace_project_path / "test" / "test_processor_id_manual" / "gnuplot.cpp",
     cxxtrace_project_path / "test" / "test_processor_id_manual" / "main.cpp",
     cxxtrace_project_path / "test" / "test_processor_id_manual" / "sample_checker.cpp",
-    cxxtrace_project_path / "test" / "test_ring_queue.cpp",
-    cxxtrace_project_path / "test" / "test_ring_queue_concurrency_util.cpp",
     cxxtrace_project_path / "test" / "test_snapshot.cpp",
-    cxxtrace_project_path / "test" / "test_span.cpp",
     cxxtrace_project_path / "test" / "test_span_thread.cpp",
-    cxxtrace_project_path / "test" / "test_string.cpp",
     cxxtrace_project_path / "test" / "test_thread.cpp",
-    cxxtrace_project_path / "test" / "thread.cpp",
 }
 
 # TODO(strager): IWYU mangles these files in harmful ways which can't be worked
@@ -207,6 +191,8 @@ def compute_fixes(
         "posix.imp",
         "vendor-benchmark.imp",
         "vendor-cdschecker.imp",
+        "vendor-googletest.imp",
+        "vendor-nlohmann-json.imp",
         "vendor-relacy.imp",
     )
 
@@ -324,6 +310,18 @@ def fix_iwyu_command(
             continue
         if arg in ("-iframework", "-isysroot", "-isystem"):
             arg_index += 2
+            continue
+
+        # HACK(strager): include-what-you-use crashes when given a pre-compiled
+        # header. Strip any PCH files.
+        if arg == "-include":
+            arg_index += 1
+            included_file = command[arg_index]
+            arg_index += 1
+            is_pch_include = included_file.endswith(".hxx")
+            if not is_pch_include:
+                fixed_command.append("-include")
+                fixed_command.append(included_file)
             continue
 
         fixed_command.append(arg)

@@ -1,16 +1,13 @@
 #include "concurrency_test_runner.h"
 #include "cxxtrace_concurrency_test_base.h"
-#include <cassert>
-#include <condition_variable>
+#include <condition_variable> // IWYU pragma: keep
 #include <cxxtrace/thread.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <mutex>
-#include <optional>
+#include <ostream>
 #include <sstream>
 #include <string>
-#include <thread>
-#include <vector>
 
 using testing::ElementsAre;
 

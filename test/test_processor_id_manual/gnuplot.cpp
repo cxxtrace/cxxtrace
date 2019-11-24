@@ -1,11 +1,16 @@
 #include "test_processor_id_manual.h"
 #include <algorithm>
+#include <cassert>
+#include <chrono>
 #include <cstddef>
-#include <cxxtrace/detail/thread.h>
+#include <cstdint>
+#include <cxxtrace/clock.h>
+#include <cxxtrace/detail/processor.h>
 #include <cxxtrace/thread.h>
-#include <iostream>
 #include <ostream>
 #include <set>
+#include <tuple>
+#include <unordered_map>
 #include <vector>
 
 using cxxtrace::thread_id;

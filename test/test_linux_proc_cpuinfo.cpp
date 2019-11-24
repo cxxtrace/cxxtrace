@@ -1,10 +1,8 @@
 #include "linux_proc_cpuinfo.h"
-#include <cxxtrace/detail/have.h>
-#include <cxxtrace/string.h>
+#include <cxxtrace/detail/have.h> // IWYU pragma: keep
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <optional>
-#include <sstream>
 #include <stdexcept>
 
 using testing::ElementsAre;

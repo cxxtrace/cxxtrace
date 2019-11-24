@@ -1,8 +1,8 @@
 #include "test_span.h"
 #include <cxxtrace/clock.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #define CXXTRACE_SPAN(category, name)                                          \

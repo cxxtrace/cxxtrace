@@ -1,9 +1,11 @@
 #include "exhaustive_rng.h"
 #include "gtest_scoped_trace.h"
+#include <cstddef>
 #include <gtest/gtest.h>
-#include <iterator>
 #include <numeric>
 #include <optional>
+#include <ostream>
+#include <sstream>
 #include <utility>
 #include <vector>
 

@@ -3,12 +3,18 @@
 #include "test_processor_id_manual.h"
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <cxxtrace/clock.h>
 #include <gtest/gtest.h>
+#include <iterator>
 #include <map>
+#include <ostream>
+#include <sstream>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 using cxxtrace::thread_id;
 using cxxtrace::detail::processor_id;

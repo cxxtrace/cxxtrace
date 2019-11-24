@@ -2,6 +2,9 @@
 #define CXXTRACE_SAMPLE_CHECKER_H
 
 #include "test_processor_id_manual.h"
+#include <cxxtrace/clock.h>
+#include <cxxtrace/detail/processor.h>
+#include <cxxtrace/thread.h>
 #include <gtest/gtest.h>
 #include <map>
 #include <unordered_map>
