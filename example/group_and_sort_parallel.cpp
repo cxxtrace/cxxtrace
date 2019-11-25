@@ -5,15 +5,14 @@
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
-#include <deque>
 #include <iostream>
 #include <iterator>
 #include <map>
-#include <mutex>
 #include <pthread.h>
 #include <random>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace example {
