@@ -78,7 +78,7 @@ template<class Func>
 auto
 spawn_thread(Func&& routine) -> cxxtrace::detail::cdschecker::thrd_t
 {
-  auto unique_routine = std::make_unique<Func>(std::forward<Func&&>(routine));
+  auto unique_routine = std::make_unique<Func>(std::forward<Func>(routine));
 
   auto call_routine = [](void* opaque) noexcept->void
   {
