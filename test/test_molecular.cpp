@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/molecular.h>
 #include <cxxtrace/detail/real_synchronization.h>
@@ -9,6 +9,7 @@
 #include <iterator>
 #include <limits>
 #include <type_traits>
+// IWYU pragma: no_include <memory>
 
 using cxxtrace::detail::largest_lock_free_atomic_value_type;
 

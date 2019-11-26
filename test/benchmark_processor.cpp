@@ -5,6 +5,10 @@
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/warning.h>
 
+#if CXXTRACE_HAVE_RSEQ
+#include <cxxtrace/detail/rseq.h>
+#endif
+
 namespace cxxtrace_test {
 template<class ProcessorIDLookup>
 class get_current_processor_id_benchmark : public benchmark_fixture

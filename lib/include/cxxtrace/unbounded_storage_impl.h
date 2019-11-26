@@ -11,7 +11,6 @@
 #include <cxxtrace/thread.h>
 #include <cxxtrace/unbounded_unsafe_storage_impl.h>
 #include <mutex> // IWYU pragma: keep
-#include <utility>
 
 namespace cxxtrace {
 template<class ClockSample>

@@ -2,7 +2,7 @@
 #include "gtest_scoped_trace.h"
 #include "reference_ring_queue.h"
 #include "ring_queue_wrapper.h"
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cxxtrace/detail/mpsc_ring_queue.h>
 #include <cxxtrace/detail/real_synchronization.h>
 #include <cxxtrace/detail/ring_queue.h>
@@ -13,9 +13,8 @@
 #include <limits>
 #include <ostream>
 #include <signal.h>
-#include <sstream>
-#include <utility>
 #include <vector>
+// IWYU pragma: no_include <algorithm>
 
 #define RING_QUEUE typename TestFixture::template ring_queue
 

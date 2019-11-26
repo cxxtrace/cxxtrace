@@ -1,0 +1,13 @@
+[
+  {"symbol": ["std::allocator", "private", "<memory>", "public"]},
+
+  # HACK(strager): include-what-you-use likes to think that users of
+  # std::string, std::vector, etc. are also using std::allocator. Avoid the
+  # spurious <memory> include.
+  # NOTE(strager): These directives should come after the primary std::allocator
+  # -> <memory> directive.
+  {"symbol": ["std::allocator", "private", "<benchmark/benchmark.h>", "public"]},
+  {"symbol": ["std::allocator", "private", "<ostream>", "public"]},
+  {"symbol": ["std::allocator", "private", "<string>", "public"]},
+  {"symbol": ["std::allocator", "private", "<vector>", "public"]},
+]

@@ -3,7 +3,7 @@
 
 #include <cxxtrace/string.h>
 #include <spawn.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 namespace cxxtrace_test {
 class spawn_file_actions

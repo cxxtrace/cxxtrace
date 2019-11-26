@@ -34,6 +34,8 @@
   {"symbol": ["std::memory_order_consume", "private", "<atomic>", "public"]},
   {"symbol": ["std::memory_order_release", "private", "<atomic>", "public"]},
   {"symbol": ["std::memory_order_seq_cst", "private", "<atomic>", "public"]},
+  {"symbol": ["std::pair", "private", "<utility>", "public"]},
+  {"symbol": ["std::uniform_int_distribution", "private", "<random>", "public"]},
   {"symbol": ["uint16_t", "private", "<cstdint>", "public"]},
   {"symbol": ["uint32_t", "private", "<cstdint>", "public"]},
   {"symbol": ["uint64_t", "private", "<cstdint>", "public"]},

@@ -11,8 +11,9 @@
 #include <thread>
 
 #if defined(__linux__) && defined(_GNU_SOURCE)
-#include "stringify.h"
+#include "stringify.h" // IWYU pragma: keep
 #include <filesystem>
+// IWYU pragma: no_include "stringify_impl.h"
 #endif
 
 #if CXXTRACE_HAVE_PTHREAD_SETNAME_NP

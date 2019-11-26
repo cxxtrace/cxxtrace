@@ -4,6 +4,8 @@
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
 #include <gtest/gtest.h>
+// IWYU pragma: no_include <algorithm>
+// IWYU pragma: no_include <memory>
 
 #define CXXTRACE_SPAN(category, name)                                          \
   CXXTRACE_SPAN_WITH_CONFIG(this->get_cxxtrace_config(), category, name)

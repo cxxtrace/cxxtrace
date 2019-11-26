@@ -59,6 +59,7 @@ blacklisted_cxxtrace_outputs = {
     / "detail"
     / "real_synchronization.h",
     cxxtrace_project_path / "lib" / "include" / "cxxtrace" / "span.h",
+    cxxtrace_project_path / "test" / "test_chrome_trace_event_format.cpp",
     cxxtrace_project_path / "test" / "test_string.cpp",
 }
 
@@ -183,11 +184,13 @@ def compute_fixes(
     command_cwd: pathlib.Path,
     file_whitelist: typing.Collection[pathlib.Path],
 ) -> "IWYUFixes":
-    iwyu_mapping_files = ("libcxx.imp", "stl.c.headers.imp")
+    iwyu_mapping_files = ("libcxx.imp", "gcc.stl.headers.imp", "stl.c.headers.imp")
     project_mapping_files = (
         "apple.imp",
+        "glibc.imp",
         "c++.imp",
         "libc++.imp",
+        "libstdc++.imp",
         "posix.imp",
         "vendor-benchmark.imp",
         "vendor-cdschecker.imp",

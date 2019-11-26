@@ -1,34 +1,31 @@
 #include "event.h"
-#include "stringify.h"
+#include "stringify.h" // IWYU pragma: keep
 #include "thread.h"
-#include <algorithm>
 #include <array>
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/thread.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <gtest/gtest.h>
 #include <optional>
 #include <string>
 #include <thread>
-#include <utility>
-#include <vector>
+// IWYU pragma: no_include "stringify_impl.h"
 
 #if CXXTRACE_HAVE_PTHREAD_GETNAME_NP || CXXTRACE_HAVE_PTHREAD_THREADID_NP
 #include <pthread.h>
 #endif
 
 #if CXXTRACE_HAVE_MACH_THREAD
+#include <algorithm>
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 #include <mach/mach_vm.h>
 #include <stdexcept>
+#include <utility>
 #endif
 
 namespace {

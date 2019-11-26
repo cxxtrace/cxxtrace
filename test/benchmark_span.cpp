@@ -4,7 +4,7 @@
 #include <array>
 #include <benchmark/benchmark.h>
 #include <cassert>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cxxtrace/clock.h>
 #include <cxxtrace/config.h>
 #include <cxxtrace/mpsc_ring_queue_processor_local_storage.h>

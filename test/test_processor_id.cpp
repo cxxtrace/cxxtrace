@@ -1,6 +1,9 @@
 #include "test_processor_id.h"
-#include <cstddef>
+#include <chrono>
+#include <cstddef> // IWYU pragma: keep
 #include <cstdint>
+#include <cstdio>
+#include <iostream>
 #include <thread>
 #include <vector>
 

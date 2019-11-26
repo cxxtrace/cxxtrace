@@ -1,7 +1,6 @@
 #ifndef CXXTRACE_DETAIL_LAZY_THREAD_LOCAL_H
 #define CXXTRACE_DETAIL_LAZY_THREAD_LOCAL_H
 
-#include <cstdint>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/detail/workarounds.h>
 #include <new>
@@ -10,6 +9,10 @@
 
 #if CXXTRACE_HAVE_CXA_THREAD_ATEXIT
 #include <cxxabi.h>
+#endif
+
+#if CXXTRACE_HAVE_TLV_ATEXIT
+#include <cstdint>
 #endif
 
 namespace cxxtrace {

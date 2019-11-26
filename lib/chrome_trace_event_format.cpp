@@ -2,11 +2,11 @@
 #include <cassert>
 #include <charconv>
 #include <chrono>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/iostream.h>
-#include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/string.h>

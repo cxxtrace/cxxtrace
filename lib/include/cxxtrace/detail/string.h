@@ -7,7 +7,7 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdio>
-#include <cxxtrace/detail/workarounds.h>
+#include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <exception>
 #include <limits>
 #include <system_error>

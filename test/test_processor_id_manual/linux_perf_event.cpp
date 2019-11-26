@@ -1,24 +1,32 @@
 #include "linux_proc_cpuinfo.h"
 #include "mmap_mapping.h"
 #include "test_processor_id_manual.h"
-#include <atomic>
 #include <cassert>
-#include <cerrno>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
 #include <cstdio>
+#include <cxxtrace/clock.h>
 #include <cxxtrace/detail/atomic_ref.h>
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/detail/warning.h>
+#include <cxxtrace/thread.h>
+#include <exception>
 #include <iomanip>
 #include <iostream>
 #include <linux/perf_event.h>
 #include <memory>
 #include <optional>
+#include <string>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/syscall.h>
+#include <sys/types.h>
 #include <unistd.h>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 // Terminal code to reset previously-written SGR codes. Specifically, ECMA-048
 // SGR with the "default rendition" parameter.

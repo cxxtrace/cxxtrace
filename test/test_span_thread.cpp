@@ -8,15 +8,21 @@
 #include <condition_variable>
 #include <cstddef>
 #include <cxxtrace/config.h>
+#include <cxxtrace/sample.h>
 #include <cxxtrace/snapshot.h>
 #include <cxxtrace/span.h>
+#include <cxxtrace/string.h>
 #include <cxxtrace/thread.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <mutex>
+#include <ostream>
 #include <random>
+#include <stdexcept>
+#include <string>
 #include <string_view>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #if defined(__clang__)

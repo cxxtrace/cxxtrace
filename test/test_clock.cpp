@@ -10,6 +10,7 @@
 #include <iterator>
 #include <ratio>
 #include <thread>
+#include <type_traits> // IWYU pragma: keep
 #include <utility>
 #include <vector>
 // IWYU pragma: no_include "cxxtrace_algorithm_impl.h"

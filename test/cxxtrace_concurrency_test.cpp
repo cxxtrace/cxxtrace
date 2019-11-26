@@ -4,7 +4,6 @@
 
 #if defined(__linux__)
 #include "memory_resource.h"
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #endif

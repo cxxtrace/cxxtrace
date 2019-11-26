@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cxxtrace/detail/have.h>
@@ -35,13 +34,20 @@
 #include <mach/thread_info.h>
 #endif
 
+#if CXXTRACE_HAVE_MACH_THREAD || CXXTRACE_HAVE_PTHREAD_THREADID_NP
+#include <cstdint>
+#endif
+
 #if CXXTRACE_HAVE_PROC_PIDINFO && CXXTRACE_HAVE_GETPID
 #include <libproc.h>
 #include <unistd.h>
 #endif
 
-#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
+#if CXXTRACE_HAVE_PTHREAD_GETNAME_NP || CXXTRACE_HAVE_PTHREAD_THREADID_NP
 #include <pthread.h>
+#endif
+
+#if CXXTRACE_HAVE_PTHREAD_THREADID_NP
 #include <sys/proc_info.h>
 #endif
 

@@ -1,6 +1,8 @@
 #include <cxxtrace/detail/have.h> // IWYU pragma: keep
 
 #if CXXTRACE_HAVE_RSEQ
+#include <atomic>
+#include <cstdint>
 #include <cstring>
 #include <cxxtrace/detail/atomic_ref.h>
 #include <cxxtrace/detail/rseq.h>

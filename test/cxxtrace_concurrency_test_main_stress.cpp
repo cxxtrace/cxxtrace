@@ -7,7 +7,6 @@
 #include "concurrency_test_runner.h"
 #include "cxxtrace_concurrency_test.h"
 #include "cxxtrace_concurrency_test_base.h"
-#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <chrono>

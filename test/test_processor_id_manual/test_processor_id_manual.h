@@ -8,6 +8,7 @@
 #include <cxxtrace/thread.h>
 #include <deque>
 #include <iosfwd>
+#include <memory>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>

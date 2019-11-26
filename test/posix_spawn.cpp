@@ -5,11 +5,9 @@
 #include <cstdlib>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/string.h>
-#include <ostream>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <system_error>
-#include <unistd.h>
 // IWYU pragma: no_include "stringify_impl.h"
 
 #if CXXTRACE_HAVE_NS_GET_ENVIRON

@@ -8,12 +8,12 @@
 #include <cstdio>
 #include <cxxtrace/detail/debug_source_location.h>
 #include <cxxtrace/detail/processor.h>
-#include <functional>
 #include <numeric>
 #include <ostream>
 #include <setjmp.h>
 #include <string>
 // IWYU pragma: no_include "relacy_synchronization.h"
+// IWYU pragma: no_include <functional>
 // IWYU pragma: no_include <relacy/context_base_impl.hpp>
 
 #if CXXTRACE_ENABLE_CONCURRENCY_STRESS

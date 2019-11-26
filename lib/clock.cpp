@@ -5,7 +5,6 @@
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/uninitialized.h>
 #include <ostream>
-#include <stdexcept>
 #include <sys/time.h>
 // IWYU pragma: no_include <ratio>
 
@@ -13,6 +12,7 @@
 #include <mach/kern_return.h>
 #include <mach/mach_error.h>
 #include <mach/mach_time.h>
+#include <stdexcept>
 #endif
 
 #if CXXTRACE_HAVE_CLOCK_GETTIME

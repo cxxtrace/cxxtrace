@@ -3,13 +3,13 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstdint>
 #include <cxxtrace/detail/have.h>
 #include <cxxtrace/uninitialized.h>
 #include <iosfwd>
 #include <sys/time.h>
 
 #if CXXTRACE_HAVE_MACH_TIME
+#include <cstdint>
 #include <mach/mach_time.h>
 #endif
 

@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <cxxtrace/string.h>
 #include <fstream>
-#include <istream>
 #include <optional>
 #include <sstream>
 #include <stdexcept>

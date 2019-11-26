@@ -2,16 +2,18 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cstdint>
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/processor.h>
 #include <cxxtrace/thread.h>
 #include <ostream>
 #include <set>
-#include <tuple>
 #include <unordered_map>
 #include <vector>
+// IWYU pragma: no_include <tuple>
+// IWYU pragma: no_include <type_traits>
+// IWYU pragma: no_include <utility>
 
 using cxxtrace::thread_id;
 using cxxtrace::detail::processor_id;

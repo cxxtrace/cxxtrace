@@ -2,7 +2,6 @@
 #define CXXTRACE_DETAIL_QUEUE_SINK_H
 
 #include <cassert>
-#include <memory>
 #include <utility> // IWYU pragma: keep
 #include <vector>
 

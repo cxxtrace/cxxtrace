@@ -3,9 +3,10 @@
 
 #include <cstdint>
 #include <cxxtrace/detail/have.h>
+// IWYU pragma: no_include <linux/rseq.h>
 
 #if CXXTRACE_HAVE_RSEQ
-struct rseq;
+struct rseq; // IWYU pragma: keep
 #endif
 
 namespace cxxtrace {

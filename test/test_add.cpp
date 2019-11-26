@@ -1,11 +1,9 @@
 #include "gtest_scoped_trace.h"
-#include <algorithm>
 #include <cstdint>
 #include <cxxtrace/detail/add.h>
 #include <gtest/gtest.h>
 #include <limits>
 #include <optional>
-#include <ostream>
 #include <random>
 #include <sstream>
 

@@ -1,0 +1,7 @@
+[
+  {"include": ["<asm/errno-base.h>", "private", "<errno.h>", "public"]},
+  {"include": ["<bits/mman-linux.h>", "private", "<sys/mman.h>", "public"]},
+  {"include": ["<bits/time.h>", "private", "<time.h>", "public"]},
+  {"include": ["<bits/types/clockid_t.h>", "private", "<time.h>", "public"]},
+  {"include": ["<bits/types/struct_timespec.h>", "private", "<time.h>", "public"]},
+]

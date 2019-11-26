@@ -11,7 +11,6 @@
 #include <cerrno>
 #include <charconv>
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cxxtrace/detail/file_descriptor.h>
@@ -19,22 +18,22 @@
 #include <cxxtrace/string.h>
 #include <dlfcn.h>
 #include <iterator>
-#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <sys/types.h>
 #include <system_error>
 #include <unistd.h>
 #include <vector>
 // IWYU pragma: no_include "stringify_impl.h"
 
 #if CXXTRACE_HAVE_NS_GET_EXECUTABLE_PATH
+#include <cstdint>
 #include <mach-o/dyld.h>
 #endif
 
 #if CXXTRACE_HAVE_LINUX_PROCFS
 #include <exception>
-#include <unistd.h>
 #endif
 
 namespace {

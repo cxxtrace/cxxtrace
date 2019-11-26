@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 #include <mutex>
 #include <ostream>
-#include <sstream>
 #include <string>
 
 using testing::ElementsAre;

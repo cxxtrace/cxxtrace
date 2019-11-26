@@ -1,13 +1,13 @@
 #include "exhaustive_rng.h"
 #include "gtest_scoped_trace.h"
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <gtest/gtest.h>
 #include <numeric>
 #include <optional>
 #include <ostream>
-#include <sstream>
 #include <utility>
 #include <vector>
+// IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {
 TEST(test_exhaustive_rng, rng_is_exhaustive_with_no_calls)

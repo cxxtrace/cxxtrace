@@ -16,7 +16,7 @@
 #define CXXTRACE_SCOPED_TRACE()                                                \
   auto CXXTRACE_CPP_PASTE(_cxxtrace_scoped_trace_, __LINE__) =                 \
     ::cxxtrace_test::detail::scoped_trace_builder{ __FILE__, __LINE__ } ^=     \
-    std::ostringstream()
+    static_cast<std::ostream&&>(std::ostringstream())
 
 namespace cxxtrace_test {
 namespace detail {

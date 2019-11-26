@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
+#include <functional>                    // IWYU pragma: keep
 #include <new>
 #include <ostream>
 #include <string>

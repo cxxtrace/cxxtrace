@@ -1,5 +1,5 @@
 #include "event.h"
-#include <mutex>
+#include <mutex> // IWYU pragma: keep
 
 namespace cxxtrace_test {
 auto
