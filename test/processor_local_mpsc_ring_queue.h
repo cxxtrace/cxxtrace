@@ -75,11 +75,6 @@ public:
   // queue is (Capacity * processor_count). Switch to a better name.
   static inline constexpr const auto capacity = size_type{ Capacity };
 
-  // @@@ delete this overload
-  explicit processor_local_mpsc_ring_queue()
-    : processor_local_mpsc_ring_queue{ 8 }
-  {}
-
   explicit processor_local_mpsc_ring_queue(int processor_count)
     : queue_by_processor{ static_cast<std::size_t>(processor_count) }
   {}
