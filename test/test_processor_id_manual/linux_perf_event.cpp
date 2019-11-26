@@ -304,6 +304,7 @@ thread_schedule_tracer::get_thread_executions() const -> thread_executions
              "PROT_WRITE should have prevented data from being overwritten");
       auto scheduler_events = std::vector<scheduler_event>{};
       for (auto vindex = begin_vindex; vindex < end_vindex;) {
+        // @@@ do I need launder here...?
         const auto* event_header = reinterpret_cast<const ::perf_event_header*>(
           processor_tracer.data_at(vindex % ring_buffer_size));
         if (event_header->size == 0) {
