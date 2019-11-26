@@ -369,10 +369,9 @@ thread_name_set::fetch_and_remember_name_of_current_thread_pthread(
 
   auto& thread_name =
     this->allocate_name(current_thread_id, max_thread_name_length);
-  auto rc = ::pthread_getname_np(
+  [[maybe_unused]] auto rc = ::pthread_getname_np(
     ::pthread_self(), thread_name.data(), thread_name.size() + 1);
   assert(rc == 0);
-  static_cast<void>(rc);
   assert(thread_name.data()[thread_name.size()] == '\0');
   thread_name.resize(std::strlen(thread_name.c_str()));
 }
