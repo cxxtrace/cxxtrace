@@ -63,8 +63,7 @@ public:
   auto run_thread(int thread_index) -> void
   {
     assert(thread_index < int(var_pointers.size()));
-    this->var_pointers[thread_index] =
-      reinterpret_cast<std::uintptr_t>(&*this->var);
+    this->var_pointers[thread_index] = &*this->var;
   }
 
   auto tear_down() -> void
@@ -74,7 +73,7 @@ public:
     CXXTRACE_ASSERT(this->var_pointers[2] != this->var_pointers[0]);
   }
 
-  std::array<std::uintptr_t, 3> var_pointers;
+  std::array<int *, 3> var_pointers;
   sync::thread_local_var<int> var{};
 };
 
@@ -84,8 +83,7 @@ public:
   auto run_thread(int thread_index) -> void
   {
     assert(thread_index < int(var_pointers.size()));
-    this->var_pointers[thread_index] =
-      reinterpret_cast<std::uintptr_t>(&*this->var);
+    this->var_pointers[thread_index] = &*this->var;
   }
 
   auto tear_down() -> void
@@ -95,7 +93,7 @@ public:
     CXXTRACE_ASSERT(this->var_pointers[2] != this->var_pointers[0]);
   }
 
-  std::array<std::uintptr_t, 3> var_pointers;
+  std::array<int *, 3> var_pointers;
   static inline sync::thread_local_var<int> var{};
 };
 
