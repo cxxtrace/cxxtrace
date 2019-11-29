@@ -15,27 +15,44 @@ struct rseq; // IWYU pragma: keep
 
 // @@@ namespace xxx_ properly (how?).
 // @@@ tweak casts
-#define CXXTRACE_BEGIN_PREEMPTABLE(rseq, preempt_label)                        \
-  { /* @@@ document scope open */                                              \
-    /* @@@ dedupe section name */ \
-     \
-    static const auto __attribute__((section(".data_cxxtrace_rseq"))) \
-      xxx_critical_section_descriptor = ::rseq_cs{             \
-      0,                                                                       \
-      0,                                                                       \
-      (std::uintptr_t) && xxx_begin,                                           \
-      (std::uintptr_t) && xxx_end - (std::uintptr_t) && xxx_begin,             \
-      (std::uintptr_t) && xxx_pre_preempted + 7,                               \
-    };                                                                         \
-                                                                               \
-  xxx_begin : {                                                                \
-    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                   \
-    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                \
-    /* @@@ assert lock-free */                                                 \
+#define CXXTRACE_BEGIN_PREEMPTABLE(rseq, preempt_label)                                                     \
+  { /* @@@ document scope open */                                                                           \
+    /* @@@ dedupe section name */                                                                           \
+                                                                                                            \
+    ::rseq_cs* critical_section_descriptor;                                                                 \
+    asm goto(".pushsection .data_cxxtrace_rseq\n"                                                                 \
+             ".critical_section_descriptor_%=:\n"                                                           \
+             ".long 0\n"                                                                                    \
+             ".long 0\n"                                                                                    \
+             ".quad %l[xxx_begin]\n"                                                                        \
+             ".quad %l[xxx_end] - %l[xxx_begin]\n"                                                          \
+             ".quad %l[xxx_pre_preempted] + 7\n"                                                            \
+             ".popsection\n"                                                                                \
+             "leaq .critical_section_descriptor_%=(%%rip), "                                                \
+             "%[critical_section_descriptor]\n"                                                             \
+             :                                                                                              \
+             : [critical_section_descriptor] "r"(critical_section_descriptor)                               \
+             : "memory", "r11"                                                                              \
+             : xxx_begin, xxx_end, xxx_pre_preempted);                                                      \
+                                                                                                            \
+    /*static const auto __attribute__((section(".data_cxxtrace_rseq")))                                     \
+      xxx_critical_section_descriptor = ::rseq_cs{                                                          \
+      0,                                                                                                    \
+      0,                                                                                                    \
+      (std::uintptr_t) && xxx_begin,                                                                        \
+      (std::uintptr_t) && xxx_end - (std::uintptr_t) && xxx_begin,                                          \
+      (std::uintptr_t) && xxx_pre_preempted + 7,                                                            \
+    };*/                                                                                                    \
+                                                                                                            \
+  xxx_begin : {                                                                                             \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
+    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                                             \
+    /* @@@ assert lock-free */                                                                              \
     ::cxxtrace::detail::atomic_ref<unsigned long long/*@@@*/>{ (rseq).get_rseq()->rseq_cs.ptr }.store(    \
-      (std::uintptr_t)&xxx_critical_section_descriptor,                        \
-      ::std::memory_order_relaxed);                                            \
-    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                   \
+      /*(std::uintptr_t)&xxx_critical_section_descriptor,*/ \
+      (std::uintptr_t)&critical_section_descriptor, \
+      ::std::memory_order_relaxed); \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
   }
 
 // @@@ see which of the signal fences and asm gotos are necessary.
