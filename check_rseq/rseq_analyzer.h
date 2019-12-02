@@ -12,7 +12,6 @@
 #include <libelf/libelf.h>
 #include <optional>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <variant>
 #include <vector>
@@ -40,26 +39,6 @@ struct rseq_problem
     machine_address critical_section_address;
     std::string critical_section_function;
 
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->critical_section_address,
-                      this->critical_section_function);
-    }
-
-  public:
-    friend auto operator==(const empty_critical_section& x,
-                           const empty_critical_section& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const empty_critical_section& x,
-                           const empty_critical_section& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
-
     friend auto operator<<(std::ostream&, const empty_critical_section&)
       -> std::ostream&;
   };
@@ -70,25 +49,6 @@ struct rseq_problem
     machine_address function_address;
     std::string function_name;
 
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->function_address, this->function_name);
-    }
-
-  public:
-    friend auto operator==(const empty_function& x,
-                           const empty_function& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const empty_function& x,
-                           const empty_function& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
-
     friend auto operator<<(std::ostream&, const empty_function&)
       -> std::ostream&;
   };
@@ -97,25 +57,6 @@ struct rseq_problem
   {
   public:
     machine_address descriptor_address;
-
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->descriptor_address);
-    }
-
-  public:
-    friend auto operator==(const incomplete_rseq_descriptor& x,
-                           const incomplete_rseq_descriptor& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const incomplete_rseq_descriptor& x,
-                           const incomplete_rseq_descriptor& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
 
     friend auto operator<<(std::ostream&, const incomplete_rseq_descriptor&)
       -> std::ostream&;
@@ -127,27 +68,6 @@ struct rseq_problem
     machine_address interrupt_instruction_address;
     std::string interrupt_instruction_string;
     std::string interrupt_instruction_function;
-
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->interrupt_instruction_address,
-                      this->interrupt_instruction_string,
-                      this->interrupt_instruction_function);
-    }
-
-  public:
-    friend auto operator==(const interrupt& x, const interrupt& y) noexcept
-      -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const interrupt& x, const interrupt& y) noexcept
-      -> bool
-    {
-      return !(x == y);
-    }
 
     friend auto operator<<(std::ostream&, const interrupt&) -> std::ostream&;
   };
@@ -161,29 +81,6 @@ struct rseq_problem
     std::array<std::optional<std::byte>, rseq_signature_size> actual_signature;
     std::string abort_function_name;
 
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->signature_address,
-                      this->abort_address,
-                      this->expected_signature,
-                      this->actual_signature,
-                      this->abort_function_name);
-    }
-
-  public:
-    friend auto operator==(const invalid_abort_signature& x,
-                           const invalid_abort_signature& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const invalid_abort_signature& x,
-                           const invalid_abort_signature& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
-
     friend auto operator<<(std::ostream&, const invalid_abort_signature&)
       -> std::ostream&;
   };
@@ -194,27 +91,6 @@ struct rseq_problem
     machine_address critical_section_start_address;
     machine_address critical_section_post_commit_address;
     std::string critical_section_function;
-
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->critical_section_start_address,
-                      this->critical_section_post_commit_address,
-                      this->critical_section_function);
-    }
-
-  public:
-    friend auto operator==(const inverted_critical_section& x,
-                           const inverted_critical_section& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const inverted_critical_section& x,
-                           const inverted_critical_section& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
 
     friend auto operator<<(std::ostream&, const inverted_critical_section&)
       -> std::ostream&;
@@ -246,26 +122,6 @@ struct rseq_problem
     std::string label_function;
     kind label_kind;
 
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(
-        this->label_address, this->label_function, this->label_kind);
-    }
-
-  public:
-    friend auto operator==(const label_outside_function& x,
-                           const label_outside_function& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const label_outside_function& x,
-                           const label_outside_function& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
-
     friend auto operator<<(std::ostream&, const label_outside_function&)
       -> std::ostream&;
   };
@@ -274,25 +130,6 @@ struct rseq_problem
   {
   public:
     std::string section_name;
-
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->section_name);
-    }
-
-  public:
-    friend auto operator==(const no_rseq_descriptors& x,
-                           const no_rseq_descriptors& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const no_rseq_descriptors& x,
-                           const no_rseq_descriptors& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
 
     friend auto operator<<(std::ostream&, const no_rseq_descriptors&)
       -> std::ostream&;
@@ -304,27 +141,6 @@ struct rseq_problem
     machine_address modifying_instruction_address;
     std::string modifying_instruction_string;
     std::string modifying_instruction_function;
-
-  private:
-    auto members() const noexcept -> decltype(auto)
-    {
-      return std::tie(this->modifying_instruction_address,
-                      this->modifying_instruction_string,
-                      this->modifying_instruction_function);
-    }
-
-  public:
-    friend auto operator==(const stack_pointer_modified& x,
-                           const stack_pointer_modified& y) noexcept -> bool
-    {
-      return x.members() == y.members();
-    }
-
-    friend auto operator!=(const stack_pointer_modified& x,
-                           const stack_pointer_modified& y) noexcept -> bool
-    {
-      return !(x == y);
-    }
 
     friend auto operator<<(std::ostream&, const stack_pointer_modified&)
       -> std::ostream&;
