@@ -54,6 +54,7 @@ public:
   }
 
   // Implies std::memory_order_relaxed.
+  [[gnu::always_inline]] [[gnu::flatten]]
   auto store(value_type value, debug_source_location caller) noexcept -> void
   {
     auto* value_elements =
@@ -69,7 +70,8 @@ public:
       } else {
         std::memcpy(&temp, &value_elements[i], sizeof(temp));
       }
-      this->storage[i].store(temp, std::memory_order_relaxed, caller);
+      // @@@ cast my butt
+      reinterpret_cast<atomic<storage_element_type>*>(&this->storage)[i].store(temp, std::memory_order_relaxed, caller);
     }
   }
 

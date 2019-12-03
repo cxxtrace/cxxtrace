@@ -15,6 +15,14 @@ public:
     : value_{ &value }
   {}
 
+  // @@@ this constructor is non-standard (I think)
+  [[gnu::always_inline]]
+  explicit atomic_ref(std::atomic<T>& value) noexcept(false)
+    : value_{ &reinterpret_cast<T &>(value) }
+  {
+    // @@@ assert size and alignment match (like old atomic_ref impl)
+  }
+
   [[gnu::always_inline]]
   auto load(std::memory_order memory_order = std::memory_order_seq_cst) const
     noexcept -> T

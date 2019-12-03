@@ -63,6 +63,12 @@ public:
     this->write_end_vindex.store(0, CXXTRACE_HERE);
   }
 
+  // @@@ rename, make private, etc.
+  struct begin_push_result {
+    size_type begin_vindex;
+    size_type end_vindex;
+  };
+
   template<class WriterFunction>
   [[gnu::always_inline]] [[gnu::flatten]]
   auto push(size_type count, WriterFunction&& write) noexcept -> void
@@ -138,14 +144,17 @@ private:
   class push_handle
   {
   public:
+    [[gnu::always_inline]] [[gnu::flatten]]
     auto set(size_type index, T value) noexcept -> void
     {
       Sync::allow_preempt(CXXTRACE_HERE);
-      this->storage[(this->write_begin_vindex + index) % capacity].store(
-        std::move(value), CXXTRACE_HERE);
+      auto* storage = reinterpret_cast<molecular<value_type, Sync>*>(&this->storage); // @@@ nasty
+      storage[(this->write_begin_vindex + index) % capacity].store(
+        static_cast<T &&>(value), CXXTRACE_HERE);
     }
 
   private:
+    [[gnu::always_inline]] [[gnu::flatten]]
     explicit push_handle(
       std::array<molecular<value_type, Sync>, capacity>& storage,
       size_type write_begin_vindex) noexcept
@@ -159,8 +168,12 @@ private:
     friend class spsc_ring_queue;
   };
 
+#pragma GCC push_options
+  // @@@ document and tidy
+  // @@@ GCC: if -O is missing, gnu::flatten has no effect on unoptimized builds. =| (ignored in early and late ipa passes)
+#pragma GCC optimize("O")
   [[gnu::always_inline]] [[gnu::flatten]]
-  auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>
+  auto begin_push(size_type count) noexcept -> begin_push_result
   {
     //assert(count > 0);
     //assert(count < this->capacity);
@@ -169,17 +182,18 @@ private:
     auto write_begin_vindex =
       this->write_begin_vindex.load(std::memory_order_relaxed, CXXTRACE_HERE);
     Sync::allow_preempt(CXXTRACE_HERE);
-    auto maybe_new_write_end_vindex = add(write_begin_vindex, count);
-    if (!maybe_new_write_end_vindex.has_value()) {
+    auto maybe_new_write_end_vindex = write_begin_vindex + count;
+    //if (!maybe_new_write_end_vindex.has_value()) {
       //this->abort_due_to_overflow(); @@@
-    }
+    //}
     this->write_end_vindex.store(
-      *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
+      maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
     Sync::allow_preempt(CXXTRACE_HERE);
     Sync::atomic_thread_fence(std::memory_order_acq_rel, CXXTRACE_HERE);
 
-    return { write_begin_vindex, *maybe_new_write_end_vindex };
+    return begin_push_result{ .begin_vindex = write_begin_vindex, .end_vindex = size_type(maybe_new_write_end_vindex/*@@@*/) };
   }
+#pragma GCC pop_options
 
   [[gnu::always_inline]] [[gnu::flatten]]
   auto end_push(size_type write_end_vindex) noexcept -> void

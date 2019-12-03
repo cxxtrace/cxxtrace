@@ -121,7 +121,7 @@ TYPED_TEST(test_ring_queue, pop_returns_single_pushed_int)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(
-    1, [](auto data) noexcept->void { data.set(0, 42); });
+    1, [](auto data) __attribute__((always_inline)) __attribute__((flatten)) { data.set(0, 42); });
 
   auto contents = std::vector<int>{};
   queue.pop_all_into(contents);
@@ -134,7 +134,7 @@ TYPED_TEST(test_ring_queue, pop_returns_many_individually_pushed_ints)
   auto values_to_write = std::vector<int>{ 42, 9001, -1 };
   for (auto value : values_to_write) {
     queue.push(
-      1, [value](auto data) noexcept->void { data.set(0, value); });
+      1, [value](auto data) __attribute__((always_inline)) __attribute__((flatten)) { data.set(0, value); });
   }
 
   auto written_values = pop_all(queue);
@@ -145,7 +145,7 @@ TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(
-    3, [](auto data) noexcept->void {
+    3, [](auto data) __attribute__((always_inline)) __attribute__((flatten)) {
       data.set(0, 42);
       data.set(1, 9001);
       data.set(2, -1);
@@ -158,11 +158,11 @@ TYPED_TEST(test_ring_queue, pop_returns_all_bulk_pushed_ints)
 TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
 {
   auto queue = RING_QUEUE<int, 8>{};
-  queue.push(6, [](auto) noexcept->void{});
+  queue.push(6, [](auto) __attribute__((always_inline)) __attribute__((flatten)) {});
   pop_all(queue);
 
   queue.push(
-    4, [](auto data) noexcept ->void __attribute__((always_inline)) {
+    4, [](auto data) __attribute__((always_inline)) __attribute__((flatten))  {
       data.set(0, 10);
       data.set(1, 20);
       data.set(2, 30);
@@ -177,7 +177,7 @@ TYPED_TEST(test_ring_queue, popping_again_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(
-    5, [](auto data) noexcept->void {
+    5, [](auto data) __attribute__((always_inline)) __attribute__((flatten))   {
       data.set(0, 10);
       data.set(1, 20);
       data.set(2, 30);
@@ -196,7 +196,7 @@ TYPED_TEST(test_ring_queue, reset_then_pop_returns_no_items)
 {
   auto queue = RING_QUEUE<int, 64>{};
   queue.push(
-    5, [](auto data) noexcept->void {
+    5, [](auto data) __attribute__((always_inline)) __attribute__((flatten))    {
       data.set(0, 10);
       data.set(1, 20);
       data.set(2, 30);
@@ -215,7 +215,7 @@ TYPED_TEST(test_ring_queue, overflow_causes_pop_to_return_only_newest_data)
   auto queue = RING_QUEUE<int, 4>{};
   for (auto value : { 10, 20, 30, 40, 50 }) {
     queue.push(
-      1, [value](auto data) noexcept->void { data.set(0, value); });
+      1, [value](auto data) __attribute__((always_inline)) __attribute__((flatten))    { data.set(0, value); });
   }
 
   auto items = pop_all(queue);
@@ -309,12 +309,12 @@ TYPED_TEST(test_ring_queue, DISABLED_overflowing_size_type_is_not_supported_yet)
     std::numeric_limits<typename decltype(queue)::size_type>::max();
   for (auto i = 0; i < max_index; ++i) {
     queue.push(
-      1, [](auto data) noexcept { data.set(0, 0); });
+      1, [](auto data) __attribute__((always_inline)) __attribute__((flatten))    { data.set(0, 0); });
   }
   EXPECT_EXIT(
     {
       queue.push(
-        1, [](auto data) noexcept { data.set(0, 0); });
+        1, [](auto data) __attribute__((always_inline)) __attribute__((flatten))    { data.set(0, 0); });
     },
     testing::KilledBySignal(SIGABRT),
     "Writer overflowed size_type");
@@ -327,13 +327,13 @@ TYPED_TEST(test_ring_queue, reusing_queue_sink_keeps_all_items)
   auto sink = cxxtrace::detail::vector_queue_sink{ items };
 
   queue.push(
-    1, [](auto data) noexcept->void { data.set(0, 100); });
+    1, [](auto data) __attribute__((always_inline)) __attribute__((flatten))    { data.set(0, 100); });
   queue.pop_all_into(sink);
   queue.push(
-    1, [](auto data) noexcept->void { data.set(0, 200); });
+    1, [](auto data) __attribute__((always_inline)) __attribute__((flatten)) { data.set(0, 200); });
   queue.pop_all_into(sink);
   queue.push(
-    1, [](auto data) noexcept->void { data.set(0, 300); });
+    1, [](auto data) __attribute__((always_inline)) __attribute__((flatten)) { data.set(0, 300); });
   queue.pop_all_into(sink);
 
   ASSERT_THAT(items, ElementsAre(100, 200, 300));

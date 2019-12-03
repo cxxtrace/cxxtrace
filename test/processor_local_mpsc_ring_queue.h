@@ -93,6 +93,7 @@ public:
 #pragma GCC optimize("align-loops=1") // OK
 #pragma GCC optimize("inline")
   // @@@ GCC: if -O is missing, gnu::flatten has no effect on unoptimized builds. =| (ignored in early and late ipa passes)
+  // @@@ -O doesn't seem to be enough... leaves need -O as well. #notscience
 #pragma GCC optimize("O")
   //#pragma GCC optimize ("align-labels=1", "align-jumps=1", "align-loops=1") //
   // OK #pragma GCC optimize ("align-labels=1", "align-loops=1") // OK #pragma
