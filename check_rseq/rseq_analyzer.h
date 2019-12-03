@@ -31,23 +31,50 @@ analyze_rseq_critical_section(const elf_function&,
 
 constexpr auto rseq_signature_size = 4;
 
+struct rseq_critical_section
+{
+  machine_address function_address;
+  std::string function;
+
+  machine_address start_address;
+  machine_address post_commit_address;
+  machine_address abort_address;
+};
+
 struct rseq_problem
 {
-  class empty_critical_section
+  class problem_with_critical_section
   {
   public:
-    machine_address critical_section_address;
-    std::string critical_section_function;
+    rseq_critical_section critical_section;
+  };
+
+  class empty_critical_section : public problem_with_critical_section
+  {
+  public:
+    auto critical_section_address() const -> machine_address;
+
+    auto critical_section_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const empty_critical_section&)
       -> std::ostream&;
   };
 
-  class empty_function
+  class empty_function : public problem_with_critical_section
   {
   public:
-    machine_address function_address;
-    std::string function_name;
+    auto function_address() const -> machine_address
+    {
+      return this->critical_section.function_address;
+    }
+
+    auto function_name() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const empty_function&)
       -> std::ostream&;
@@ -62,53 +89,84 @@ struct rseq_problem
       -> std::ostream&;
   };
 
-  class interrupt
+  class interrupt : public problem_with_critical_section
   {
   public:
     machine_address interrupt_instruction_address;
     std::string interrupt_instruction_string;
-    std::string interrupt_instruction_function;
+
+    auto interrupt_instruction_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const interrupt&) -> std::ostream&;
   };
 
-  class invalid_abort_signature
+  class invalid_abort_signature : public problem_with_critical_section
   {
   public:
-    machine_address signature_address;
-    machine_address abort_address;
     std::array<std::byte, rseq_signature_size> expected_signature;
     std::array<std::optional<std::byte>, rseq_signature_size> actual_signature;
-    std::string abort_function_name;
+
+    auto signature_address() const -> machine_address
+    {
+      return this->abort_address() - rseq_signature_size;
+    }
+
+    auto abort_address() const -> machine_address
+    {
+      return this->critical_section.abort_address;
+    }
+
+    auto abort_function_name() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const invalid_abort_signature&)
       -> std::ostream&;
   };
 
-  class inverted_critical_section
+  class inverted_critical_section : public problem_with_critical_section
   {
   public:
-    machine_address critical_section_start_address;
-    machine_address critical_section_post_commit_address;
-    std::string critical_section_function;
+    auto critical_section_start_address() const -> machine_address
+    {
+      return this->critical_section.start_address;
+    }
+
+    auto critical_section_post_commit_address() const -> machine_address
+    {
+      return this->critical_section.post_commit_address;
+    }
+
+    auto critical_section_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const inverted_critical_section&)
       -> std::ostream&;
   };
 
-  class jump_into_critical_section
+  class jump_into_critical_section : public problem_with_critical_section
   {
   public:
     machine_address jump_instruction_address;
     std::string jump_instruction_string;
-    std::string jump_instruction_function;
     machine_address target_instruction_address;
+
+    auto jump_instruction_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const jump_into_critical_section&)
       -> std::ostream&;
   };
 
-  class label_outside_function
+  class label_outside_function : public problem_with_critical_section
   {
   public:
     enum class kind
@@ -118,9 +176,14 @@ struct rseq_problem
       abort,
     };
 
-    machine_address label_address;
-    std::string label_function;
     kind label_kind;
+
+    auto label_address() const -> machine_address;
+
+    auto label_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const label_outside_function&)
       -> std::ostream&;
@@ -135,12 +198,16 @@ struct rseq_problem
       -> std::ostream&;
   };
 
-  class stack_pointer_modified
+  class stack_pointer_modified : public problem_with_critical_section
   {
   public:
     machine_address modifying_instruction_address;
     std::string modifying_instruction_string;
-    std::string modifying_instruction_function;
+
+    auto modifying_instruction_function() const -> std::string
+    {
+      return this->critical_section.function;
+    }
 
     friend auto operator<<(std::ostream&, const stack_pointer_modified&)
       -> std::ostream&;

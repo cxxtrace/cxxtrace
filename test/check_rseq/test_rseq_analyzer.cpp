@@ -11,6 +11,8 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 // TODO(strager): Support 32-bit x86.
@@ -36,6 +38,15 @@ using testing::VariantWith;
 
 #define FIELD(_class, _member, ...)                                            \
   (::testing::Field(#_member, &_class::_member, __VA_ARGS__))
+
+#define PROPERTY_EQ(_class, _member, ...)                                      \
+  PROPERTY(_class, _member, TYPE_OF_PROPERTY(_class, _member){ __VA_ARGS__ })
+
+#define TYPE_OF_PROPERTY(_class, _member)                                      \
+  std::remove_reference_t<decltype(std::declval<const _class&>()._member())>
+
+#define PROPERTY(_class, _member, ...)                                         \
+  (::testing::Property(#_member, &_class::_member, __VA_ARGS__))
 
 namespace cxxtrace_test {
 namespace {
@@ -73,6 +84,9 @@ analyze_rseq_critical_section(const temporary_elf_file& elf,
     /*post_commit_address=*/elf.symbol(post_commit_symbol),
     /*abort_address=*/elf.symbol(abort_symbol));
 }
+
+auto
+stub_critical_section() -> cxxtrace_check_rseq::rseq_critical_section;
 
 auto
 assert_stream_has_default_formatting(std::ostream&) -> void;
@@ -277,8 +291,8 @@ TEST(test_rseq_analyzer_x86, empty_function_is_disallowed)
   EXPECT_THAT(
     analysis.problems(),
     ElementsAre(VariantWith<rseq_problem::empty_function>(AllOf(
-      FIELD_EQ(rseq_problem::empty_function, function_address, 0x1000),
-      FIELD_EQ(
+      PROPERTY_EQ(rseq_problem::empty_function, function_address, 0x1000),
+      PROPERTY_EQ(
         rseq_problem::empty_function, function_name, "empty_function")))));
 }
 
@@ -302,12 +316,12 @@ TEST(test_rseq_analyzer_x86, empty_critical_section_is_disallowed)
     elf, "unimportant_function", "start", "post_commit", "abort");
   EXPECT_THAT(analysis.problems(),
               ElementsAre(VariantWith<rseq_problem::empty_critical_section>(
-                AllOf(FIELD_EQ(rseq_problem::empty_critical_section,
-                               critical_section_address,
-                               elf.symbol("start")),
-                      FIELD_EQ(rseq_problem::empty_critical_section,
-                               critical_section_function,
-                               "unimportant_function")))));
+                AllOf(PROPERTY_EQ(rseq_problem::empty_critical_section,
+                                  critical_section_address,
+                                  elf.symbol("start")),
+                      PROPERTY_EQ(rseq_problem::empty_critical_section,
+                                  critical_section_function,
+                                  "unimportant_function")))));
 }
 
 TEST(test_rseq_analyzer_x86, label_outside_function_is_disallowed)
@@ -333,30 +347,30 @@ TEST(test_rseq_analyzer_x86, label_outside_function_is_disallowed)
     analysis.problems(),
     UnorderedElementsAre(
       VariantWith<rseq_problem::label_outside_function>(AllOf(
-        FIELD_EQ(
+        PROPERTY_EQ(
           rseq_problem::label_outside_function, label_address, start_address),
-        FIELD_EQ(rseq_problem::label_outside_function,
-                 label_function,
-                 "test_function"),
+        PROPERTY_EQ(rseq_problem::label_outside_function,
+                    label_function,
+                    "test_function"),
         FIELD_EQ(rseq_problem::label_outside_function,
                  label_kind,
                  rseq_problem::label_outside_function::kind::start))),
       VariantWith<rseq_problem::label_outside_function>(AllOf(
-        FIELD_EQ(rseq_problem::label_outside_function,
-                 label_address,
-                 post_commit_address),
-        FIELD_EQ(rseq_problem::label_outside_function,
-                 label_function,
-                 "test_function"),
+        PROPERTY_EQ(rseq_problem::label_outside_function,
+                    label_address,
+                    post_commit_address),
+        PROPERTY_EQ(rseq_problem::label_outside_function,
+                    label_function,
+                    "test_function"),
         FIELD_EQ(rseq_problem::label_outside_function,
                  label_kind,
                  rseq_problem::label_outside_function::kind::post_commit))),
       VariantWith<rseq_problem::label_outside_function>(AllOf(
-        FIELD_EQ(
+        PROPERTY_EQ(
           rseq_problem::label_outside_function, label_address, abort_address),
-        FIELD_EQ(rseq_problem::label_outside_function,
-                 label_function,
-                 "test_function"),
+        PROPERTY_EQ(rseq_problem::label_outside_function,
+                    label_function,
+                    "test_function"),
         FIELD_EQ(rseq_problem::label_outside_function,
                  label_kind,
                  rseq_problem::label_outside_function::kind::abort)))));
@@ -382,15 +396,15 @@ TEST(test_rseq_analyzer_x86, end_of_critical_section_must_follow_beginning)
   EXPECT_THAT(
     analysis.problems(),
     UnorderedElementsAre(VariantWith<rseq_problem::inverted_critical_section>(
-      AllOf(FIELD_EQ(rseq_problem::inverted_critical_section,
-                     critical_section_start_address,
-                     elf.symbol("start")),
-            FIELD_EQ(rseq_problem::inverted_critical_section,
-                     critical_section_post_commit_address,
-                     elf.symbol("post_commit")),
-            FIELD_EQ(rseq_problem::inverted_critical_section,
-                     critical_section_function,
-                     "backward_function")))));
+      AllOf(PROPERTY_EQ(rseq_problem::inverted_critical_section,
+                        critical_section_start_address,
+                        elf.symbol("start")),
+            PROPERTY_EQ(rseq_problem::inverted_critical_section,
+                        critical_section_post_commit_address,
+                        elf.symbol("post_commit")),
+            PROPERTY_EQ(rseq_problem::inverted_critical_section,
+                        critical_section_function,
+                        "backward_function")))));
 }
 
 TEST(test_rseq_analyzer_x86, modifying_rsp_in_critical_section_is_disallowed)
@@ -421,9 +435,9 @@ TEST(test_rseq_analyzer_x86, modifying_rsp_in_critical_section_is_disallowed)
                           FIELD_EQ(rseq_problem::stack_pointer_modified,
                                    modifying_instruction_string,
                                    "pushq %rax"),
-                          FIELD_EQ(rseq_problem::stack_pointer_modified,
-                                   modifying_instruction_function,
-                                   "test_function"))),
+                          PROPERTY_EQ(rseq_problem::stack_pointer_modified,
+                                      modifying_instruction_function,
+                                      "test_function"))),
                   VariantWith<rseq_problem::stack_pointer_modified>(
                     AllOf(FIELD_EQ(rseq_problem::stack_pointer_modified,
                                    modifying_instruction_address,
@@ -431,9 +445,9 @@ TEST(test_rseq_analyzer_x86, modifying_rsp_in_critical_section_is_disallowed)
                           FIELD_EQ(rseq_problem::stack_pointer_modified,
                                    modifying_instruction_string,
                                    "popq %rsi"),
-                          FIELD_EQ(rseq_problem::stack_pointer_modified,
-                                   modifying_instruction_function,
-                                   "test_function")))));
+                          PROPERTY_EQ(rseq_problem::stack_pointer_modified,
+                                      modifying_instruction_function,
+                                      "test_function")))));
   }
 
   for (const auto* instruction : { "retq",
@@ -464,9 +478,9 @@ TEST(test_rseq_analyzer_x86, modifying_rsp_in_critical_section_is_disallowed)
                         FIELD_EQ(rseq_problem::stack_pointer_modified,
                                  modifying_instruction_string,
                                  instruction),
-                        FIELD_EQ(rseq_problem::stack_pointer_modified,
-                                 modifying_instruction_function,
-                                 "fancy_function")))));
+                        PROPERTY_EQ(rseq_problem::stack_pointer_modified,
+                                    modifying_instruction_function,
+                                    "fancy_function")))));
   }
 }
 
@@ -496,9 +510,9 @@ TEST(test_rseq_analyzer_x86, interrupt_in_critical_section_is_disallowed)
                  elf.symbol("bad_instruction")),
         FIELD_EQ(
           rseq_problem::interrupt, interrupt_instruction_string, instruction),
-        FIELD_EQ(rseq_problem::interrupt,
-                 interrupt_instruction_function,
-                 "test_function")))));
+        PROPERTY_EQ(rseq_problem::interrupt,
+                    interrupt_instruction_function,
+                    "test_function")))));
   }
 }
 
@@ -804,21 +818,21 @@ TEST(test_rseq_analyzer_x86, abort_label_must_be_signed)
     elf, "broken_function", "start", "post_commit", "abort");
   EXPECT_THAT(analysis.problems(),
               ElementsAre(VariantWith<rseq_problem::invalid_abort_signature>(
-                AllOf(FIELD_EQ(rseq_problem::invalid_abort_signature,
-                               signature_address,
-                               elf.symbol("abort_signature")),
-                      FIELD_EQ(rseq_problem::invalid_abort_signature,
-                               abort_address,
-                               elf.symbol("abort")),
+                AllOf(PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                  signature_address,
+                                  elf.symbol("abort_signature")),
+                      PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                  abort_address,
+                                  elf.symbol("abort")),
                       FIELD_EQ(rseq_problem::invalid_abort_signature,
                                expected_signature,
                                { 0x53_b, 0x30_b, 0x05_b, 0x53_b }),
                       FIELD_EQ(rseq_problem::invalid_abort_signature,
                                actual_signature,
                                { 0x12_b, 0x34_b, 0x56_b, 0x78_b }),
-                      FIELD_EQ(rseq_problem::invalid_abort_signature,
-                               abort_function_name,
-                               "broken_function")))));
+                      PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                  abort_function_name,
+                                  "broken_function")))));
 }
 
 TEST(test_rseq_analyzer_x86, out_of_bounds_abort_signature_is_disallowed)
@@ -842,21 +856,21 @@ TEST(test_rseq_analyzer_x86, out_of_bounds_abort_signature_is_disallowed)
     EXPECT_THAT(
       analysis.problems(),
       ElementsAre(VariantWith<rseq_problem::invalid_abort_signature>(AllOf(
-        FIELD_EQ(rseq_problem::invalid_abort_signature,
-                 signature_address,
-                 elf.symbol("abort") - 4),
-        FIELD_EQ(rseq_problem::invalid_abort_signature,
-                 abort_address,
-                 elf.symbol("abort")),
+        PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                    signature_address,
+                    elf.symbol("abort") - 4),
+        PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                    abort_address,
+                    elf.symbol("abort")),
         FIELD_EQ(rseq_problem::invalid_abort_signature,
                  expected_signature,
                  { 0x53_b, 0x30_b, 0x05_b, 0x53_b }),
         FIELD_EQ(rseq_problem::invalid_abort_signature,
                  actual_signature,
                  { std::nullopt, std::nullopt, std::nullopt, std::nullopt }),
-        FIELD_EQ(rseq_problem::invalid_abort_signature,
-                 abort_function_name,
-                 "misassembled_function")))));
+        PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                    abort_function_name,
+                    "misassembled_function")))));
   }
 
   {
@@ -881,11 +895,11 @@ TEST(test_rseq_analyzer_x86, out_of_bounds_abort_signature_is_disallowed)
     EXPECT_THAT(
       analysis.problems(),
       ElementsAre(VariantWith<rseq_problem::label_outside_function>(AllOf(
-        FIELD_EQ(
+        PROPERTY_EQ(
           rseq_problem::label_outside_function, label_address, abort_address),
-        FIELD_EQ(rseq_problem::label_outside_function,
-                 label_function,
-                 "test_function"),
+        PROPERTY_EQ(rseq_problem::label_outside_function,
+                    label_function,
+                    "test_function"),
         FIELD_EQ(rseq_problem::label_outside_function,
                  label_kind,
                  rseq_problem::label_outside_function::kind::abort)))));
@@ -915,21 +929,21 @@ TEST(test_rseq_analyzer_x86,
     EXPECT_THAT(
       analysis.problems(),
       ElementsAre(VariantWith<rseq_problem::invalid_abort_signature>(
-        AllOf(FIELD_EQ(rseq_problem::invalid_abort_signature,
-                       signature_address,
-                       elf.symbol("abort") - 4),
-              FIELD_EQ(rseq_problem::invalid_abort_signature,
-                       abort_address,
-                       elf.symbol("abort")),
+        AllOf(PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                          signature_address,
+                          elf.symbol("abort") - 4),
+              PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                          abort_address,
+                          elf.symbol("abort")),
               FIELD_EQ(rseq_problem::invalid_abort_signature,
                        expected_signature,
                        { 0x53_b, 0x30_b, 0x05_b, 0x53_b }),
               FIELD_EQ(rseq_problem::invalid_abort_signature,
                        actual_signature,
                        { std::nullopt, std::nullopt, 0x53_b, 0x53_b }),
-              FIELD_EQ(rseq_problem::invalid_abort_signature,
-                       abort_function_name,
-                       "test_function")))));
+              PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                          abort_function_name,
+                          "test_function")))));
   }
 
   {
@@ -955,21 +969,21 @@ TEST(test_rseq_analyzer_x86,
     EXPECT_THAT(analysis.problems(),
                 UnorderedElementsAre(
                   VariantWith<rseq_problem::invalid_abort_signature>(AllOf(
-                    FIELD_EQ(rseq_problem::invalid_abort_signature,
-                             signature_address,
-                             elf.symbol("abort_signature")),
-                    FIELD_EQ(rseq_problem::invalid_abort_signature,
-                             abort_address,
-                             abort_address),
+                    PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                signature_address,
+                                elf.symbol("abort_signature")),
+                    PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                abort_address,
+                                abort_address),
                     FIELD_EQ(rseq_problem::invalid_abort_signature,
                              expected_signature,
                              { 0x53_b, 0x30_b, 0x05_b, 0x53_b }),
                     FIELD_EQ(rseq_problem::invalid_abort_signature,
                              actual_signature,
                              { 0x53_b, 0x53_b, std::nullopt, std::nullopt }),
-                    FIELD_EQ(rseq_problem::invalid_abort_signature,
-                             abort_function_name,
-                             "test_function"))),
+                    PROPERTY_EQ(rseq_problem::invalid_abort_signature,
+                                abort_function_name,
+                                "test_function"))),
                   VariantWith<rseq_problem::label_outside_function>(FIELD_EQ(
                     rseq_problem::label_outside_function,
                     label_kind,
@@ -980,9 +994,14 @@ TEST(test_rseq_analyzer_x86,
 TEST(test_check_rseq_formatting, empty_critical_section_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function = "too_tight";
+  critical_section.start_address = 0x0123456789a;
+  critical_section.post_commit_address = 0x0123456789a;
   string << rseq_problem::empty_critical_section{
-    .critical_section_address = 0x0123456789a,
-    .critical_section_function = "too_tight",
+    {
+      .critical_section = critical_section,
+    },
   };
   EXPECT_EQ(
     string.str(),
@@ -993,9 +1012,13 @@ TEST(test_check_rseq_formatting, empty_critical_section_problem)
 TEST(test_check_rseq_formatting, empty_function_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function_address = 0x0123456789a;
+  critical_section.function = "null_and_void";
   string << rseq_problem::empty_function{
-    .function_address = 0x0123456789a,
-    .function_name = "null_and_void",
+    {
+      .critical_section = critical_section,
+    },
   };
   EXPECT_EQ(string.str(), "null_and_void(0x123456789a): function is empty");
   assert_stream_has_default_formatting(string);
@@ -1004,10 +1027,14 @@ TEST(test_check_rseq_formatting, empty_function_problem)
 TEST(test_check_rseq_formatting, interrupt_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function = "annoying_chatter_box";
   string << rseq_problem::interrupt{
+    {
+      .critical_section = critical_section,
+    },
     .interrupt_instruction_address = 0x0123456789a,
     .interrupt_instruction_string = "syscall",
-    .interrupt_instruction_function = "annoying_chatter_box",
   };
   EXPECT_EQ(
     string.str(),
@@ -1030,12 +1057,15 @@ TEST(test_check_rseq_formatting, invalid_abort_signature_problem)
 {
   {
     auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "sloppy_back_dater";
+    critical_section.abort_address = 0x0123456789a + 4;
     string << rseq_problem::invalid_abort_signature{
-      .signature_address = 0x0123456789a,
-      .abort_address = 0x0123456789e,
+      {
+        .critical_section = critical_section,
+      },
       .expected_signature = { 0x0f_b, 0x1f_b, 0x2f_b, 0x3f_b },
       .actual_signature = { 0x3f_b, 0x2f_b, 0x1f_b, 0x0f_b },
-      .abort_function_name = "sloppy_back_dater"
     };
     EXPECT_EQ(string.str(),
               "sloppy_back_dater(0x123456789a): invalid abort signature: "
@@ -1045,15 +1075,18 @@ TEST(test_check_rseq_formatting, invalid_abort_signature_problem)
 
   {
     auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "banana";
+    critical_section.abort_address = 0x08 + 4;
     string << rseq_problem::invalid_abort_signature{
-      .signature_address = 0x08,
-      .abort_address = 0x0c,
+      {
+        .critical_section = critical_section,
+      },
       .expected_signature = { 0xff_b, 0xfe_b, 0xfd_b, 0xfc_b },
       .actual_signature = { std::nullopt,
                             std::nullopt,
                             std::nullopt,
                             std::nullopt },
-      .abort_function_name = "banana"
     };
     EXPECT_EQ(string.str(),
               "banana(0x8): invalid abort signature: expected ff fe fd fc but "
@@ -1065,10 +1098,14 @@ TEST(test_check_rseq_formatting, invalid_abort_signature_problem)
 TEST(test_check_rseq_formatting, inverted_critical_section_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function = "travel_time";
+  critical_section.start_address = 0x01000008;
+  critical_section.post_commit_address = 0x01000002;
   string << rseq_problem::inverted_critical_section{
-    .critical_section_start_address = 0x01000008,
-    .critical_section_post_commit_address = 0x01000002,
-    .critical_section_function = "travel_time",
+    {
+      .critical_section = critical_section,
+    },
   };
   EXPECT_EQ(
     string.str(),
@@ -1079,10 +1116,14 @@ TEST(test_check_rseq_formatting, inverted_critical_section_problem)
 TEST(test_check_rseq_formatting, jump_into_critical_section_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function = "antsy_itch";
   string << rseq_problem::jump_into_critical_section{
+    {
+      .critical_section = critical_section,
+    },
     .jump_instruction_address = 0x10000005,
     .jump_instruction_string = "jmp $1000001f",
-    .jump_instruction_function = "antsy_itch",
     .target_instruction_address = 0x1000001f,
   };
   EXPECT_EQ(
@@ -1095,9 +1136,15 @@ TEST(test_check_rseq_formatting, label_outside_function_problem)
 {
   {
     auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "bad_start";
+    critical_section.start_address = 0x10000000;
+    critical_section.post_commit_address = 0x1000000f;
+    critical_section.abort_address = 0x100000ff;
     string << rseq_problem::label_outside_function{
-      .label_address = 0x10000000,
-      .label_function = "bad_start",
+      {
+        .critical_section = critical_section,
+      },
       .label_kind = rseq_problem::label_outside_function::kind::start,
     };
     EXPECT_EQ(
@@ -1108,9 +1155,15 @@ TEST(test_check_rseq_formatting, label_outside_function_problem)
 
   {
     auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "sad_post_commit";
+    critical_section.start_address = 0x1ffffffff;
+    critical_section.post_commit_address = 0x20000000;
+    critical_section.abort_address = 0x200000ff;
     string << rseq_problem::label_outside_function{
-      .label_address = 0x20000000,
-      .label_function = "sad_post_commit",
+      {
+        .critical_section = critical_section,
+      },
       .label_kind = rseq_problem::label_outside_function::kind::post_commit,
     };
     EXPECT_EQ(string.str(),
@@ -1121,9 +1174,15 @@ TEST(test_check_rseq_formatting, label_outside_function_problem)
 
   {
     auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "nasty_abort";
+    critical_section.start_address = 0x3000000f;
+    critical_section.post_commit_address = 0x300000ff;
+    critical_section.abort_address = 0x30000000;
     string << rseq_problem::label_outside_function{
-      .label_address = 0x30000000,
-      .label_function = "nasty_abort",
+      {
+        .critical_section = critical_section,
+      },
       .label_kind = rseq_problem::label_outside_function::kind::abort,
     };
     EXPECT_EQ(
@@ -1147,10 +1206,14 @@ TEST(test_check_rseq_formatting, no_rseq_descriptors_problem)
 TEST(test_check_rseq_formatting, stack_pointer_modified_problem)
 {
   auto string = std::ostringstream{};
+  auto critical_section = stub_critical_section();
+  critical_section.function = "stack_smasher";
   string << rseq_problem::stack_pointer_modified{
+    {
+      .critical_section = critical_section,
+    },
     .modifying_instruction_address = 0x00007ffffffffea8,
     .modifying_instruction_string = "retq",
-    .modifying_instruction_function = "stack_smasher",
   };
   EXPECT_EQ(string.str(),
             "stack_smasher(0x7ffffffffea8): stack pointer modified: retq");
@@ -1393,10 +1456,10 @@ TEST(test_check_rseq_file,
       analysis.problems(),
       UnorderedElementsAre(
         VariantWith<rseq_problem::label_outside_function>(AllOf(
-          FIELD_EQ(rseq_problem::label_outside_function,
-                   label_address,
-                   elf_so.symbol("my_rseq_function_start")),
-          FIELD_EQ(rseq_problem::label_outside_function, label_function, ""),
+          PROPERTY_EQ(rseq_problem::label_outside_function,
+                      label_address,
+                      elf_so.symbol("my_rseq_function_start")),
+          PROPERTY_EQ(rseq_problem::label_outside_function, label_function, ""),
           FIELD_EQ(rseq_problem::label_outside_function,
                    label_kind,
                    rseq_problem::label_outside_function::kind::start)))));
@@ -1444,12 +1507,12 @@ TEST(test_check_rseq_file,
     EXPECT_THAT(
       analysis.problems(),
       UnorderedElementsAre(VariantWith<rseq_problem::label_outside_function>(
-        AllOf(FIELD_EQ(rseq_problem::label_outside_function,
-                       label_address,
-                       elf_so.symbol("my_bogus_abort")),
-              FIELD_EQ(rseq_problem::label_outside_function,
-                       label_function,
-                       "_my_rseq_function"),
+        AllOf(PROPERTY_EQ(rseq_problem::label_outside_function,
+                          label_address,
+                          elf_so.symbol("my_bogus_abort")),
+              PROPERTY_EQ(rseq_problem::label_outside_function,
+                          label_function,
+                          "_my_rseq_function"),
               FIELD_EQ(rseq_problem::label_outside_function,
                        label_kind,
                        rseq_problem::label_outside_function::kind::abort)))));
@@ -1508,6 +1571,18 @@ TEST(test_check_rseq_file, incomplete_rseq_descriptors_are_disallowed)
 }
 
 namespace {
+auto
+stub_critical_section() -> cxxtrace_check_rseq::rseq_critical_section
+{
+  return cxxtrace_check_rseq::rseq_critical_section{
+    .function_address = 0x08000000,
+    .function = "stub_function",
+    .start_address = 0x08000010,
+    .post_commit_address = 0x08000020,
+    .abort_address = 0x08000030,
+  };
+}
+
 auto
 assert_stream_has_default_formatting(std::ostream& stream) -> void
 {

@@ -52,13 +52,9 @@ class rseq_analyzer
 {
 public:
   explicit rseq_analyzer(const elf_function& function,
-                         machine_address start_address,
-                         machine_address post_commit_address,
-                         machine_address abort_address)
+                         const rseq_critical_section& critical_section)
     : function{ function }
-    , start_address{ start_address }
-    , post_commit_address{ post_commit_address }
-    , abort_address{ abort_address }
+    , critical_section{ critical_section }
     , capstone{ this->open_capstone() }
   {}
 
@@ -99,18 +95,22 @@ public:
         written_registers.contains(::X86_REG_RSP) || in_group(::X86_GRP_IRET);
       if (modifies_stack_pointer) {
         analysis.add_problem(rseq_problem::stack_pointer_modified{
+          {
+            .critical_section = this->critical_section,
+          },
           .modifying_instruction_address = instruction.address,
           .modifying_instruction_string = instruction_string(instruction),
-          .modifying_instruction_function = this->function.name,
         });
       }
 
       auto interrupts = in_group(::CS_GRP_INT);
       if (interrupts) {
         analysis.add_problem(rseq_problem::interrupt{
+          {
+            .critical_section = this->critical_section,
+          },
           .interrupt_instruction_address = instruction.address,
           .interrupt_instruction_string = instruction_string(instruction),
-          .interrupt_instruction_function = this->function.name,
         });
       }
     }
@@ -120,12 +120,15 @@ public:
       auto target = jump_target(instruction);
       if (target.has_value()) {
         if (this->address_within_critical_section(*target) &&
-            *target != start_address) {
+            *target != this->critical_section.start_address) {
           analysis.add_problem(rseq_problem::jump_into_critical_section{
+            {
+              .critical_section = this->critical_section,
+            },
             .jump_instruction_address = instruction.address,
             .jump_instruction_string = instruction_string(instruction),
-            .jump_instruction_function = this->function.name,
-            .target_instruction_address = *target });
+            .target_instruction_address = *target,
+          });
         }
       }
     }
@@ -133,20 +136,20 @@ public:
 
   auto analyze_abort_signature(rseq_analysis& analysis) const -> void
   {
+    auto abort_address = this->critical_section.abort_address;
     const auto function_begin_address = this->function.base_address;
     const auto function_end_address =
       this->function.base_address + this->function.instruction_bytes.size();
     auto abort_address_or_abort_signature_within_function =
-      function_begin_address <= this->abort_address &&
-      this->abort_address - rseq_signature_size < function_end_address;
+      function_begin_address <= abort_address &&
+      abort_address - rseq_signature_size < function_end_address;
     if (!abort_address_or_abort_signature_within_function) {
       return;
     }
 
     auto actual_signature =
       std::array<std::optional<std::byte>, rseq_signature_size>{};
-    const auto abort_signature_address =
-      this->abort_address - rseq_signature_size;
+    const auto abort_signature_address = abort_address - rseq_signature_size;
     for (auto i = std::size_t{ 0 }; i < actual_signature.size(); ++i) {
       auto address = abort_signature_address + i;
       if (this->address_within_function(address)) {
@@ -165,48 +168,55 @@ public:
                     actual_signature.begin(),
                     actual_signature.end())) {
       analysis.add_problem(rseq_problem::invalid_abort_signature{
-        .signature_address = abort_signature_address,
-        .abort_address = this->abort_address,
+        {
+          .critical_section = this->critical_section,
+        },
         .expected_signature = expected_signature,
         .actual_signature = actual_signature,
-        .abort_function_name = this->function.name,
       });
     }
   }
 
   auto analyze_address_bounds(rseq_analysis& analysis) const -> void
   {
-    if (this->start_address == this->post_commit_address) {
+    if (this->critical_section.start_address ==
+        this->critical_section.post_commit_address) {
       analysis.add_problem(rseq_problem::empty_critical_section{
-        .critical_section_address = this->start_address,
-        .critical_section_function = this->function.name,
+        {
+          .critical_section = this->critical_section,
+        },
       });
     }
-    if (this->post_commit_address < this->start_address) {
+    if (this->critical_section.post_commit_address <
+        this->critical_section.start_address) {
       analysis.add_problem(rseq_problem::inverted_critical_section{
-        .critical_section_start_address = this->start_address,
-        .critical_section_post_commit_address = this->post_commit_address,
-        .critical_section_function = this->function.name,
+        {
+          .critical_section = this->critical_section,
+        },
       });
     }
-    if (!this->address_within_function(this->start_address)) {
+    if (!this->address_within_function(this->critical_section.start_address)) {
       analysis.add_problem(rseq_problem::label_outside_function{
-        .label_address = this->start_address,
-        .label_function = this->function.name,
+        {
+          .critical_section = this->critical_section,
+        },
         .label_kind = rseq_problem::label_outside_function::kind::start,
       });
     }
-    if (!this->address_within_function(this->post_commit_address)) {
+    if (!this->address_within_function(
+          this->critical_section.post_commit_address)) {
       analysis.add_problem(rseq_problem::label_outside_function{
-        .label_address = this->post_commit_address,
-        .label_function = this->function.name,
+        {
+          .critical_section = this->critical_section,
+        },
         .label_kind = rseq_problem::label_outside_function::kind::post_commit,
       });
     }
-    if (!this->address_within_function(this->abort_address)) {
+    if (!this->address_within_function(this->critical_section.abort_address)) {
       analysis.add_problem(rseq_problem::label_outside_function{
-        .label_address = this->abort_address,
-        .label_function = this->function.name,
+        {
+          .critical_section = this->critical_section,
+        },
         .label_kind = rseq_problem::label_outside_function::kind::abort,
       });
     }
@@ -223,8 +233,8 @@ public:
   auto address_within_critical_section(machine_address address) const noexcept
     -> bool
   {
-    return this->start_address <= address &&
-           address < this->post_commit_address;
+    return this->critical_section.start_address <= address &&
+           address < this->critical_section.post_commit_address;
   }
 
   auto instruction_within_critical_section(const ::cs_insn& instruction) const
@@ -248,9 +258,7 @@ public:
 
 private:
   const elf_function& function;
-  machine_address start_address;
-  machine_address post_commit_address;
-  machine_address abort_address;
+  const rseq_critical_section& critical_section;
 
   capstone_handle capstone;
 };
@@ -259,21 +267,17 @@ private:
 namespace {
 auto
 analyze_rseq_critical_section(const elf_function& function,
-                              machine_address start_address,
-                              machine_address post_commit_address,
-                              machine_address abort_address,
-                              rseq_analysis& analysis) -> void
+                              const rseq_critical_section& critical_section,
+                              rseq_analysis& analysis)
 {
+  auto analyzer = rseq_analyzer{ function, critical_section };
   if (function.instruction_bytes.empty()) {
     analysis.add_problem(rseq_problem::empty_function{
-      .function_address = function.base_address,
-      .function_name = function.name,
+      {
+        .critical_section = critical_section,
+      },
     });
   } else {
-    auto analyzer = rseq_analyzer{ function,
-                                   /*start_address=*/start_address,
-                                   /*post_commit_address=*/post_commit_address,
-                                   /*abort_address=*/abort_address };
     analyzer.analyze_function_instructions(analysis);
     analyzer.analyze_abort_signature(analysis);
     analyzer.analyze_address_bounds(analysis);
@@ -306,28 +310,33 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
       });
       continue;
     }
+    auto critical_section = rseq_critical_section{
+      .function_address = 0,
+      .function = "",
+      .start_address = *rseq_descriptor.start_ip,
+      .post_commit_address =
+        *rseq_descriptor.start_ip + *rseq_descriptor.post_commit_offset,
+      .abort_address = *rseq_descriptor.abort_ip,
+    };
     // TODO(strager): Verify the version and flags fields.
     auto function = std::optional<elf_function>{};
     try {
-      function = function_containing_address(elf.get(),
-                                             rseq_descriptor.start_ip.value());
+      function =
+        function_containing_address(elf.get(), critical_section.start_address);
     } catch (const no_function_containing_address&) {
       analysis.add_problem(rseq_problem::label_outside_function{
-        .label_address = rseq_descriptor.start_ip.value(),
-        .label_function = "",
+        {
+          .critical_section = critical_section,
+        },
         .label_kind = rseq_problem::label_outside_function::kind::start,
       });
     }
     if (!function.has_value()) {
       continue;
     }
-    analyze_rseq_critical_section(
-      /*function=*/*function,
-      /*start_address=*/*rseq_descriptor.start_ip,
-      /*post_commit_address=*/*rseq_descriptor.start_ip +
-        *rseq_descriptor.post_commit_offset,
-      /*abort_address=*/*rseq_descriptor.abort_ip,
-      /*analysis=*/analysis);
+    critical_section.function_address = function->base_address;
+    critical_section.function = function->name;
+    analyze_rseq_critical_section(*function, critical_section, analysis);
   }
   return analysis;
 }
@@ -338,13 +347,15 @@ analyze_rseq_critical_section(const elf_function& function,
                               machine_address post_commit_address,
                               machine_address abort_address) -> rseq_analysis
 {
+  auto critical_section = rseq_critical_section{
+    .function_address = function.base_address,
+    .function = function.name,
+    .start_address = start_address,
+    .post_commit_address = post_commit_address,
+    .abort_address = abort_address,
+  };
   auto analysis = rseq_analysis{};
-  analyze_rseq_critical_section(
-    /*function=*/function,
-    /*start_address=*/start_address,
-    /*post_commit_address=*/post_commit_address,
-    /*abort_address=*/abort_address,
-    /*analysis=*/analysis);
+  analyze_rseq_critical_section(function, critical_section, analysis);
   return analysis;
 }
 
@@ -389,11 +400,20 @@ parse_rseq_descriptors(::Elf* elf) -> std::vector<parsed_rseq_descriptor>
 }
 
 auto
+rseq_problem::empty_critical_section::critical_section_address() const
+  -> machine_address
+{
+  assert(this->critical_section.start_address ==
+         this->critical_section.post_commit_address);
+  return this->critical_section.start_address;
+}
+
+auto
 operator<<(std::ostream& stream, const rseq_problem::empty_critical_section& x)
   -> std::ostream&
 {
-  stream << x.critical_section_function << '(' << std::hex << std::showbase
-         << x.critical_section_address
+  stream << x.critical_section_function() << '(' << std::hex << std::showbase
+         << x.critical_section_address()
          << "): critical section contains no instructions";
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
@@ -403,8 +423,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::empty_function& x)
   -> std::ostream&
 {
-  stream << x.function_name << '(' << std::hex << std::showbase
-         << x.function_address << "): function is empty";
+  stream << x.function_name() << '(' << std::hex << std::showbase
+         << x.function_address() << "): function is empty";
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -424,8 +444,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::interrupt& x)
   -> std::ostream&
 {
-  stream << x.interrupt_instruction_function << '(' << std::hex << std::showbase
-         << x.interrupt_instruction_address
+  stream << x.interrupt_instruction_function() << '(' << std::hex
+         << std::showbase << x.interrupt_instruction_address
          << "): interrupting instruction: " << x.interrupt_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
@@ -435,8 +455,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::invalid_abort_signature& x)
   -> std::ostream&
 {
-  stream << x.abort_function_name << '(' << std::hex << std::showbase
-         << x.signature_address << std::noshowbase
+  stream << x.abort_function_name() << '(' << std::hex << std::showbase
+         << x.signature_address() << std::noshowbase
          << "): invalid abort signature: expected";
   for (auto byte : x.expected_signature) {
     stream << ' ' << std::setw(2) << std::setfill('0') << unsigned(byte);
@@ -458,10 +478,10 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::inverted_critical_section& x) -> std::ostream&
 {
-  stream << std::hex << std::showbase << x.critical_section_function << '('
-         << x.critical_section_post_commit_address
+  stream << std::hex << std::showbase << x.critical_section_function() << '('
+         << x.critical_section_post_commit_address()
          << "): post-commit comes before start ("
-         << x.critical_section_start_address << ')';
+         << x.critical_section_start_address() << ')';
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -470,7 +490,7 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::jump_into_critical_section& x) -> std::ostream&
 {
-  stream << x.jump_instruction_function << '(' << std::hex << std::showbase
+  stream << x.jump_instruction_function() << '(' << std::hex << std::showbase
          << x.jump_instruction_address
          << "): jump into critical section: " << x.jump_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
@@ -478,11 +498,25 @@ operator<<(std::ostream& stream,
 }
 
 auto
+rseq_problem::label_outside_function::label_address() const -> machine_address
+{
+  switch (this->label_kind) {
+    case kind::start:
+      return this->critical_section.start_address;
+    case kind::post_commit:
+      return this->critical_section.post_commit_address;
+    case kind::abort:
+      return this->critical_section.abort_address;
+  }
+  assert(false && "Unexpected label kind");
+}
+
+auto
 operator<<(std::ostream& stream, const rseq_problem::label_outside_function& x)
   -> std::ostream&
 {
-  stream << x.label_function << '(' << std::hex << std::showbase
-         << x.label_address << "): critical section ";
+  stream << x.label_function() << '(' << std::hex << std::showbase
+         << x.label_address() << "): critical section ";
   switch (x.label_kind) {
     case rseq_problem::label_outside_function::kind::start:
       stream << "start";
@@ -511,8 +545,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::stack_pointer_modified& x)
   -> std::ostream&
 {
-  stream << x.modifying_instruction_function << '(' << std::hex << std::showbase
-         << x.modifying_instruction_address
+  stream << x.modifying_instruction_function() << '(' << std::hex
+         << std::showbase << x.modifying_instruction_address
          << "): stack pointer modified: " << x.modifying_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
