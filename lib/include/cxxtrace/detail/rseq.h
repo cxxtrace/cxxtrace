@@ -19,20 +19,20 @@ struct rseq; // IWYU pragma: keep
   { /* @@@ document scope open */                                                                           \
     /* @@@ dedupe section name */                                                                           \
                                                                                                             \
-    ::rseq_cs* critical_section_descriptor;                                                                 \
+    ::rseq_cs* critical_section_descriptor; \
     asm (".pushsection .data_cxxtrace_rseq\n"                                                                 \
              ".critical_section_descriptor_%=:\n"                                                           \
              ".long 0\n"                                                                                    \
              ".long 0\n"                                                                                    \
-             ".quad %[begin_ip]\n"                                                                        \
-             ".quad %[post_commit_offset]\n"                                                          \
-             ".quad %[abort_ip] + 7\n"                                                            \
+             ".quad %l[begin_ip]\n"                                                                        \
+             ".quad %l[post_commit_ip] - %l[begin_ip]\n"                                                          \
+             ".quad %l[abort_ip] + 7\n"                                                            \
              ".popsection\n"                                                                                \
              "leaq .critical_section_descriptor_%=(%%rip), %[critical_section_descriptor]\n"                                                \
-             /*"movq $0, %[critical_section_descriptor]\n" @@@*/                                                \
              : [critical_section_descriptor] "=r"(critical_section_descriptor)                               \
              : [begin_ip] "i"(&&xxx_begin)                               \
-             , [post_commit_offset] "i"((std::uintptr_t)&&xxx_end - (std::uintptr_t)&&xxx_begin)                               \
+             /*, [post_commit_offset] "X"((std::uintptr_t)&&xxx_end - (std::uintptr_t)&&xxx_begin)*/                               \
+             , [post_commit_ip] "i"(&&xxx_end)                               \
              , [abort_ip] "i"(&&xxx_pre_preempted)                               \
              : );                                                                              \
                                                                                                             \
