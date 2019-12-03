@@ -75,7 +75,7 @@ public:
   // queue is (Capacity * processor_count). Switch to a better name.
   static inline constexpr const auto capacity = size_type{ Capacity };
 
-  explicit processor_local_mpsc_ring_queue(int processor_count)
+  explicit processor_local_mpsc_ring_queue(cxxtrace::detail::processor_id processor_count)
     : queue_by_processor{ static_cast<std::size_t>(processor_count) }
   {}
 

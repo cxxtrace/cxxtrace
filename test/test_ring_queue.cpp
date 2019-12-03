@@ -37,24 +37,15 @@ namespace {
 // Like cxxtrace::detail::processor_local_mpsc_ring_queue, but with a
 // compile-time-configurable number of processors.
 // @@@ rewrite above dox
-// @@@ will a template alias work instead of two classes?
-template<class T, std::size_t Capacity, class Index = int, class Sync = cxxtrace::detail::real_synchronization>
-class single_processor_processor_local_mpsc_ring_queue : public cxxtrace_test::processor_local_mpsc_ring_queue<T, Capacity, Index> {
-public:
-  static constexpr auto processor_count = 1;
-
-  explicit single_processor_processor_local_mpsc_ring_queue()
-    : cxxtrace_test::processor_local_mpsc_ring_queue<T, Capacity, Index>{processor_count} {}
-};
-
-// @@@ dox
+// @@@ rename
 template<class T, std::size_t Capacity, class Index = int, class Sync = cxxtrace::detail::real_synchronization>
 class multi_processor_processor_local_mpsc_ring_queue : public cxxtrace_test::processor_local_mpsc_ring_queue<T, Capacity, Index> {
 public:
-  static constexpr auto processor_count = 6;
-
   explicit multi_processor_processor_local_mpsc_ring_queue()
-    : cxxtrace_test::processor_local_mpsc_ring_queue<T, Capacity, Index>{processor_count} {}
+    : cxxtrace_test::processor_local_mpsc_ring_queue<T, Capacity, Index>{
+      // @@@ +1 is silly. make a convenience function?
+      cxxtrace::detail::get_maximum_processor_id() + 1
+    } {}
 };
 }
 
@@ -108,7 +99,6 @@ struct sync_ring_queue_factory
 using test_ring_queue_types = ::testing::Types<
   ring_queue_factory<cxxtrace::detail::ring_queue>,
   sync_ring_queue_factory<cxxtrace::detail::mpsc_ring_queue>,
-  sync_ring_queue_factory<single_processor_processor_local_mpsc_ring_queue>,
   sync_ring_queue_factory<multi_processor_processor_local_mpsc_ring_queue>,
   sync_ring_queue_factory<cxxtrace::detail::spsc_ring_queue>>;
 TYPED_TEST_CASE(test_ring_queue, test_ring_queue_types, );
@@ -273,7 +263,6 @@ protected:
 
 using test_ring_queue_against_reference_types =
   ::testing::Types<cxxtrace::detail::mpsc_ring_queue<int, 8, int>,
-                   single_processor_processor_local_mpsc_ring_queue<int, 8, int>,
                    multi_processor_processor_local_mpsc_ring_queue<int, 8, int>,
                    cxxtrace::detail::ring_queue<int, 8, int>,
                    cxxtrace::detail::spsc_ring_queue<int, 8, int>>;
