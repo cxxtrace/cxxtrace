@@ -162,7 +162,7 @@ TYPED_TEST(test_ring_queue, bulk_pushing_at_end_of_ring_preserves_all_items)
   pop_all(queue);
 
   queue.push(
-    4, [](auto data) noexcept->void {
+    4, [](auto data) noexcept ->void __attribute__((always_inline)) {
       data.set(0, 10);
       data.set(1, 20);
       data.set(2, 30);
@@ -239,11 +239,20 @@ protected:
     this->reference_queue.reset();
   }
 
+  struct push_yo { // @@@ rename. make private. avoid if possible. =[
+    test_ring_queue_against_reference* self;
+
+    template<class PushHandle>
+    [[gnu::always_inline]] [[gnu::flatten]]
+    auto operator()(PushHandle data) noexcept ->void {
+      data.set(0, this->self->cur_value);
+    }
+  };
+
   auto push_n(int count) -> void
   {
     for (auto i = 0; i < count; ++i) {
-      this->queue.push(
-        1, [this](auto data) noexcept->void { data.set(0, this->cur_value); });
+      this->queue.push(1, push_yo{this});
       this->reference_queue.push(this->cur_value);
       this->cur_value += 1;
     }

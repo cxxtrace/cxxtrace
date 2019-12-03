@@ -64,6 +64,7 @@ public:
   }
 
   template<class WriterFunction>
+  [[gnu::always_inline]] [[gnu::flatten]]
   auto push(size_type count, WriterFunction&& write) noexcept -> void
   {
     auto [begin_vindex, end_vindex] = this->begin_push(count);
@@ -158,11 +159,11 @@ private:
     friend class spsc_ring_queue;
   };
 
-  [[gnu::flatten]]
+  [[gnu::always_inline]] [[gnu::flatten]]
   auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>
   {
-    assert(count > 0);
-    assert(count < this->capacity);
+    //assert(count > 0);
+    //assert(count < this->capacity);
 
     Sync::allow_preempt(CXXTRACE_HERE);
     auto write_begin_vindex =
@@ -170,7 +171,7 @@ private:
     Sync::allow_preempt(CXXTRACE_HERE);
     auto maybe_new_write_end_vindex = add(write_begin_vindex, count);
     if (!maybe_new_write_end_vindex.has_value()) {
-      this->abort_due_to_overflow();
+      //this->abort_due_to_overflow(); @@@
     }
     this->write_end_vindex.store(
       *maybe_new_write_end_vindex, std::memory_order_relaxed, CXXTRACE_HERE);
@@ -180,6 +181,7 @@ private:
     return { write_begin_vindex, *maybe_new_write_end_vindex };
   }
 
+  [[gnu::always_inline]] [[gnu::flatten]]
   auto end_push(size_type write_end_vindex) noexcept -> void
   {
     Sync::allow_preempt(CXXTRACE_HERE);

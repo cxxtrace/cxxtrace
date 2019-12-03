@@ -10,6 +10,9 @@ struct rseq; // IWYU pragma: keep
 #endif
 
 // @@@ conditional plz
+#include <atomic>
+#include <cstdint>
+#include <cstring>
 #include <cxxtrace/detail/atomic_ref.h>
 #include <linux/rseq.h>
 
@@ -35,6 +38,7 @@ struct rseq; // IWYU pragma: keep
              , [abort_ip] "i"(&&xxx_pre_preempted)                               \
              : );                                                                              \
     assert(critical_section_descriptor->start_ip == (std::uintptr_t)&&xxx_begin); \
+    assert(critical_section_descriptor->start_ip + critical_section_descriptor->post_commit_offset == (std::uintptr_t)&&xxx_end); \
                                                                                                             \
     /*static const auto __attribute__((section(".data_cxxtrace_rseq")))                                     \
       xxx_critical_section_descriptor = ::rseq_cs{                                                          \
@@ -44,6 +48,9 @@ struct rseq; // IWYU pragma: keep
       (std::uintptr_t) && xxx_end - (std::uintptr_t) && xxx_begin,                                          \
       (std::uintptr_t) && xxx_pre_preempted + 7,                                                            \
     };*/                                                                                                    \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
+    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                                             \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
                                                                                                             \
   xxx_begin : {                                                                                             \
     ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
@@ -57,7 +64,13 @@ struct rseq; // IWYU pragma: keep
   }
 
 #define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
+    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                                             \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
   xxx_end: \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
+    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                                             \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
     goto xxx_end_2; \
   } /* @@@ document close scope */                                             \
   { \
@@ -114,6 +127,21 @@ private:
 
   ::rseq* rseq;
 };
+
+// @@@ move to .impl.h?
+[[gnu::always_inline]]
+inline auto
+registered_rseq::read_cpu_id(const ::rseq& rseq) noexcept -> cpu_id_type
+{
+  using signed_real_cpu_id_type = std::make_signed_t<decltype(rseq.cpu_id)>;
+  static_assert(std::is_same_v<cpu_id_type, signed_real_cpu_id_type>);
+
+  auto cpu_id = atomic_ref{ const_cast<::rseq&>(rseq).cpu_id }.load(
+    std::memory_order_relaxed);
+  auto signed_cpu_id = signed_real_cpu_id_type{};
+  std::memcpy(&signed_cpu_id, &cpu_id, sizeof(cpu_id));
+  return signed_cpu_id;
+}
 }
 }
 

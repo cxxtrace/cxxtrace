@@ -76,8 +76,10 @@ public:
   static inline constexpr const auto capacity = size_type{ Capacity };
 
   explicit processor_local_mpsc_ring_queue(cxxtrace::detail::processor_id processor_count)
-    : queue_by_processor{ static_cast<std::size_t>(processor_count) }
-  {}
+    : queue_by_processor{ processor_count }
+  {
+    this->queue_by_processor_2 = this->queue_by_processor.data(); // @@@ temporary
+  }
 
   auto reset() noexcept -> void
   {
@@ -89,6 +91,9 @@ public:
 #pragma GCC push_options
   // @@@ document and tidy
 #pragma GCC optimize("align-loops=1") // OK
+#pragma GCC optimize("inline")
+  // @@@ GCC: if -O is missing, gnu::flatten has no effect on unoptimized builds. =| (ignored in early and late ipa passes)
+#pragma GCC optimize("O")
   //#pragma GCC optimize ("align-labels=1", "align-jumps=1", "align-loops=1") //
   // OK #pragma GCC optimize ("align-labels=1", "align-loops=1") // OK #pragma
   // GCC optimize ("align-labels=1", "align-jumps=1") // BAD (nops) #pragma GCC
@@ -111,9 +116,9 @@ public:
     auto rseq = Sync::get_rseq();
     CXXTRACE_BEGIN_PREEMPTABLE (rseq, preempted) {
       auto processor_id = rseq.get_current_processor_id(CXXTRACE_HERE);
-      assert(processor_id < this->queue_by_processor.size());
-      auto& queue = this->queue_by_processor[processor_id];
-      queue.push(count, std::forward<WriterFunction>(write));
+      //assert(processor_id < this->queue_by_processor.size());
+      auto& queue = this->queue_by_processor_2[processor_id];
+      queue.push(count, static_cast<WriterFunction>(write)); // @@@ want to use std::forward, but it's not being inlined ...
     }
     CXXTRACE_ON_PREEMPT (rseq, preempted) {
       return push_result::push_interrupted_due_to_preemption;
@@ -136,6 +141,7 @@ private:
     cxxtrace::detail::spsc_ring_queue<value_type, capacity, size_type, Sync>;
 
   std::vector<processor_queue> queue_by_processor;
+  processor_queue* queue_by_processor_2; //  @@@ just trying to avoid operator[] not being inlined...
 };
 #endif
 }

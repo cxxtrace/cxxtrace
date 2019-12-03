@@ -10,32 +10,31 @@ template<class T>
 class atomic_ref
 {
 public:
+  [[gnu::always_inline]]
   explicit atomic_ref(T& value) noexcept(false)
     : value_{ &value }
   {}
 
+  [[gnu::always_inline]]
   auto load(std::memory_order memory_order = std::memory_order_seq_cst) const
     noexcept -> T
   {
-    return this->atomic().load(memory_order);
+    // @@@ switch based on memory order
+    (void)memory_order;
+    return __atomic_load_n(this->value_, __ATOMIC_SEQ_CST);
   }
 
+  [[gnu::always_inline]]
   auto store(T new_value,
              std::memory_order memory_order = std::memory_order_seq_cst) const
     noexcept -> void
   {
-    this->atomic().store(new_value, memory_order);
+    // @@@ switch based on memory order
+    (void)memory_order;
+    __atomic_store(this->value_, &new_value, __ATOMIC_SEQ_CST);
   }
 
 private:
-  auto atomic() const noexcept -> std::atomic<T>&
-  {
-    using atomic_type = std::atomic<T>;
-    static_assert(sizeof(atomic_type) == sizeof(T));
-    static_assert(alignof(atomic_type) == alignof(T));
-    return *reinterpret_cast<atomic_type*>(this->value_);
-  }
-
   T* value_;
 };
 

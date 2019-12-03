@@ -34,12 +34,14 @@ public:
       : rseq_{ rseq }
     {}
 
+    [[gnu::always_inline]]
     auto get_current_processor_id(debug_source_location)
       -> cxxtrace::detail::processor_id
     {
       return registered_rseq::read_cpu_id(*this->rseq_);
     }
 
+    [[gnu::always_inline]]
     auto get_rseq() -> ::rseq* { return this->rseq_; }
 
   private:
@@ -170,6 +172,7 @@ private:
   T data /* uninitialized */;
 };
 
+[[gnu::always_inline]]
 inline auto real_synchronization::allow_preempt(debug_source_location) -> void
 {
   // Do nothing.
