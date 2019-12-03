@@ -13,14 +13,14 @@ struct rseq; // IWYU pragma: keep
 #include <cxxtrace/detail/atomic_ref.h>
 #include <linux/rseq.h>
 
-// @@@ namespace xxx_ properly (how?).
+// @@@ namespace xxx_ properly.
 // @@@ tweak casts
 #define CXXTRACE_BEGIN_PREEMPTABLE(rseq, preempt_label)                                                     \
   { /* @@@ document scope open */                                                                           \
     /* @@@ dedupe section name */                                                                           \
                                                                                                             \
     ::rseq_cs* critical_section_descriptor; \
-    asm (".pushsection .data_cxxtrace_rseq\n"                                                                 \
+    asm (".pushsection .data_cxxtrace_rseq, \"a\", @progbits\n"                                                                 \
              ".critical_section_descriptor_%=:\n"                                                           \
              ".long 0\n"                                                                                    \
              ".long 0\n"                                                                                    \
@@ -28,7 +28,8 @@ struct rseq; // IWYU pragma: keep
              ".quad %l[post_commit_ip] - %l[begin_ip]\n"                                                          \
              ".quad %l[abort_ip] + 7\n"                                                            \
              ".popsection\n"                                                                                \
-             "leaq .critical_section_descriptor_%=(%%rip), %[critical_section_descriptor]\n"                                                \
+             /*@@@ we should be rip-relative plz */ \
+             "movq $.critical_section_descriptor_%=, %[critical_section_descriptor]\n"                                                \
              : [critical_section_descriptor] "=r"(critical_section_descriptor)                               \
              : [begin_ip] "i"(&&xxx_begin)                               \
              /*, [post_commit_offset] "X"((std::uintptr_t)&&xxx_end - (std::uintptr_t)&&xxx_begin)*/                               \
