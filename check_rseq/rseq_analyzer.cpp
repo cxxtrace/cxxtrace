@@ -17,12 +17,15 @@
 #include <fcntl.h>
 #include <gelf.h>
 #include <iomanip>
+#include <iterator>
 #include <libelf.h>
 #include <optional>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <type_traits>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -30,6 +33,94 @@ namespace cxxtrace_check_rseq {
 namespace {
 constexpr auto rseq_descriptor_section_name = ".data_cxxtrace_rseq";
 
+template<class Problem>
+constexpr auto
+is_problem_with_critical_section() -> bool
+{
+  return std::is_base_of_v<rseq_problem::problem_with_critical_section,
+                           std::remove_cv_t<std::remove_reference_t<Problem>>>;
+}
+
+template<class Problem>
+constexpr auto
+is_problem_with_critical_section(const Problem&) -> bool
+{
+  return is_problem_with_critical_section<Problem>();
+}
+
+constexpr auto
+is_problem_with_critical_section(const any_rseq_problem& problem) -> bool
+{
+  return std::visit(
+    [](const auto& problem) -> bool {
+      return is_problem_with_critical_section(problem);
+    },
+    problem);
+}
+}
+
+rseq_analysis::critical_section_problems::critical_section_problems(
+  rseq_critical_section critical_section)
+  : critical_section{ std::move(critical_section) }
+{}
+
+auto
+rseq_analysis::all_problems() const -> std::vector<any_rseq_problem>
+{
+  return this->problems_;
+}
+
+auto
+rseq_analysis::file_problems() const -> std::vector<any_rseq_problem>
+{
+  auto problems = std::vector<any_rseq_problem>{};
+  std::copy_if(this->problems_.begin(),
+               this->problems_.end(),
+               std::back_inserter(problems),
+               [](const any_rseq_problem& problem) {
+                 return !is_problem_with_critical_section(problem);
+               });
+  return problems;
+}
+
+auto
+rseq_analysis::problems_by_critical_section() const
+  -> std::vector<critical_section_problems>
+{
+  auto groups = std::vector<critical_section_problems>{};
+  auto add_problem = [&groups](const auto& problem) -> void {
+    auto group_it =
+      std::find_if(groups.begin(),
+                   groups.end(),
+                   [&](const critical_section_problems& group) {
+                     return group.critical_section.descriptor_address ==
+                            problem.critical_section.descriptor_address;
+                   });
+    if (group_it == groups.end()) {
+      groups.emplace_back(problem.critical_section);
+      group_it = std::prev(groups.end());
+    }
+    group_it->problems.emplace_back(problem);
+  };
+  for (const auto& problem : this->problems_) {
+    std::visit(
+      [&](const auto& problem) -> void {
+        if constexpr (is_problem_with_critical_section<decltype(problem)>()) {
+          add_problem(problem);
+        }
+      },
+      problem);
+  }
+  return groups;
+}
+
+auto
+rseq_analysis::add_problem(any_rseq_problem problem) -> void
+{
+  this->problems_.emplace_back(std::move(problem));
+}
+
+namespace {
 // Return the bytes of librseq's [1] default signature (RSEQ_SIG) for the given
 // architecture.
 //
@@ -311,6 +402,7 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
       continue;
     }
     auto critical_section = rseq_critical_section{
+      .descriptor_address = rseq_descriptor.descriptor_address,
       .function_address = 0,
       .function = "",
       .start_address = *rseq_descriptor.start_ip,
@@ -348,6 +440,7 @@ analyze_rseq_critical_section(const elf_function& function,
                               machine_address abort_address) -> rseq_analysis
 {
   auto critical_section = rseq_critical_section{
+    .descriptor_address = 0,
     .function_address = function.base_address,
     .function = function.name,
     .start_address = start_address,
@@ -400,6 +493,20 @@ parse_rseq_descriptors(::Elf* elf) -> std::vector<parsed_rseq_descriptor>
 }
 
 auto
+rseq_critical_section::size_in_bytes() const noexcept -> std::optional<int>
+{
+  if (this->post_commit_address < this->start_address) {
+    return std::nullopt;
+  }
+  auto size = this->post_commit_address - this->start_address;
+  constexpr auto maximum_size = 4 * 1024; // Arbitrary.
+  if (size > maximum_size) {
+    return std::nullopt;
+  }
+  return size;
+}
+
+auto
 rseq_problem::empty_critical_section::critical_section_address() const
   -> machine_address
 {
@@ -409,23 +516,18 @@ rseq_problem::empty_critical_section::critical_section_address() const
 }
 
 auto
-operator<<(std::ostream& stream, const rseq_problem::empty_critical_section& x)
+operator<<(std::ostream& stream, const rseq_problem::empty_critical_section&)
   -> std::ostream&
 {
-  stream << x.critical_section_function() << '(' << std::hex << std::showbase
-         << x.critical_section_address()
-         << "): critical section contains no instructions";
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "critical section contains no instructions";
   return stream;
 }
 
 auto
-operator<<(std::ostream& stream, const rseq_problem::empty_function& x)
+operator<<(std::ostream& stream, const rseq_problem::empty_function&)
   -> std::ostream&
 {
-  stream << x.function_name() << '(' << std::hex << std::showbase
-         << x.function_address() << "): function is empty";
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "function is empty";
   return stream;
 }
 
@@ -433,8 +535,8 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::incomplete_rseq_descriptor& x) -> std::ostream&
 {
-  stream << std::hex << std::showbase << x.descriptor_address << std::dec
-         << std::noshowbase << ": incomplete rseq_cs descriptor (expected "
+  stream << "incomplete rseq_cs descriptor at " << std::hex << std::showbase
+         << x.descriptor_address << std::dec << std::noshowbase << " (expected "
          << parsed_rseq_descriptor::size << " bytes)";
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
@@ -444,9 +546,9 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::interrupt& x)
   -> std::ostream&
 {
-  stream << x.interrupt_instruction_function() << '(' << std::hex
-         << std::showbase << x.interrupt_instruction_address
-         << "): interrupting instruction: " << x.interrupt_instruction_string;
+  stream << "interrupting instruction at " << std::hex << std::showbase
+         << x.interrupt_instruction_address << ": "
+         << x.interrupt_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -455,9 +557,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::invalid_abort_signature& x)
   -> std::ostream&
 {
-  stream << x.abort_function_name() << '(' << std::hex << std::showbase
-         << x.signature_address() << std::noshowbase
-         << "): invalid abort signature: expected";
+  stream << "invalid abort signature at " << std::hex << std::showbase
+         << x.signature_address() << std::noshowbase << ": expected";
   for (auto byte : x.expected_signature) {
     stream << ' ' << std::setw(2) << std::setfill('0') << unsigned(byte);
   }
@@ -475,14 +576,10 @@ operator<<(std::ostream& stream, const rseq_problem::invalid_abort_signature& x)
 }
 
 auto
-operator<<(std::ostream& stream,
-           const rseq_problem::inverted_critical_section& x) -> std::ostream&
+operator<<(std::ostream& stream, const rseq_problem::inverted_critical_section&)
+  -> std::ostream&
 {
-  stream << std::hex << std::showbase << x.critical_section_function() << '('
-         << x.critical_section_post_commit_address()
-         << "): post-commit comes before start ("
-         << x.critical_section_start_address() << ')';
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "post-commit comes before start";
   return stream;
 }
 
@@ -490,9 +587,8 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::jump_into_critical_section& x) -> std::ostream&
 {
-  stream << x.jump_instruction_function() << '(' << std::hex << std::showbase
-         << x.jump_instruction_address
-         << "): jump into critical section: " << x.jump_instruction_string;
+  stream << "jump into critical section at " << std::hex << std::showbase
+         << x.jump_instruction_address << ": " << x.jump_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -515,8 +611,7 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::label_outside_function& x)
   -> std::ostream&
 {
-  stream << x.label_function() << '(' << std::hex << std::showbase
-         << x.label_address() << "): critical section ";
+  stream << "critical section ";
   switch (x.label_kind) {
     case rseq_problem::label_outside_function::kind::start:
       stream << "start";
@@ -545,9 +640,9 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::stack_pointer_modified& x)
   -> std::ostream&
 {
-  stream << x.modifying_instruction_function() << '(' << std::hex
-         << std::showbase << x.modifying_instruction_address
-         << "): stack pointer modified: " << x.modifying_instruction_string;
+  stream << "stack pointer modified at " << std::hex << std::showbase
+         << x.modifying_instruction_address << ": "
+         << x.modifying_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }

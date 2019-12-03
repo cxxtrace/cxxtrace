@@ -3,7 +3,6 @@
 
 #include "elf_function.h"
 #include "machine_code.h"
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -12,7 +11,7 @@
 #include <libelf/libelf.h>
 #include <optional>
 #include <string>
-#include <utility>
+#include <tuple>
 #include <variant>
 #include <vector>
 
@@ -33,12 +32,40 @@ constexpr auto rseq_signature_size = 4;
 
 struct rseq_critical_section
 {
+  machine_address descriptor_address;
+
   machine_address function_address;
   std::string function;
 
   machine_address start_address;
   machine_address post_commit_address;
   machine_address abort_address;
+
+  auto size_in_bytes() const noexcept -> std::optional<int>;
+
+private:
+  auto members() const noexcept -> decltype(auto)
+  {
+    return std::tie(this->descriptor_address,
+                    this->function_address,
+                    this->function,
+                    this->start_address,
+                    this->post_commit_address,
+                    this->abort_address);
+  }
+
+public:
+  friend auto operator==(const rseq_critical_section& x,
+                         const rseq_critical_section& y) noexcept -> bool
+  {
+    return x.members() == y.members();
+  }
+
+  friend auto operator!=(const rseq_critical_section& x,
+                         const rseq_critical_section& y) noexcept -> bool
+  {
+    return !(x == y);
+  }
 };
 
 struct rseq_problem
@@ -231,15 +258,20 @@ PrintTo(const any_rseq_problem&, std::ostream*) -> void;
 class rseq_analysis
 {
 public:
-  auto problems() const -> std::vector<any_rseq_problem>
+  struct critical_section_problems
   {
-    return this->problems_;
-  }
+    explicit critical_section_problems(rseq_critical_section);
 
-  auto add_problem(any_rseq_problem problem) -> void
-  {
-    this->problems_.emplace_back(std::move(problem));
-  }
+    rseq_critical_section critical_section;
+    std::vector<any_rseq_problem> problems;
+  };
+
+  auto all_problems() const -> std::vector<any_rseq_problem>;
+  auto file_problems() const -> std::vector<any_rseq_problem>;
+  auto problems_by_critical_section() const
+    -> std::vector<critical_section_problems>;
+
+  auto add_problem(any_rseq_problem) -> void;
 
 private:
   std::vector<any_rseq_problem> problems_;
