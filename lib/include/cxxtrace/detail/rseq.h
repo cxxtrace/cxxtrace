@@ -28,8 +28,7 @@ struct rseq; // IWYU pragma: keep
              ".quad %l[post_commit_ip] - %l[start_ip]\n"                                                          \
              ".quad %l[abort_ip] + 7\n"                                                            \
              ".popsection\n"                                                                                \
-             /*@@@ we should be rip-relative plz */ \
-             "movq $.critical_section_descriptor_%=, %[critical_section_descriptor]\n"                                                \
+             "leaq .critical_section_descriptor_%=(%%rip), %[critical_section_descriptor]\n"                                                \
              : [critical_section_descriptor] "=r"(critical_section_descriptor)                               \
              : [start_ip] "i"(&&xxx_begin)                               \
              , [post_commit_ip] "i"(&&xxx_end)                               \
