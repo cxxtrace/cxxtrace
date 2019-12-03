@@ -12,11 +12,13 @@
 #include <libelf/gelf.h>
 #include <libelf/libelf.h>
 #include <optional>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
 namespace cxxtrace_check_rseq {
 class rseq_analysis;
+struct parsed_rseq_descriptor;
 
 auto
 analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
@@ -32,12 +34,40 @@ constexpr auto rseq_signature_size = 4;
 
 struct rseq_critical_section
 {
+  machine_address descriptor_address;
+
   machine_address function_address;
   std::string function;
 
   machine_address start_address;
   machine_address post_commit_address;
   machine_address abort_address;
+
+  auto size_in_bytes() const noexcept -> std::optional<int>;
+
+private:
+  auto members() const noexcept -> decltype(auto)
+  {
+    return std::tie(this->descriptor_address,
+                    this->function_address,
+                    this->function,
+                    this->start_address,
+                    this->post_commit_address,
+                    this->abort_address);
+  }
+
+public:
+  friend auto operator==(const rseq_critical_section& x,
+                         const rseq_critical_section& y) noexcept -> bool
+  {
+    return x.members() == y.members();
+  }
+
+  friend auto operator!=(const rseq_critical_section& x,
+                         const rseq_critical_section& y) noexcept -> bool
+  {
+    return !(x == y);
+  }
 };
 
 struct rseq_problem
@@ -230,9 +260,71 @@ PrintTo(const any_rseq_problem&, std::ostream*) -> void;
 class rseq_analysis
 {
 public:
-  auto problems() const -> std::vector<any_rseq_problem>
+  auto all_problems() const -> std::vector<any_rseq_problem>
   {
     return this->problems_;
+  }
+
+  auto file_problems() const -> std::vector<any_rseq_problem>
+  {
+    auto problems = std::vector<any_rseq_problem>{};
+    std::copy_if(this->problems_.begin(),
+                 this->problems_.end(),
+                 std::back_inserter(problems),
+                 [](const any_rseq_problem& problem) {
+                   return !is_problem_with_critical_section(problem);
+                 });
+    return problems;
+  }
+
+  // @@@ move
+  struct critical_section_problems
+  {
+    rseq_critical_section critical_section;
+    std::vector<any_rseq_problem> problems;
+  };
+
+  // @@@ move to .cpp
+  auto problems_by_critical_section() const
+    -> std::vector<critical_section_problems>
+  {
+    auto problems_by_descriptor_address =
+      std::unordered_map<machine_address, std::vector<any_rseq_problem>>{};
+    for (const auto& problem : this->problems_) {
+      std::visit(
+        [&](const auto& problem) -> void {
+          if constexpr (is_problem_with_critical_section(problem)) {
+            problems_by_descriptor_address[problem.critical_section
+                                             .descriptor_address]
+              .emplace_back(problem);
+          }
+        },
+        problem);
+    }
+
+    auto groups = std::vector<critical_section_problems>{};
+    std::transform(
+      problems_by_descriptor_address.begin(),
+      problems_by_descriptor_address.end(),
+      std::back_inserter(groups),
+      [](auto& entry) -> critical_section_problems {
+        std::vector<any_rseq_problem>& problems = entry.second;
+        assert(!problems.empty());
+        return critical_section_problems{
+          .critical_section = std::visit(
+            [&](const auto& problem) -> const rseq_critical_section& {
+              if constexpr (is_problem_with_critical_section(problem)) {
+                return problem.critical_section;
+              } else {
+                // @@@ make any_rseq_critical_section_problem.
+                __builtin_unreachable();
+              }
+            },
+            problems.front()),
+          .problems = std::move(problems),
+        };
+      });
+    return groups;
   }
 
   auto add_problem(any_rseq_problem problem) -> void
@@ -241,6 +333,23 @@ public:
   }
 
 private:
+  static constexpr auto is_problem_with_critical_section(
+    const any_rseq_problem& problem) -> bool
+  {
+    return std::visit(
+      [](const auto& problem) -> bool {
+        return is_problem_with_critical_section(problem);
+      },
+      problem);
+  }
+
+  template<class Problem>
+  static constexpr auto is_problem_with_critical_section(const Problem&) -> bool
+  {
+    return std::is_base_of_v<rseq_problem::problem_with_critical_section,
+                             Problem>;
+  }
+
   std::vector<any_rseq_problem> problems_;
 };
 

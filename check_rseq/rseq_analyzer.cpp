@@ -297,6 +297,7 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
       continue;
     }
     auto critical_section = rseq_critical_section{
+      .descriptor_address = rseq_descriptor.descriptor_address,
       .function_address = 0,
       .function = "",
       .start_address = *rseq_descriptor.start_ip,
@@ -334,6 +335,7 @@ analyze_rseq_critical_section(const elf_function& function,
                               machine_address abort_address) -> rseq_analysis
 {
   auto critical_section = rseq_critical_section{
+    .descriptor_address = 0,
     .function_address = function.base_address,
     .function = function.name,
     .start_address = start_address,
@@ -386,6 +388,20 @@ parse_rseq_descriptors(::Elf* elf) -> std::vector<parsed_rseq_descriptor>
 }
 
 auto
+rseq_critical_section::size_in_bytes() const noexcept -> std::optional<int>
+{
+  if (this->post_commit_address < this->start_address) {
+    return std::nullopt;
+  }
+  auto size = this->post_commit_address - this->start_address;
+  constexpr auto maximum_size = 4 * 1024; // Arbitrary.
+  if (size > maximum_size) {
+    return std::nullopt;
+  }
+  return size;
+}
+
+auto
 rseq_problem::empty_critical_section::critical_section_address() const
   -> machine_address
 {
@@ -395,23 +411,18 @@ rseq_problem::empty_critical_section::critical_section_address() const
 }
 
 auto
-operator<<(std::ostream& stream, const rseq_problem::empty_critical_section& x)
+operator<<(std::ostream& stream, const rseq_problem::empty_critical_section&)
   -> std::ostream&
 {
-  stream << x.critical_section_function() << '(' << std::hex << std::showbase
-         << x.critical_section_address()
-         << "): critical section contains no instructions";
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "critical section contains no instructions";
   return stream;
 }
 
 auto
-operator<<(std::ostream& stream, const rseq_problem::empty_function& x)
+operator<<(std::ostream& stream, const rseq_problem::empty_function&)
   -> std::ostream&
 {
-  stream << x.function_name() << '(' << std::hex << std::showbase
-         << x.function_address() << "): function is empty";
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "function is empty";
   return stream;
 }
 
@@ -419,8 +430,8 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::incomplete_rseq_descriptor& x) -> std::ostream&
 {
-  stream << std::hex << std::showbase << x.descriptor_address << std::dec
-         << std::noshowbase << ": incomplete rseq_cs descriptor (expected "
+  stream << "incomplete rseq_cs descriptor at " << std::hex << std::showbase
+         << x.descriptor_address << std::dec << std::noshowbase << " (expected "
          << parsed_rseq_descriptor::size << " bytes)";
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
@@ -430,9 +441,9 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::interrupt& x)
   -> std::ostream&
 {
-  stream << x.interrupt_instruction_function() << '(' << std::hex
-         << std::showbase << x.interrupt_instruction_address
-         << "): interrupting instruction: " << x.interrupt_instruction_string;
+  stream << "interrupting instruction at " << std::hex << std::showbase
+         << x.interrupt_instruction_address << ": "
+         << x.interrupt_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -441,9 +452,8 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::invalid_abort_signature& x)
   -> std::ostream&
 {
-  stream << x.abort_function_name() << '(' << std::hex << std::showbase
-         << x.signature_address() << std::noshowbase
-         << "): invalid abort signature: expected";
+  stream << "invalid abort signature at " << std::hex << std::showbase
+         << x.signature_address() << std::noshowbase << ": expected";
   for (auto byte : x.expected_signature) {
     stream << ' ' << std::setw(2) << std::setfill('0') << unsigned(byte);
   }
@@ -461,14 +471,10 @@ operator<<(std::ostream& stream, const rseq_problem::invalid_abort_signature& x)
 }
 
 auto
-operator<<(std::ostream& stream,
-           const rseq_problem::inverted_critical_section& x) -> std::ostream&
+operator<<(std::ostream& stream, const rseq_problem::inverted_critical_section&)
+  -> std::ostream&
 {
-  stream << std::hex << std::showbase << x.critical_section_function() << '('
-         << x.critical_section_post_commit_address()
-         << "): post-commit comes before start ("
-         << x.critical_section_start_address() << ')';
-  cxxtrace::detail::reset_ostream_formatting(stream);
+  stream << "post-commit comes before start";
   return stream;
 }
 
@@ -476,9 +482,8 @@ auto
 operator<<(std::ostream& stream,
            const rseq_problem::jump_into_critical_section& x) -> std::ostream&
 {
-  stream << x.jump_instruction_function() << '(' << std::hex << std::showbase
-         << x.jump_instruction_address
-         << "): jump into critical section: " << x.jump_instruction_string;
+  stream << "jump into critical section at " << std::hex << std::showbase
+         << x.jump_instruction_address << ": " << x.jump_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
@@ -501,8 +506,7 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::label_outside_function& x)
   -> std::ostream&
 {
-  stream << x.label_function() << '(' << std::hex << std::showbase
-         << x.label_address() << "): critical section ";
+  stream << "critical section ";
   switch (x.label_kind) {
     case rseq_problem::label_outside_function::kind::start:
       stream << "start";
@@ -531,9 +535,9 @@ auto
 operator<<(std::ostream& stream, const rseq_problem::stack_pointer_modified& x)
   -> std::ostream&
 {
-  stream << x.modifying_instruction_function() << '(' << std::hex
-         << std::showbase << x.modifying_instruction_address
-         << "): stack pointer modified: " << x.modifying_instruction_string;
+  stream << "stack pointer modified at " << std::hex << std::showbase
+         << x.modifying_instruction_address << ": "
+         << x.modifying_instruction_string;
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }
