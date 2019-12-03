@@ -20,20 +20,21 @@ struct rseq; // IWYU pragma: keep
     /* @@@ dedupe section name */                                                                           \
                                                                                                             \
     ::rseq_cs* critical_section_descriptor;                                                                 \
-    asm goto(".pushsection .data_cxxtrace_rseq\n"                                                                 \
+    asm (".pushsection .data_cxxtrace_rseq\n"                                                                 \
              ".critical_section_descriptor_%=:\n"                                                           \
              ".long 0\n"                                                                                    \
              ".long 0\n"                                                                                    \
-             ".quad %l[xxx_begin]\n"                                                                        \
-             ".quad %l[xxx_end] - %l[xxx_begin]\n"                                                          \
-             ".quad %l[xxx_pre_preempted] + 7\n"                                                            \
+             ".quad %[begin_ip]\n"                                                                        \
+             ".quad %[post_commit_offset]\n"                                                          \
+             ".quad %[abort_ip] + 7\n"                                                            \
              ".popsection\n"                                                                                \
-             "leaq .critical_section_descriptor_%=(%%rip), "                                                \
-             "%[critical_section_descriptor]\n"                                                             \
-             :                                                                                              \
-             : [critical_section_descriptor] "r"(critical_section_descriptor)                               \
-             : "memory", "r11"                                                                              \
-             : xxx_begin, xxx_end, xxx_pre_preempted);                                                      \
+             "leaq .critical_section_descriptor_%=(%%rip), %[critical_section_descriptor]\n"                                                \
+             /*"movq $0, %[critical_section_descriptor]\n" @@@*/                                                \
+             : [critical_section_descriptor] "=r"(critical_section_descriptor)                               \
+             : [begin_ip] "i"(&&xxx_begin)                               \
+             , [post_commit_offset] "i"((std::uintptr_t)&&xxx_end - (std::uintptr_t)&&xxx_begin)                               \
+             , [abort_ip] "i"(&&xxx_pre_preempted)                               \
+             : );                                                                              \
                                                                                                             \
     /*static const auto __attribute__((section(".data_cxxtrace_rseq")))                                     \
       xxx_critical_section_descriptor = ::rseq_cs{                                                          \
@@ -50,7 +51,7 @@ struct rseq; // IWYU pragma: keep
     /* @@@ assert lock-free */                                                                              \
     ::cxxtrace::detail::atomic_ref<unsigned long long/*@@@*/>{ (rseq).get_rseq()->rseq_cs.ptr }.store(    \
       /*(std::uintptr_t)&xxx_critical_section_descriptor,*/ \
-      (std::uintptr_t)&critical_section_descriptor, \
+      (std::uintptr_t)critical_section_descriptor, \
       ::std::memory_order_relaxed); \
     ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
   }
