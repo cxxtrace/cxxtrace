@@ -24,18 +24,18 @@ struct rseq; // IWYU pragma: keep
              ".critical_section_descriptor_%=:\n"                                                           \
              ".long 0\n"                                                                                    \
              ".long 0\n"                                                                                    \
-             ".quad %l[begin_ip]\n"                                                                        \
-             ".quad %l[post_commit_ip] - %l[begin_ip]\n"                                                          \
+             ".quad %l[start_ip]\n"                                                                        \
+             ".quad %l[post_commit_ip] - %l[start_ip]\n"                                                          \
              ".quad %l[abort_ip] + 7\n"                                                            \
              ".popsection\n"                                                                                \
              /*@@@ we should be rip-relative plz */ \
              "movq $.critical_section_descriptor_%=, %[critical_section_descriptor]\n"                                                \
              : [critical_section_descriptor] "=r"(critical_section_descriptor)                               \
-             : [begin_ip] "i"(&&xxx_begin)                               \
-             /*, [post_commit_offset] "X"((std::uintptr_t)&&xxx_end - (std::uintptr_t)&&xxx_begin)*/                               \
+             : [start_ip] "i"(&&xxx_begin)                               \
              , [post_commit_ip] "i"(&&xxx_end)                               \
              , [abort_ip] "i"(&&xxx_pre_preempted)                               \
              : );                                                                              \
+    assert(critical_section_descriptor->start_ip == (std::uintptr_t)&&xxx_begin); \
                                                                                                             \
     /*static const auto __attribute__((section(".data_cxxtrace_rseq")))                                     \
       xxx_critical_section_descriptor = ::rseq_cs{                                                          \
