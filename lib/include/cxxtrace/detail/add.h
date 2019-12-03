@@ -15,6 +15,20 @@ template<class T>
 auto
 add(T x, T y) noexcept -> std::optional<T>;
 
+#if 1
+template<class T>
+auto
+add(T x, T y) noexcept -> std::optional<T>
+{
+  assert(x >= 0);
+  assert(y >= 0);
+  auto sum = T{};
+  if (__builtin_add_overflow(x, y, &sum)) {
+    return std::nullopt;
+  }
+  return { sum };
+}
+#else
 #define CXXTRACE_EXTERN_ADD(type)                                              \
   extern template auto add<type>(type x, type y) noexcept->std::optional<type>;
 
@@ -30,6 +44,7 @@ CXXTRACE_EXTERN_ADD(unsigned short)
 CXXTRACE_EXTERN_ADD(unsigned)
 
 #undef CXXTRACE_EXTERN_ADD
+#endif
 }
 }
 

@@ -4,6 +4,7 @@
 
 namespace cxxtrace {
 namespace detail {
+#if 0
 template<class T>
 auto
 add(T x, T y) noexcept -> std::optional<T>
@@ -32,5 +33,6 @@ CXXTRACE_ADD(unsigned short)
 CXXTRACE_ADD(unsigned)
 
 #undef CXXTRACE_ADD
+#endif
 }
 }

@@ -158,6 +158,7 @@ private:
     friend class spsc_ring_queue;
   };
 
+  [[gnu::flatten]]
   auto begin_push(size_type count) noexcept -> std::pair<size_type, size_type>
   {
     assert(count > 0);

@@ -55,30 +55,36 @@ struct rseq; // IWYU pragma: keep
     ::std::atomic_signal_fence(::std::memory_order_seq_cst);                                                \
   }
 
+#define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
+  xxx_end: \
+    goto xxx_end_2; \
+  } /* @@@ document close scope */                                             \
+  { \
+    xxx_pre_preempted: \
+      /* @@@ */ \
+      asm(".byte 0x0f, 0xb9, 0x3d\n" \
+        ".long 0x53053053"); \
+    /*xxx_preempted: @@@*/
+
 // @@@ see which of the signal fences and asm gotos are necessary.
 #define CXXTRACE_END_PREEMPTABLE(rseq, preempt_label)                          \
-  ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
-  asm goto(""                                                                  \
-           :                                                                   \
-           :                                                                   \
-           :                                                                   \
-           : xxx_begin,                                                        \
-             xxx_end,                                                          \
-             xxx_pre_preempted); /* @@@ doesn't do much. delete? */            \
-  ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
   } /* @@@ document close scope */                                             \
-  xxx_end:;                                                                    \
-  ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
-  asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                  \
-  ::std::atomic_signal_fence(::std::memory_order_seq_cst);
-
-#define CXXTRACE_ON_PREEMPT(scheduler, preempt_label)                          \
-  __builtin_trap();                                                            \
-  xxx_pre_preempted: \
-    /* @@@ */ \
-    asm(".byte 0x0f, 0xb9, 0x3d\n" \
-      ".long 0x53053053"); \
-  /*xxx_preempted: @@@*/
+  if (false) { \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
+    asm goto(""                                                                  \
+             :                                                                   \
+             :                                                                   \
+             :                                                                   \
+             : xxx_begin,                                                        \
+               xxx_end,                                                          \
+               xxx_end_2,                                                        \
+               xxx_pre_preempted); /* @@@ doesn't do much. delete? */            \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
+    xxx_end_2:;                                                                    \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst);                     \
+    asm goto("" : : : : xxx_begin, xxx_end, xxx_pre_preempted);                  \
+    ::std::atomic_signal_fence(::std::memory_order_seq_cst); \
+  }
 
 namespace cxxtrace {
 namespace detail {
