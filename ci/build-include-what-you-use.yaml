@@ -1,3 +1,5 @@
+trigger: none
+
 jobs:
 - job: macos_clang_8_debug
   displayName: 'Build include-what-you-use: macOS Clang 8'
