@@ -32,6 +32,26 @@ jobs:
        "${CXXTRACE_TOOLCHAINDIRECTORY}"
     displayName: Configure checkout
 
+  - task: DownloadPipelineArtifact@2
+    displayName: Download $(cxxtrace.IWYUPrettyName)
+    inputs:
+      buildType: specific
+      project: $(System.TeamProjectId)
+      definition: 11 # build-include-what-you-use.yaml
+      buildVersionToDownload: latest
+      artifactName: $(cxxtrace.IWYUArchiveName)
+      targetPath: $(cxxtrace.IWYUDirectory)
+    timeoutInMinutes: 120
+
+  - script: |
+     set -eux
+     ls -l $(cxxtrace.IWYUDirectory)/bin
+     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
+     include-what-you-use --version
+     exit 42
+    displayName: "@@@ debug"
+    workingDirectory: $(cxxtrace.BuildDirectory)
+
   # @@@ dedupe with build-and-test.yaml
   - task: DownloadPipelineArtifact@2
     displayName: Download $(cxxtrace.ToolchainPrettyName)
@@ -53,23 +73,6 @@ jobs:
     displayName: Install $(cxxtrace.ToolchainPrettyName)
     workingDirectory: $(cxxtrace.ToolchainDirectory)
     timeoutInMinutes: 60
-
-  - task: DownloadPipelineArtifact@2
-    displayName: Download $(cxxtrace.IWYUPrettyName)
-    inputs:
-      buildType: specific
-      project: $(System.TeamProjectId)
-      definition: 11 # build-include-what-you-use.yaml
-      buildVersionToDownload: latest
-      artifactName: $(cxxtrace.IWYUArchiveName)
-      targetPath: $(cxxtrace.IWYUDirectory)
-    timeoutInMinutes: 120
-
-  - script: |
-     set -eux
-     find $(cxxtrace.IWYUDirectory)
-    displayName: "@@@ debug"
-    workingDirectory: $(cxxtrace.BuildDirectory)
 
   # @@@ dedupe with build-and-test.yaml?
   - script: |
