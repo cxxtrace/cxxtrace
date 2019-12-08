@@ -11,11 +11,10 @@ jobs:
     # CXXTRACE_BUILDDIRECTORY
     cxxtrace.BuildDirectory: $(System.DefaultWorkingDirectory)/build
     # CXXTRACE_IWYUDIRECTORY
-    cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use/usr
-    # CXXTRACE_IWYUSOURCEDIRECTORY
-    cxxtrace.IWYUSourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
-    # CXXTRACE_IWYUBUILDDIRECTORY
-    cxxtrace.IWYUBuildDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use/build
+    cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
+    # CXXTRACE_IWYUARCHIVENAME
+    # @@@ drop .tar.xz
+    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.xz
   # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
@@ -30,7 +29,6 @@ jobs:
      set -eux
      mkdir -p -- \
        "${CXXTRACE_BUILDDIRECTORY}" \
-       "${CXXTRACE_IWYUBUILDDIRECTORY}" \
        "${CXXTRACE_TOOLCHAINDIRECTORY}"
     displayName: Configure checkout
 
@@ -56,46 +54,22 @@ jobs:
     workingDirectory: $(cxxtrace.ToolchainDirectory)
     timeoutInMinutes: 60
 
-  # @@@ make a proper mirror
-  # @@@ download and extract to a safe place, not cwd
-  - script: |
-     set -eux
-     curl --output include-what-you-use-0.12.src.tar.gz 'https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz'
-     tar xzf include-what-you-use-0.12.src.tar.gz
-     #mv include-what-you-use "${CXXTRACE_IWYUSOURCEDIRECTORY}"
-    displayName: Download include-what-you-use
-    workingDirectory: $(System.DefaultWorkingDirectory)
-    timeoutInMinutes: 60
+  - task: DownloadPipelineArtifact@2
+    displayName: Download $(cxxtrace.IWYUPrettyName)
+    inputs:
+      buildType: specific
+      project: $(System.TeamProjectId)
+      definition: 11 # build-include-what-you-use.yaml
+      buildVersionToDownload: latest
+      artifactName: $(cxxtrace.IWYUArchiveName)
+      targetPath: $(cxxtrace.IWYUDirectory)
+    timeoutInMinutes: 120
 
   - script: |
      set -eux
-     cxxtrace_toolchain_usr="${CXXTRACE_TOOLCHAINDIRECTORY}/usr"
-     PATH="${cxxtrace_toolchain_usr}/bin:${PATH}"
-     cflags="-D_LIBCPP_DISABLE_AVAILABILITY"
-     ldflags="-L${cxxtrace_toolchain_usr}/lib ${cxxtrace_toolchain_usr}/lib/libc++.a ${cxxtrace_toolchain_usr}/lib/libc++abi.a"
-     cmake \
-       -G 'Unix Makefiles' \
-       -DBUILD_TESTING=ON \
-       -DCMAKE_BUILD_TYPE=Debug \
-       -DCMAKE_C_COMPILER=clang \
-       -DCMAKE_CXX_COMPILER=clang++ \
-       -DCMAKE_C_FLAGS="${cflags}" \
-       -DCMAKE_CXX_FLAGS="${cflags}" \
-       -DCMAKE_EXE_LINKER_FLAGS="${ldflags}" \
-       -DCMAKE_SHARED_LINKER_FLAGS="${ldflags}" \
-       -DCMAKE_INSTALL_PREFIX="${CXXTRACE_IWYUDIRECTORY}" \
-       -DCMAKE_PREFIX_PATH="${CXXTRACE_TOOLCHAINDIRECTORY}" \
-       "${CXXTRACE_IWYUSOURCEDIRECTORY}"
-    displayName: Configure include-what-you-use
-    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
-    timeoutInMinutes: 180
-
-  - script: |
-     set -eux
-     cmake --build . -- -j4
-     cmake --build . -- install
-    displayName: Build include-what-you-use
-    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
+     find $(cxxtrace.IWYUDirectory)
+    displayName: "@@@ debug"
+    workingDirectory: $(cxxtrace.BuildDirectory)
 
   # @@@ dedupe with build-and-test.yaml?
   - script: |

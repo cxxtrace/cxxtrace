@@ -22,6 +22,7 @@ jobs:
     cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
     cxxtrace.ToolchainPrettyName: Clang 8.0.0
     # CXXTRACE_IWYUARCHIVENAME
+    # @@@ drop .tar.xz
     cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.xz
 
   steps:
