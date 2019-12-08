@@ -1,0 +1,135 @@
+jobs:
+- job: macos_clang_8_debug
+  displayName: 'include-what-you-use: macOS Clang 8 debug'
+
+  pool:
+    vmImage: macOS-10.13
+
+  variables:
+    # CXXTRACE_SOURCEDIRECTORY
+    cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)
+    # CXXTRACE_BUILDDIRECTORY
+    cxxtrace.BuildDirectory: $(System.DefaultWorkingDirectory)/build
+    # CXXTRACE_IWYUDIRECTORY
+    cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use/usr
+    # CXXTRACE_IWYUSOURCEDIRECTORY
+    cxxtrace.IWYUSourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
+    # CXXTRACE_IWYUBUILDDIRECTORY
+    cxxtrace.IWYUBuildDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use/build
+    # CXXTRACE_TOOLCHAINDIRECTORY
+    cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
+    # CXXTRACE_TOOLCHAINNAME
+    cxxtrace.ToolchainName: clang+llvm-8.0.0-x86_64-apple-darwin
+    # CXXTRACE_TOOLCHAINARCHIVENAME
+    cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
+    cxxtrace.ToolchainPrettyName: Clang 8.0.0
+
+  steps:
+  - script: |
+     set -eux
+     mkdir -p -- \
+       "${CXXTRACE_BUILDDIRECTORY}" \
+       "${CXXTRACE_IWYUBUILDDIRECTORY}" \
+       "${CXXTRACE_TOOLCHAINDIRECTORY}"
+    displayName: Configure checkout
+
+  # @@@ dedupe with build-and-test.yaml
+  - task: DownloadPipelineArtifact@2
+    displayName: Download $(cxxtrace.ToolchainPrettyName)
+    inputs:
+      buildType: specific
+      project: $(System.TeamProjectId)
+      definition: 7 # cache-public-packages.yaml
+      buildVersionToDownload: latest
+      artifactName: $(cxxtrace.ToolchainArchiveName)
+      targetPath: $(cxxtrace.ToolchainDirectory)
+    timeoutInMinutes: 120
+
+  # @@@ dedupe with build-and-test.yaml
+  - script: |
+     set -eux
+     ls -laR
+     tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
+     ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
+    displayName: Install $(cxxtrace.ToolchainPrettyName)
+    workingDirectory: $(cxxtrace.ToolchainDirectory)
+    timeoutInMinutes: 60
+
+  # @@@ make a proper mirror
+  # @@@ download and extract to a safe place, not cwd
+  - script: |
+     set -eux
+     curl --output include-what-you-use-0.12.src.tar.gz 'https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz'
+     tar xzf include-what-you-use-0.12.src.tar.gz
+     #mv include-what-you-use "${CXXTRACE_IWYUSOURCEDIRECTORY}"
+    displayName: Download include-what-you-use
+    workingDirectory: $(System.DefaultWorkingDirectory)
+    timeoutInMinutes: 60
+
+  - script: |
+     set -eux
+     cxxtrace_toolchain_usr="${CXXTRACE_TOOLCHAINDIRECTORY}/usr"
+     PATH="${cxxtrace_toolchain_usr}/bin:${PATH}"
+     cflags="-D_LIBCPP_DISABLE_AVAILABILITY"
+     ldflags="-L${cxxtrace_toolchain_usr}/lib ${cxxtrace_toolchain_usr}/lib/libc++.a ${cxxtrace_toolchain_usr}/lib/libc++abi.a"
+     cmake \
+       -G 'Unix Makefiles' \
+       -DBUILD_TESTING=ON \
+       -DCMAKE_BUILD_TYPE=Debug \
+       -DCMAKE_C_COMPILER=clang \
+       -DCMAKE_CXX_COMPILER=clang++ \
+       -DCMAKE_C_FLAGS="${cflags}" \
+       -DCMAKE_CXX_FLAGS="${cflags}" \
+       -DCMAKE_EXE_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_SHARED_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_INSTALL_PREFIX="${CXXTRACE_IWYUDIRECTORY}" \
+       -DCMAKE_PREFIX_PATH="${CXXTRACE_TOOLCHAINDIRECTORY}" \
+       "${CXXTRACE_IWYUSOURCEDIRECTORY}"
+    displayName: Configure include-what-you-use
+    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
+    timeoutInMinutes: 180
+
+  - script: |
+     set -eux
+     cmake --build . -- -j4
+     cmake --build . -- install
+    displayName: Build include-what-you-use
+    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
+
+  # @@@ dedupe with build-and-test.yaml?
+  - script: |
+     set -eux
+     cxxtrace_toolchain_usr="${CXXTRACE_TOOLCHAINDIRECTORY}/usr"
+     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${cxxtrace_toolchain_usr}/bin:${PATH}"
+     cflags="-D_LIBCPP_DISABLE_AVAILABILITY -Wall -Wextra -pedantic -Wno-c99-extensions"
+     ldflags="-L${cxxtrace_toolchain_usr}/lib ${cxxtrace_toolchain_usr}/lib/libc++.a ${cxxtrace_toolchain_usr}/lib/libc++abi.a ${cxxtrace_toolchain_usr}/lib/libc++experimental.a ${cxxtrace_toolchain_usr}/lib/libc++fs.a"
+     cmake \
+       -G 'Unix Makefiles' \
+       -DBUILD_TESTING=ON \
+       -DCMAKE_BUILD_TYPE=Debug \
+       -DCMAKE_C_COMPILER=clang \
+       -DCMAKE_CXX_COMPILER=clang++ \
+       -DCMAKE_C_FLAGS="${cflags}" \
+       -DCMAKE_CXX_FLAGS="${cflags}" \
+       -DCMAKE_EXE_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_SHARED_LINKER_FLAGS="${ldflags}" \
+       -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+       "${CXXTRACE_SOURCEDIRECTORY}"
+    displayName: Configure cxxtrace
+    workingDirectory: $(cxxtrace.BuildDirectory)
+    timeoutInMinutes: 180
+
+  - script: |
+     set -eux
+     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
+     cmake --build . -- include-what-you-use
+    displayName: Run include-what-you-use
+    workingDirectory: $(cxxtrace.BuildDirectory)
+
+  - script: |
+     set -eux
+     git diff
+    displayName: Check include-what-you-use results
+    workingDirectory: $(cxxtrace.SourceDirectory)
+
+# @@@ Linux plz
