@@ -51,7 +51,8 @@ jobs:
   - script: |
      set -eux
      mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
-     tar xf include-what-you-use.tar.gz -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+     file include-what-you-use.tar.gz
+     tar xzf include-what-you-use.tar.gz -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
     displayName: Install $(cxxtrace.IWYUPrettyName)
     workingDirectory: $(cxxtrace.TempDirectory)
     timeoutInMinutes: 60
