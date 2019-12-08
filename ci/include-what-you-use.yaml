@@ -13,8 +13,11 @@ jobs:
     # CXXTRACE_IWYUDIRECTORY
     cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
     # CXXTRACE_IWYUARCHIVENAME
-    # @@@ drop .tar.xz
-    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.xz
+    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.gz
+    # CXXTRACE_IWYUNAME
+    cxxtrace.IWYUName: include-what-you-use-0.12-clang-8-macos
+    # CXXTRACE_IWYUPRETTYNAME
+    cxxtrace.IWYUPrettyName: include-what-you-use 0.12 Clang 8.0.0
   # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
@@ -23,6 +26,8 @@ jobs:
     # CXXTRACE_TOOLCHAINARCHIVENAME
     cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
     cxxtrace.ToolchainPrettyName: Clang 8.0.0
+    # CXXTRACE_TEMPDIRECTORY
+    cxxtrace.TempDirectory: $(Agent.TempDirectory)/cxxtrace
 
   steps:
   - script: |
@@ -40,8 +45,16 @@ jobs:
       definition: 11 # build-include-what-you-use.yaml
       buildVersionToDownload: latest
       artifactName: $(cxxtrace.IWYUArchiveName)
-      targetPath: $(cxxtrace.IWYUDirectory)
+      targetPath: $(cxxtrace.TempDirectory)/include-what-you-use.tar.gz
     timeoutInMinutes: 120
+
+  - script: |
+     set -eux
+     mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
+     tar xf include-what-you-use.tar.gz -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+    displayName: Install $(cxxtrace.IWYUPrettyName)
+    workingDirectory: $(cxxtrace.TempDirectory)
+    timeoutInMinutes: 60
 
   - script: |
      set -eux

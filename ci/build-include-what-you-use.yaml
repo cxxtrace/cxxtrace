@@ -21,11 +21,10 @@ jobs:
     # CXXTRACE_TOOLCHAINNAME
     cxxtrace.ToolchainName: clang+llvm-8.0.0-x86_64-apple-darwin
     # CXXTRACE_TOOLCHAINARCHIVENAME
-    cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
+    cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.gz
     cxxtrace.ToolchainPrettyName: Clang 8.0.0
     # CXXTRACE_IWYUARCHIVENAME
-    # @@@ drop .tar.xz
-    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.xz
+    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.gz
 
   steps:
   - checkout: none
@@ -106,10 +105,17 @@ jobs:
     displayName: Build include-what-you-use
     workingDirectory: $(cxxtrace.IWYUBuildDirectory)
 
+  - script: |
+     set -eux
+     mv "${CXXTRACE_IWYUDIRECTORY}" "${CXXTRACE_IWYUNAME}"
+     tar czf "${CXXTRACE_IWYUARCHIVENAME}" "${CXXTRACE_IWYUNAME}"
+    displayName: Package include-what-you-use
+    workingDirectory: $(System.DefaultWorkingDirectory)
+
   - task: PublishPipelineArtifact@1
     displayName: Publish artifacts
     inputs:
       artifact: $(cxxtrace.IWYUArchiveName)
-      targetPath: $(cxxtrace.IWYUDirectory)
+      targetPath: $(System.DefaultWorkingDirectory)/$(cxxtrace.IWYUArchiveName)
 
 # @@@ Linux plz
