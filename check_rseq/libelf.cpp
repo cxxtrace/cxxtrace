@@ -1,9 +1,15 @@
 #include "libelf_support.h"
-#include <cstdio>
-#include <exception>
+#include "machine_code.h"
+#include <algorithm>
+#include <cassert>
+#include <cstddef>
+#include <elf.h>
+#include <libelf.h>
 #include <libelf/gelf.h>
 #include <optional>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace cxxtrace_check_rseq {
 namespace {

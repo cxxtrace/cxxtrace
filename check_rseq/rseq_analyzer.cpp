@@ -1,16 +1,30 @@
 #include "capstone.h"
+#include "elf_function.h"
 #include "libelf_support.h"
+#include "machine_code.h"
 #include "parse_binary.h"
 #include "rseq_analyzer.h"
+#include <algorithm>
+#include <array>
 #include <capstone/capstone.h>
-#include <cstdio>
+#include <capstone/x86.h>
+#include <cassert>
+#include <cerrno>
+#include <cstddef>
 #include <cxxtrace/detail/file_descriptor.h>
+#include <cxxtrace/detail/iostream.h>
 #include <cxxtrace/string.h>
 #include <fcntl.h>
+#include <gelf.h>
 #include <iomanip>
+#include <libelf.h>
+#include <optional>
 #include <ostream>
+#include <stdexcept>
 #include <string>
+#include <system_error>
 #include <variant>
+#include <vector>
 
 namespace cxxtrace_check_rseq {
 namespace {

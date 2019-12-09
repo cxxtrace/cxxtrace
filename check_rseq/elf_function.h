@@ -2,13 +2,12 @@
 #define CXXTRACE_CHECK_RSEQ_ELF_FUNCTION_H
 
 #include "machine_code.h"
-#include <cstdint>
+#include <cstddef>
 #include <cxxtrace/string.h>
 #include <libelf/gelf.h>
 #include <libelf/libelf.h>
-#include <optional>
+#include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 namespace cxxtrace_check_rseq {

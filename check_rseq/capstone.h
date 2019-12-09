@@ -2,11 +2,14 @@
 #define CXXTRACE_CHECK_RSEQ_CAPSTONE_H
 
 #include "machine_code.h"
-#include "rseq_analyzer.h"
 #include <capstone/capstone.h>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 namespace cxxtrace_check_rseq {
 class capstone_instructions;

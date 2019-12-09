@@ -1,12 +1,12 @@
 #include "assembler.h"
 #include "elf_function.h"
+#include "machine_code.h"
 #include "rseq_analyzer.h"
 #include <cstddef>
 #include <cxxtrace/string.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <initializer_list>
-#include <machine_code.h>
 #include <optional>
 #include <sstream>
 #include <string>

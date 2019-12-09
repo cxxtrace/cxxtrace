@@ -2,10 +2,11 @@
 #include "machine_code.h"
 #include <algorithm>
 #include <capstone/capstone.h>
+#include <capstone/x86.h>
 #include <cassert>
-#include <cstdio>
-#include <exception>
+#include <iterator>
 #include <sstream>
+#include <stdexcept>
 
 namespace cxxtrace_check_rseq {
 namespace {

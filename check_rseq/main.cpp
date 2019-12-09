@@ -1,9 +1,9 @@
-#include "elf_function.h"
 #include "rseq_analyzer.h"
-#include <cstdio>
-#include <cxxtrace/string.h>
 #include <iostream>
+#include <stdlib.h>
+#include <string>
 #include <variant>
+#include <vector>
 
 namespace {
 auto
