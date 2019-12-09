@@ -63,6 +63,7 @@ jobs:
 
   - script: |
      set -eux
+     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${cxxtrace_toolchain_usr}/bin:${PATH}"
      ./tools/format
      git add --update
      git commit --allow-empty --message 'Format sources'
@@ -71,7 +72,7 @@ jobs:
 
   - script: |
      set -eux
-     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
+     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${cxxtrace_toolchain_usr}/bin:${PATH}"
      cmake --build . -- include-what-you-use
      ./tools/format
     displayName: Run include-what-you-use
