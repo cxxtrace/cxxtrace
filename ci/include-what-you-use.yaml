@@ -45,21 +45,23 @@ jobs:
       definition: 11 # build-include-what-you-use.yaml
       buildVersionToDownload: latest
       artifactName: $(cxxtrace.IWYUArchiveName)
-      targetPath: $(cxxtrace.TempDirectory)/include-what-you-use.tar.gz
+      targetPath: $(cxxtrace.TempDirectory)
     timeoutInMinutes: 120
 
   - script: |
      set -eux
      mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
-     file include-what-you-use.tar.gz
-     tar xzf include-what-you-use.tar.gz -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+     ls -la "${CXXTRACE_IWYUARCHIVENAME}"
+     file "${CXXTRACE_IWYUARCHIVENAME}"
+     tar xzvf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
     displayName: Install $(cxxtrace.IWYUPrettyName)
     workingDirectory: $(cxxtrace.TempDirectory)
     timeoutInMinutes: 60
 
   - script: |
      set -eux
-     ls -l $(cxxtrace.IWYUDirectory)/bin
+     ls -l "${CXXTRACE_IWYUDIRECTORY}"
+     ls -l  "${CXXTRACE_IWYUDIRECTORY}/bin"
      PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
      include-what-you-use --version
      exit 42
