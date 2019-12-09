@@ -113,10 +113,7 @@ jobs:
 
   - script: |
      set -eux
-     # @@@ this creates a root directory called '.'. Instead, create a root
-     # directory with an interesting name. (--strip-components in extraction
-     # should avoid conflicts.)
-     tar czf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" .
+     tar czf "${CXXTRACE_IWYUARCHIVENAME}" -C "$(dirname "${CXXTRACE_IWYUDIRECTORY}")" "$(basename "${CXXTRACE_IWYUDIRECTORY}")"
      tar tvf "${CXXTRACE_IWYUARCHIVENAME}"
     displayName: Package include-what-you-use
     workingDirectory: $(System.DefaultWorkingDirectory)
