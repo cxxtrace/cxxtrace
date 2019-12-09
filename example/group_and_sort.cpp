@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cxxtrace/chrome_trace_event_format.h>
 #include <cxxtrace/clock.h>
-#include <cxxtrace/config.h>
+#include <cxxtrace/config.h> // IWYU pragma: keep
 #include <cxxtrace/ring_queue_storage.h>
 #include <cxxtrace/span.h>
 #include <iostream>
