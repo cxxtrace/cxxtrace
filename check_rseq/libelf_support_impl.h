@@ -1,6 +1,7 @@
 #ifndef CXXTRACE_CHECK_RSEQ_LIBELF_SUPPORT_IMPL_H
 #define CXXTRACE_CHECK_RSEQ_LIBELF_SUPPORT_IMPL_H
 
+// IWYU pragma: private, include "libelf_support.h"
 #if !defined(CXXTRACE_CHECK_RSEQ_LIBELF_SUPPORT_H)
 #error                                                                         \
   "Include \"libelf_support.h\" instead of including \"libelf_support_impl.h\" directly."
@@ -8,6 +9,10 @@
 
 #include <cassert>
 #include <cstring>
+#include <cxxtrace/string.h>
+#include <elf.h>
+#include <gelf.h>
+#include <libelf.h>
 #include <stdexcept>
 
 namespace cxxtrace_check_rseq {

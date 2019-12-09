@@ -3,13 +3,17 @@
 
 #include "elf_function.h"
 #include "machine_code.h"
+#include <algorithm>
 #include <array>
-#include <cstdio>
-#include <cxxtrace/detail/iostream.h>
+#include <cstddef>
+#include <cstdint>
 #include <cxxtrace/string.h>
-#include <libelf/gelf.h>
+#include <iosfwd>
 #include <libelf/libelf.h>
 #include <optional>
+#include <string>
+#include <tuple>
+#include <utility>
 #include <variant>
 #include <vector>
 

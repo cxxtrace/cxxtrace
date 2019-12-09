@@ -28,6 +28,7 @@ IWYU_EXIT_SUCCESS_OFFSET = 2
 cxxtrace_project_path = pathlib.Path(__file__).resolve(strict=True).parent.parent.parent
 include_what_you_use_tools_path = pathlib.Path(__file__).resolve(strict=True).parent
 top_level_cxxtrace_source_directories = (
+    cxxtrace_project_path / "check_rseq",
     cxxtrace_project_path / "example",
     cxxtrace_project_path / "lib",
     cxxtrace_project_path / "test",

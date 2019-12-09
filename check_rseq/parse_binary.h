@@ -1,7 +1,6 @@
 #ifndef CXXTRACE_CHECK_RSEQ_PARSE_BINARY_H
 #define CXXTRACE_CHECK_RSEQ_PARSE_BINARY_H
 
-#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <optional>

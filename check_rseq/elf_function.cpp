@@ -1,7 +1,14 @@
 #include "elf_function.h"
 #include "libelf_support.h"
-#include "parse_binary.h"
+#include "machine_code.h"
+#include <algorithm>
+#include <cassert>
+#include <elf.h>
+#include <gelf.h>
+#include <libelf.h>
+#include <optional>
 #include <string>
+#include <utility>
 
 namespace cxxtrace_check_rseq {
 function_contains_unallocated_bytes::function_contains_unallocated_bytes(

@@ -4,6 +4,7 @@
 #include "elf_function.h"
 #include "libelf_support.h"
 #include "machine_code.h"
+#include <algorithm>
 #include <cassert>
 #include <cerrno>
 #include <cstddef> // IWYU pragma: keep

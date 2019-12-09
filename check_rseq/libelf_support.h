@@ -2,7 +2,9 @@
 #define CXXTRACE_CHECK_RSEQ_LIBELF_SUPPORT_H
 
 #include "machine_code.h"
+#include <cstddef>
 #include <cxxtrace/string.h>
+#include <elf.h>
 #include <libelf/gelf.h>
 #include <libelf/libelf.h>
 #include <optional>
@@ -83,6 +85,6 @@ auto
 enumerate_symbols(::Elf*, Func&& callback) -> void;
 }
 
-#include "libelf_support_impl.h"
+#include "libelf_support_impl.h" // IWYU pragma: export
 
 #endif
