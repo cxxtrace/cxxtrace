@@ -79,6 +79,12 @@ jobs:
 
   - script: |
      set -eux
-     git diff
+     if git diff --exit-code; then
+       printf 'include-what-you-use introduced no differences\n' >&2
+       exit 0
+     else
+       printf 'include-what-you-use introduced some differences\n' >&2
+       exit 1
+     fi
     displayName: Check include-what-you-use results
     workingDirectory: $(cxxtrace.SourceDirectory)
