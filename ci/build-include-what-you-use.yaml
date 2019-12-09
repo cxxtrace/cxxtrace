@@ -107,7 +107,8 @@ jobs:
 
   - script: |
      set -eux
-     tar czf "${CXXTRACE_IWYUARCHIVENAME}" "${CXXTRACE_IWYUDIRECTORY}"
+     tar czf "${CXXTRACE_IWYUARCHIVENAME}" . -C "${CXXTRACE_IWYUDIRECTORY}"
+     tar tvf "${CXXTRACE_IWYUARCHIVENAME}"
     displayName: Package include-what-you-use
     workingDirectory: $(System.DefaultWorkingDirectory)
 

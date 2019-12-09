@@ -51,8 +51,8 @@ jobs:
   - script: |
      set -eux
      mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
-     ls -la "${CXXTRACE_IWYUARCHIVENAME}"
-     file "${CXXTRACE_IWYUARCHIVENAME}"
+     ls -la "${CXXTRACE_IWYUARCHIVENAME}" # @@@
+     file "${CXXTRACE_IWYUARCHIVENAME}" # @@@
      tar xzvf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
     displayName: Install $(cxxtrace.IWYUPrettyName)
     workingDirectory: $(cxxtrace.TempDirectory)
@@ -60,6 +60,7 @@ jobs:
 
   - script: |
      set -eux
+     # @@@
      ls -l "${CXXTRACE_IWYUDIRECTORY}"
      ls -l  "${CXXTRACE_IWYUDIRECTORY}/bin"
      PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
