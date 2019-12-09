@@ -7,6 +7,7 @@
 #include <ostream>
 #include <utility>
 #include <vector>
+// IWYU pragma: no_include <algorithm>
 // IWYU pragma: no_include <memory>
 
 namespace cxxtrace_test {

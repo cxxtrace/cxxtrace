@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <vector>
+// IWYU pragma: no_include <algorithm>
 
 using testing::UnorderedElementsAre;
 
