@@ -1,0 +1,6 @@
+from: :[[name]]& operator=(:[arg]) :[decls] = delete;
+to: auto operator=(:[arg]) :[decls] -> :[[name]]& = delete;
+where match :[arg] {
+  | "const :[[name]]&" -> true
+  | ":[[name]]&&" -> true
+}

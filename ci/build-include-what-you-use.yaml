@@ -14,8 +14,12 @@ jobs:
     cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.gz
     # CXXTRACE_IWYUDIRECTORY
     cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use-prefix
+    # CXXTRACE_IWYUSOURCEARCHIVENAME
+    cxxtrace.IWYUSourceArchiveName: include-what-you-use-0.12.src.tar.gz
     # CXXTRACE_SOURCEDIRECTORY
     cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
+    # CXXTRACE_TEMPDIRECTORY
+    cxxtrace.TempDirectory: $(Agent.TempDirectory)/cxxtrace
   # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
@@ -50,27 +54,30 @@ jobs:
   # @@@ dedupe with build-and-test.yaml
   - script: |
      set -eux
-     ls -laR
+     ls -laR # @@@
      tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
      ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
     displayName: Install $(cxxtrace.ToolchainPrettyName)
     workingDirectory: $(cxxtrace.ToolchainDirectory)
     timeoutInMinutes: 60
 
-  # @@@ make a proper mirror
+  - task: DownloadPipelineArtifact@2
+    displayName: Download include-what-you-use sources
+    inputs:
+      buildType: specific
+      project: $(System.TeamProjectId)
+      definition: 7 # cache-public-packages.yaml
+      buildVersionToDownload: latest
+      artifactName: $(cxxtrace.IWYUSourceArchiveName)
+      targetPath: $(cxxtrace.TempDirectory)
+    timeoutInMinutes: 120
+
   - script: |
      set -eux
-     if [ -e "${CXXTRACE_SOURCEDIRECTORY}" ]; then
-       printf 'error: %s should not exist\n' "${CXXTRACE_SOURCEDIRECTORY}" >&2
-       exit 1
-     fi
-     curl --output include-what-you-use-0.12.src.tar.gz 'https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz'
-     tar xvzf include-what-you-use-0.12.src.tar.gz
-     if ! [ include-what-you-use -ef "${CXXTRACE_SOURCEDIRECTORY}" ]; then
-       mv include-what-you-use "${CXXTRACE_SOURCEDIRECTORY}"
-     fi
-    displayName: Download include-what-you-use
-    workingDirectory: $(System.DefaultWorkingDirectory)
+     mkdir -p -- "${CXXTRACE_SOURCEDIRECTORY}"
+     tar xzf "${CXXTRACE_IWYUSOURCEARCHIVENAME}" -C "${CXXTRACE_SOURCEDIRECTORY}" --strip-components 1
+    displayName: Extract include-what-you-use sources
+    workingDirectory: $(cxxtrace.TempDirectory)
     timeoutInMinutes: 60
 
   - script: |
