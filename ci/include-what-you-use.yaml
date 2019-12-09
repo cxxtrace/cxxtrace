@@ -73,10 +73,10 @@ jobs:
   - script: |
      set -eux
      PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${CXXTRACE_TOOLCHAINDIRECTORY}/usr/bin:${PATH}"
-     cmake --build . -- include-what-you-use
+     cmake --build "${CXXTRACE_BUILDDIRECTORY}" -- include-what-you-use
      ./tools/format
     displayName: Run include-what-you-use
-    workingDirectory: $(cxxtrace.BuildDirectory)
+    workingDirectory: $(cxxtrace.SourceDirectory)
 
   - script: |
      set -eux
