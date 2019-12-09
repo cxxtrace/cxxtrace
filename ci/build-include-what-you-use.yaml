@@ -100,7 +100,7 @@ jobs:
        -DCMAKE_PREFIX_PATH="${CXXTRACE_TOOLCHAINDIRECTORY}" \
        "${CXXTRACE_SOURCEDIRECTORY}"
     displayName: Configure include-what-you-use
-    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
+    workingDirectory: $(cxxtrace.BuildDirectory)
     timeoutInMinutes: 180
 
   - script: |
@@ -109,7 +109,7 @@ jobs:
      cmake --build . -- install
      # TODO(strager): Strip LC_RPATH from executables.
     displayName: Build include-what-you-use
-    workingDirectory: $(cxxtrace.IWYUBuildDirectory)
+    workingDirectory: $(cxxtrace.BuildDirectory)
 
   - script: |
      set -eux
