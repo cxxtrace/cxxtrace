@@ -8,13 +8,14 @@ jobs:
     vmImage: macOS-10.13
 
   variables:
-    # @@@ rename variables
+    # CXXTRACE_BUILDDIRECTORY
+    cxxtrace.BuildDirectory: $(System.DefaultWorkingDirectory)/build
+    # CXXTRACE_IWYUARCHIVENAME
+    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.gz
     # CXXTRACE_IWYUDIRECTORY
     cxxtrace.IWYUDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use-prefix
-    # CXXTRACE_IWYUSOURCEDIRECTORY
-    cxxtrace.IWYUSourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
-    # CXXTRACE_IWYUBUILDDIRECTORY
-    cxxtrace.IWYUBuildDirectory: $(System.DefaultWorkingDirectory)/build
+    # CXXTRACE_SOURCEDIRECTORY
+    cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
   # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
@@ -23,8 +24,6 @@ jobs:
     # CXXTRACE_TOOLCHAINARCHIVENAME
     cxxtrace.ToolchainArchiveName: clang+llvm-8.0.0-x86_64-apple-darwin.tar.xz
     cxxtrace.ToolchainPrettyName: Clang 8.0.0
-    # CXXTRACE_IWYUARCHIVENAME
-    cxxtrace.IWYUArchiveName: include-what-you-use-0.12-clang-8-macos.tar.gz
 
   steps:
   - checkout: none
@@ -32,7 +31,7 @@ jobs:
   - script: |
      set -eux
      mkdir -p -- \
-       "${CXXTRACE_IWYUBUILDDIRECTORY}" \
+       "${CXXTRACE_BUILDDIRECTORY}" \
        "${CXXTRACE_TOOLCHAINDIRECTORY}"
     displayName: Configure checkout
 
@@ -61,14 +60,14 @@ jobs:
   # @@@ make a proper mirror
   - script: |
      set -eux
-     if [ -e "${CXXTRACE_IWYUSOURCEDIRECTORY}" ]; then
-       printf 'error: %s should not exist\n' "${CXXTRACE_IWYUSOURCEDIRECTORY}" >&2
+     if [ -e "${CXXTRACE_SOURCEDIRECTORY}" ]; then
+       printf 'error: %s should not exist\n' "${CXXTRACE_SOURCEDIRECTORY}" >&2
        exit 1
      fi
      curl --output include-what-you-use-0.12.src.tar.gz 'https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz'
      tar xvzf include-what-you-use-0.12.src.tar.gz
-     if ! [ include-what-you-use -ef "${CXXTRACE_IWYUSOURCEDIRECTORY}" ]; then
-       mv include-what-you-use "${CXXTRACE_IWYUSOURCEDIRECTORY}"
+     if ! [ include-what-you-use -ef "${CXXTRACE_SOURCEDIRECTORY}" ]; then
+       mv include-what-you-use "${CXXTRACE_SOURCEDIRECTORY}"
      fi
     displayName: Download include-what-you-use
     workingDirectory: $(System.DefaultWorkingDirectory)
@@ -92,7 +91,7 @@ jobs:
        -DCMAKE_SHARED_LINKER_FLAGS="${ldflags}" \
        -DCMAKE_INSTALL_PREFIX="${CXXTRACE_IWYUDIRECTORY}" \
        -DCMAKE_PREFIX_PATH="${CXXTRACE_TOOLCHAINDIRECTORY}" \
-       "${CXXTRACE_IWYUSOURCEDIRECTORY}"
+       "${CXXTRACE_SOURCEDIRECTORY}"
     displayName: Configure include-what-you-use
     workingDirectory: $(cxxtrace.IWYUBuildDirectory)
     timeoutInMinutes: 180
@@ -120,5 +119,3 @@ jobs:
     inputs:
       artifact: $(cxxtrace.IWYUArchiveName)
       targetPath: $(System.DefaultWorkingDirectory)/$(cxxtrace.IWYUArchiveName)
-
-# @@@ Linux plz

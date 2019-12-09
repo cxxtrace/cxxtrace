@@ -26,3 +26,29 @@ jobs:
     inputs:
       artifact: $(cxxtrace.ToolchainArchiveName)
       targetPath: $(cxxtrace.ToolchainArchiveName)
+
+- job: iwyu_8_macos
+  displayName: 'Cache public packages: include-what-you-use 0.12 sources'
+
+  pool:
+    vmImage: ubuntu-latest
+
+  variables:
+    # CXXTRACE_IWYUSOURCEARCHIVENAME
+    cxxtrace.IWYUSourceArchiveName: include-what-you-use-0.12.src.tar.gz
+
+  steps:
+  - checkout: none
+
+  - script: |
+     set -eux
+     curl --output "${CXXTRACE_IWYUSOURCEARCHIVENAME}" https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz
+     printf 'a5892fb0abccb820c394e4e245c00ef30fc94e4ae58a048b23f94047c0816025  include-what-you-use-0.12.src.tar.gz\n' \
+       | shasum --algorithm 256 --check
+    displayName: Download include-what-you-use 0.12
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish artifacts
+    inputs:
+      artifact: $(cxxtrace.IWYUSourceArchiveName)
+      targetPath: $(cxxtrace.IWYUSourceArchiveName)
