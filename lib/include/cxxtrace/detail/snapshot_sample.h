@@ -1,7 +1,7 @@
 #ifndef CXXTRACE_DETAIL_SNAPSHOT_SAMPLE_H
 #define CXXTRACE_DETAIL_SNAPSHOT_SAMPLE_H
 
-#include <algorithm>
+#include <algorithm> // IWYU pragma: keep
 #include <cxxtrace/clock.h>
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/thread.h>

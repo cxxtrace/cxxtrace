@@ -5,7 +5,7 @@
 #include <array>
 #include <cassert>
 #include <charconv>
-#include <cstddef>
+#include <cstddef> // IWYU pragma: keep
 #include <cstdio>
 #include <cxxtrace/detail/workarounds.h> // IWYU pragma: keep
 #include <exception>

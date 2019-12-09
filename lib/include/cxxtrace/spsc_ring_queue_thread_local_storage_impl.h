@@ -8,7 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
+#include <cstddef>                      // IWYU pragma: keep
 #include <cxxtrace/detail/queue_sink.h> // IWYU pragma: keep
 #include <cxxtrace/detail/sample.h>
 #include <cxxtrace/detail/snapshot_sample.h>

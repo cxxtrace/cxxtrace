@@ -13,6 +13,7 @@
 #include <cxxtrace/thread.h>
 #include <limits>
 #include <ostream>
+#include <string> // IWYU pragma: keep
 #include <string_view>
 #include <system_error>
 #include <type_traits>
