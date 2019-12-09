@@ -22,4 +22,5 @@ matching() {
 }
 
 find_formattable_files | matching '\.(c|cpp|h)$' | xargs clang-format -i
-find_formattable_files | matching '\.(py)$' | xargs black --quiet
+# @@@
+#find_formattable_files | matching '\.(py)$' | xargs black --quiet
