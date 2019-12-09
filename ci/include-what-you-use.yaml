@@ -51,23 +51,11 @@ jobs:
   - script: |
      set -eux
      mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
-     ls -la "${CXXTRACE_IWYUARCHIVENAME}" # @@@
-     file "${CXXTRACE_IWYUARCHIVENAME}" # @@@
-     tar xzvf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+     tar xzf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+     "${CXXTRACE_IWYUDIRECTORY}/bin/include-what-you-use" --version
     displayName: Install $(cxxtrace.IWYUPrettyName)
     workingDirectory: $(cxxtrace.TempDirectory)
     timeoutInMinutes: 60
-
-  - script: |
-     set -eux
-     # @@@
-     ls -l "${CXXTRACE_IWYUDIRECTORY}"
-     ls -l  "${CXXTRACE_IWYUDIRECTORY}/bin"
-     PATH="${CXXTRACE_IWYUDIRECTORY}/bin:${PATH}"
-     include-what-you-use --version
-     exit 42
-    displayName: "@@@ debug"
-    workingDirectory: $(cxxtrace.BuildDirectory)
 
   # @@@ dedupe with build-and-test.yaml
   - task: DownloadPipelineArtifact@2
