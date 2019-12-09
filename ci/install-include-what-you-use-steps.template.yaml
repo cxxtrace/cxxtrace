@@ -1,0 +1,20 @@
+steps:
+- task: DownloadPipelineArtifact@2
+  displayName: Download $(cxxtrace.IWYUPrettyName)
+  inputs:
+    buildType: specific
+    project: $(System.TeamProjectId)
+    definition: 11 # build-include-what-you-use.yaml
+    buildVersionToDownload: latest
+    artifactName: $(cxxtrace.IWYUArchiveName)
+    targetPath: $(cxxtrace.TempDirectory)
+  timeoutInMinutes: 120
+
+- script: |
+   set -eux
+   mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
+   tar xzf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
+   "${CXXTRACE_IWYUDIRECTORY}/bin/include-what-you-use" --version
+  displayName: Install $(cxxtrace.IWYUPrettyName)
+  workingDirectory: $(cxxtrace.TempDirectory)
+  timeoutInMinutes: 60

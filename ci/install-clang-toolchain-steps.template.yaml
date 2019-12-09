@@ -1,0 +1,20 @@
+steps:
+- task: DownloadPipelineArtifact@2
+  displayName: Download $(cxxtrace.ToolchainPrettyName)
+  inputs:
+    buildType: specific
+    project: $(System.TeamProjectId)
+    definition: 7 # cache-public-packages.yaml
+    buildVersionToDownload: latest
+    artifactName: $(cxxtrace.ToolchainArchiveName)
+    targetPath: $(cxxtrace.ToolchainDirectory)
+  timeoutInMinutes: 120
+
+- script: |
+   set -eux
+   ls -laR
+   tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
+   ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
+  displayName: Install $(cxxtrace.ToolchainPrettyName)
+  workingDirectory: $(cxxtrace.ToolchainDirectory)
+  timeoutInMinutes: 60

@@ -18,7 +18,6 @@ jobs:
     cxxtrace.IWYUName: include-what-you-use-0.12-clang-8-macos
     # CXXTRACE_IWYUPRETTYNAME
     cxxtrace.IWYUPrettyName: include-what-you-use 0.12 Clang 8.0.0
-  # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
     # CXXTRACE_TOOLCHAINNAME
@@ -37,49 +36,9 @@ jobs:
        "${CXXTRACE_TOOLCHAINDIRECTORY}"
     displayName: Configure checkout
 
-  - task: DownloadPipelineArtifact@2
-    displayName: Download $(cxxtrace.IWYUPrettyName)
-    inputs:
-      buildType: specific
-      project: $(System.TeamProjectId)
-      definition: 11 # build-include-what-you-use.yaml
-      buildVersionToDownload: latest
-      artifactName: $(cxxtrace.IWYUArchiveName)
-      targetPath: $(cxxtrace.TempDirectory)
-    timeoutInMinutes: 120
+  - template: install-clang-toolchain-steps.template.yaml
+  - template: install-include-what-you-use-steps.template.yaml
 
-  - script: |
-     set -eux
-     mkdir -p -- "${CXXTRACE_IWYUDIRECTORY}"
-     tar xzf "${CXXTRACE_IWYUARCHIVENAME}" -C "${CXXTRACE_IWYUDIRECTORY}" --strip-components 1
-     "${CXXTRACE_IWYUDIRECTORY}/bin/include-what-you-use" --version
-    displayName: Install $(cxxtrace.IWYUPrettyName)
-    workingDirectory: $(cxxtrace.TempDirectory)
-    timeoutInMinutes: 60
-
-  # @@@ dedupe with build-and-test.yaml
-  - task: DownloadPipelineArtifact@2
-    displayName: Download $(cxxtrace.ToolchainPrettyName)
-    inputs:
-      buildType: specific
-      project: $(System.TeamProjectId)
-      definition: 7 # cache-public-packages.yaml
-      buildVersionToDownload: latest
-      artifactName: $(cxxtrace.ToolchainArchiveName)
-      targetPath: $(cxxtrace.ToolchainDirectory)
-    timeoutInMinutes: 120
-
-  # @@@ dedupe with build-and-test.yaml
-  - script: |
-     set -eux
-     ls -laR
-     tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
-     ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
-    displayName: Install $(cxxtrace.ToolchainPrettyName)
-    workingDirectory: $(cxxtrace.ToolchainDirectory)
-    timeoutInMinutes: 60
-
-  # @@@ dedupe with build-and-test.yaml?
   - script: |
      set -eux
      cxxtrace_toolchain_usr="${CXXTRACE_TOOLCHAINDIRECTORY}/usr"
@@ -114,5 +73,3 @@ jobs:
      git diff
     displayName: Check include-what-you-use results
     workingDirectory: $(cxxtrace.SourceDirectory)
-
-# @@@ Linux plz

@@ -20,7 +20,6 @@ jobs:
     cxxtrace.SourceDirectory: $(System.DefaultWorkingDirectory)/include-what-you-use
     # CXXTRACE_TEMPDIRECTORY
     cxxtrace.TempDirectory: $(Agent.TempDirectory)/cxxtrace
-  # @@@ dedupe with build-and-test.yaml
     # CXXTRACE_TOOLCHAINDIRECTORY
     cxxtrace.ToolchainDirectory: $(System.DefaultWorkingDirectory)/toolchain
     # CXXTRACE_TOOLCHAINNAME
@@ -39,27 +38,7 @@ jobs:
        "${CXXTRACE_TOOLCHAINDIRECTORY}"
     displayName: Configure checkout
 
-  # @@@ dedupe with build-and-test.yaml
-  - task: DownloadPipelineArtifact@2
-    displayName: Download $(cxxtrace.ToolchainPrettyName)
-    inputs:
-      buildType: specific
-      project: $(System.TeamProjectId)
-      definition: 7 # cache-public-packages.yaml
-      buildVersionToDownload: latest
-      artifactName: $(cxxtrace.ToolchainArchiveName)
-      targetPath: $(cxxtrace.ToolchainDirectory)
-    timeoutInMinutes: 120
-
-  # @@@ dedupe with build-and-test.yaml
-  - script: |
-     set -eux
-     ls -laR # @@@
-     tar xf "${CXXTRACE_TOOLCHAINARCHIVENAME}"
-     ln -s -- "${CXXTRACE_TOOLCHAINNAME}" usr
-    displayName: Install $(cxxtrace.ToolchainPrettyName)
-    workingDirectory: $(cxxtrace.ToolchainDirectory)
-    timeoutInMinutes: 60
+  - template: install-clang-toolchain-steps.template.yaml
 
   - task: DownloadPipelineArtifact@2
     displayName: Download include-what-you-use sources
