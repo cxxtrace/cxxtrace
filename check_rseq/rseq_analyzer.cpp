@@ -211,22 +211,22 @@ public:
           .interrupt_instruction_string = instruction_string(instruction),
         });
       }
-    }
-
-    auto jumps = in_group(::X86_GRP_JUMP) || in_group(::X86_GRP_CALL);
-    if (jumps) {
-      auto target = jump_target(instruction);
-      if (target.has_value()) {
-        if (this->address_within_critical_section(*target) &&
-            *target != this->critical_section.start_address) {
-          analysis.add_problem(rseq_problem::jump_into_critical_section{
-            {
-              .critical_section = this->critical_section,
-            },
-            .jump_instruction_address = instruction.address,
-            .jump_instruction_string = instruction_string(instruction),
-            .target_instruction_address = *target,
-          });
+    } else {
+      auto jumps = in_group(::X86_GRP_JUMP) || in_group(::X86_GRP_CALL);
+      if (jumps) {
+        auto target = jump_target(instruction);
+        if (target.has_value()) {
+          if (this->address_within_critical_section(*target) &&
+              *target != this->critical_section.start_address) {
+            analysis.add_problem(rseq_problem::jump_into_critical_section{
+              {
+                .critical_section = this->critical_section,
+              },
+              .jump_instruction_address = instruction.address,
+              .jump_instruction_string = instruction_string(instruction),
+              .target_instruction_address = *target,
+            });
+          }
         }
       }
     }

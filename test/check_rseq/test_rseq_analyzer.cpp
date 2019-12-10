@@ -764,6 +764,48 @@ TEST(test_rseq_analyzer_x86, jumping_into_start_of_critical_section_is_allowed)
   }
 }
 
+TEST(test_rseq_analyzer_x86, jumping_within_critical_section_is_allowed)
+{
+  enum target_location
+  {
+    before_jump,
+    after_jump,
+  };
+
+  for (const auto* jump_instruction : { "jmp jump_target", "jz jump_target" }) {
+    auto jump_instruction_line = jump_instruction + "\n"s;
+    for (auto target_location : { before_jump, after_jump }) {
+      auto jump_target_label = "jump_target:\n";
+      auto code =
+        R"(
+        start:
+          incq %rax
+      )" +
+        (target_location == before_jump ? jump_target_label : ""s) + R"(
+          incq %rax
+      )" +
+        jump_instruction + R"(
+          incq %rax
+      )" +
+        (target_location == after_jump ? jump_target_label : ""s) + R"(
+          incq %rax
+        post_commit:
+          incq %rax
+      )"s +
+        abort_signature_x86 + R"(
+        abort:
+          incq %rax
+      )";
+      SCOPED_TRACE("code: " + code);
+      auto elf = assemble_function_into_elf_shared_object(
+        machine_architecture::x86, code, "test_function");
+      auto analysis = analyze_rseq_critical_section(
+        elf, "test_function", "start", "post_commit", "abort");
+      EXPECT_THAT(analysis.all_problems(), IsEmpty());
+    }
+  }
+}
+
 TEST(test_rseq_analyzer_x86, jumping_around_critical_section_is_allowed)
 {
   enum location
