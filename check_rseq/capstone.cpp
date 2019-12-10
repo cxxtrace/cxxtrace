@@ -199,6 +199,12 @@ capstone_instructions::capstone_instructions(
 {}
 
 auto
+capstone_instructions::empty() const noexcept -> bool
+{
+  return this->size() == 0;
+}
+
+auto
 capstone_instructions::size() const noexcept -> std::size_t
 {
   return this->instructions_.get_deleter().count;
@@ -214,6 +220,13 @@ auto
 capstone_instructions::end() const noexcept -> const ::cs_insn*
 {
   return this->begin() + this->size();
+}
+
+auto
+capstone_instructions::front() const noexcept -> const ::cs_insn&
+{
+  assert(!this->empty());
+  return *this->begin();
 }
 
 capstone_register_set::capstone_register_set(

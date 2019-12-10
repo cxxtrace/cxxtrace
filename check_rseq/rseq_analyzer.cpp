@@ -11,10 +11,12 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/iostream.h>
 #include <cxxtrace/string.h>
+#include <elf.h>
 #include <fcntl.h>
 #include <gelf.h>
 #include <iomanip>
@@ -143,9 +145,11 @@ rseq_signature_for_architecture(machine_architecture architecture)
 class rseq_analyzer
 {
 public:
-  explicit rseq_analyzer(const elf_function& function,
+  explicit rseq_analyzer(::Elf* elf,
+                         const elf_function& function,
                          const rseq_critical_section& critical_section)
-    : function{ function }
+    : elf_{ elf }
+    , function{ function }
     , critical_section{ critical_section }
     , capstone{ this->open_capstone() }
   {}
@@ -192,6 +196,8 @@ public:
           },
           .modifying_instruction_address = instruction.address,
           .modifying_instruction_string = instruction_string(instruction),
+          .modifying_instruction_called_function =
+            this->called_function_name(instruction).value_or(""),
         });
       }
 
@@ -314,6 +320,259 @@ public:
     }
   }
 
+  auto called_function_name(const ::cs_insn& instruction) const
+    -> std::optional<std::string>
+  {
+    if (!this->elf_) {
+      return std::nullopt;
+    }
+    switch (instruction.id) {
+      case ::X86_INS_CALL: {
+        auto optional_callee_address =
+          this->direct_target_of_control_flow_instruction(instruction);
+        if (!optional_callee_address.has_value()) {
+          return std::nullopt;
+        }
+        return this->name_of_function(*optional_callee_address);
+      }
+      default:
+        return std::nullopt;
+    }
+  }
+
+  auto name_of_function(machine_address function_address) const
+    -> std::optional<std::string>
+  {
+    if (auto name = this->name_of_function_by_symbol(function_address)) {
+      return name;
+    }
+    if (auto name = this->name_of_plt_function(function_address)) {
+      return *name + "@PLT";
+    }
+    return std::nullopt;
+  }
+
+  auto name_of_function_by_symbol(machine_address function_address) const
+    -> std::optional<std::string>
+  {
+    assert(this->elf_);
+    try {
+      auto called_function =
+        function_containing_address(this->elf_, function_address);
+      return std::move(called_function).name;
+    } catch (const no_function_containing_address&) {
+      return std::nullopt;
+    }
+  }
+
+  auto name_of_plt_function(machine_address plt_function_address) const
+    -> std::optional<std::string>
+  {
+    // Example ELF:
+    //
+    // // In .plt section:
+    // 0x00000560: ff 25 b2 0a 20 00 jmpq *0x200ab2(%rip) // 0x00201018
+    //
+    // // In .got.plt section:
+    // 0x00201018: 66 05 00 00 00 00 00 00
+    //
+    // // In .rela.plt section:
+    // //          Info         Type               Symbol
+    // 0x00201018: 000100000007 R_X86_64_JUMP_SLOT _my_function
+    //
+    // // In .dynsym section:
+    // Num: Value             Size Type   Bind   Vis      Ndx Name
+    //   0: 0000000000000000     0 NOTYPE LOCAL  DEFAULT  UND
+    //   1: 0000000000000000     0 NOTYPE GLOBAL DEFAULT  UND _my_function
+    //
+    // If plt_function_address == 0x00000560, then name_of_plt_function should
+    // return "_my_function".
+
+    assert(this->elf_);
+    auto optional_got_entry =
+      this->global_offset_table_entry_from_plt_entry(plt_function_address);
+    if (!optional_got_entry.has_value()) {
+      return std::nullopt;
+    }
+    auto relocation = this->find_global_offset_table_entry_relocation(
+      this->elf_, *optional_got_entry);
+    if (!relocation.has_value()) {
+      return std::nullopt;
+    }
+    if (relocation->relocation_type != R_X86_64_JUMP_SLOT) {
+      return std::nullopt;
+    }
+
+    auto dynsym_section =
+      ::elf_getscn(this->elf_, relocation->dynsym_section_index);
+    auto dynsym_section_header = section_header(dynsym_section);
+    assert(dynsym_section_header.sh_type == SHT_DYNSYM);
+
+    auto symbol = this->get_symbol(dynsym_section, relocation->symbol_index);
+    if (!symbol.has_value()) {
+      return std::nullopt;
+    }
+
+    const auto* name =
+      ::elf_strptr(this->elf_, dynsym_section_header.sh_link, symbol->st_name);
+    if (name) {
+      return name;
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  struct global_offset_table_relocation
+  {
+    ::Elf64_Xword relocation_type;
+    ::Elf64_Word dynsym_section_index;
+    ::Elf64_Xword symbol_index;
+  };
+
+  static auto find_global_offset_table_entry_relocation(
+    ::Elf* elf,
+    machine_address got_entry_address)
+    -> std::optional<global_offset_table_relocation>
+  {
+    auto result = std::optional<global_offset_table_relocation>{};
+    enumerate_rela_entries(
+      elf,
+      [&](::Elf_Scn*,
+          const ::GElf_Shdr& section_header,
+          const ::GElf_Rela& entry) -> void {
+        if (entry.r_offset == got_entry_address) {
+          if (result.has_value()) {
+            throw std::runtime_error{ "Found multiple relocations at the same "
+                                      "address in the global offset table" };
+          }
+          result = global_offset_table_relocation{
+            .relocation_type = GELF_R_TYPE(entry.r_info),
+            .dynsym_section_index = section_header.sh_link,
+            .symbol_index = GELF_R_SYM(entry.r_info),
+          };
+        }
+      });
+    return result;
+  }
+
+  static auto get_symbol(::Elf_Scn* section, std::uint64_t entry_index)
+    -> std::optional<::GElf_Sym>
+  {
+    auto entry = get_section_entry(section, ELF_T_SYM, entry_index);
+    if (!entry.has_value()) {
+      return std::nullopt;
+    }
+    ::GElf_Sym symbol /* uninitialized */;
+    if (!::gelf_getsym(entry->chunk, entry->index_in_chunk, &symbol)) {
+      throw_libelf_error();
+    }
+    return symbol;
+  }
+
+  auto global_offset_table_entry_from_plt_entry(
+    machine_address plt_entry_address) const -> std::optional<machine_address>
+  {
+    // Example ELF:
+    //
+    // // In .plt section:
+    // 0x00000560: ff 25 b2 0a 20 00 jmpq *0x200ab2(%rip) // 0x00201018
+    //
+    // // In .got.plt section:
+    // 0x00201018: 66 05 00 00 00 00 00 00
+    //
+    // If plt_entry_address == 0x00000560, then
+    // global_offset_table_entry_from_plt_entry should return 0x00201018.
+
+    assert(this->elf_);
+    auto sections = std::vector<::Elf_Scn*>{};
+    std::copy_if(elf_section_range{ this->elf_ }.begin(),
+                 elf_section_range{ this->elf_ }.end(),
+                 std::back_inserter(sections),
+                 [&](::Elf_Scn* section) -> bool {
+                   auto header = section_header(section);
+                   auto is_possibly_plt_section =
+                     (header.sh_flags & SHF_ALLOC) == SHF_ALLOC;
+                   return is_possibly_plt_section &&
+                          section_contains_address(header, plt_entry_address);
+                 });
+    if (sections.empty()) {
+      return std::nullopt;
+    }
+    if (sections.size() > 1) {
+      throw std::runtime_error{
+        "Unexpectedly found multiple sections containing PLT entry"
+      };
+    }
+    const auto& section = sections.front();
+    auto section_bytes = section_data(section);
+
+    auto instruction_begin_offset =
+      plt_entry_address - section_header(section).sh_addr;
+    auto instruction_begin_it =
+      section_bytes.begin() + instruction_begin_offset;
+    auto instructions =
+      disassemble(this->capstone.get(),
+                  /*code=*/&*instruction_begin_it,
+                  /*code_size=*/section_bytes.end() - instruction_begin_it,
+                  /*address=*/plt_entry_address,
+                  /*count=*/1);
+    if (instructions.empty()) {
+      return std::nullopt;
+    }
+    const auto& instruction = instructions.front();
+    switch (instruction.id) {
+      case ::X86_INS_JMP:
+        return this->indirect_target_of_control_flow_instruction(instruction);
+      default:
+        return std::nullopt;
+    }
+  }
+
+  static auto direct_target_of_control_flow_instruction(
+    const ::cs_insn& instruction) -> std::optional<machine_address>
+  {
+    if (!(instruction.id == ::X86_INS_JMP ||
+          instruction.id == ::X86_INS_CALL)) {
+      return std::nullopt;
+    }
+    const auto& instruction_details = instruction.detail->x86;
+    if (instruction_details.op_count != 1) {
+      return std::nullopt;
+    }
+    const auto& operand = instruction_details.operands[0];
+    switch (operand.type) {
+      case ::X86_OP_IMM:
+        return operand.imm;
+      default:
+        return std::nullopt;
+    }
+  }
+
+  static auto indirect_target_of_control_flow_instruction(
+    const ::cs_insn& instruction) -> std::optional<machine_address>
+  {
+    if (!(instruction.id == ::X86_INS_JMP ||
+          instruction.id == ::X86_INS_CALL)) {
+      return std::nullopt;
+    }
+    const auto& instruction_details = instruction.detail->x86;
+    if (instruction_details.op_count != 1) {
+      return std::nullopt;
+    }
+    const auto& operand = instruction_details.operands[0];
+    switch (operand.type) {
+      case ::X86_OP_MEM:
+        if (operand.mem.base == ::X86_REG_RIP && operand.mem.scale == 1 &&
+            operand.mem.segment == ::X86_REG_INVALID &&
+            operand.mem.index == ::X86_REG_INVALID) {
+          return instruction.address + instruction.size + operand.mem.disp;
+        }
+        return std::nullopt;
+      default:
+        return std::nullopt;
+    }
+  }
+
   auto address_within_function(machine_address address) const noexcept -> bool
   {
     auto function_begin_address = this->function.base_address;
@@ -349,6 +608,7 @@ public:
   }
 
 private:
+  ::Elf* elf_{ nullptr };
   const elf_function& function;
   const rseq_critical_section& critical_section;
 
@@ -358,11 +618,12 @@ private:
 
 namespace {
 auto
-analyze_rseq_critical_section(const elf_function& function,
+analyze_rseq_critical_section(::Elf* elf,
+                              const elf_function& function,
                               const rseq_critical_section& critical_section,
                               rseq_analysis& analysis)
 {
-  auto analyzer = rseq_analyzer{ function, critical_section };
+  auto analyzer = rseq_analyzer{ elf, function, critical_section };
   if (function.instruction_bytes.empty()) {
     analysis.add_problem(rseq_problem::empty_function{
       {
@@ -429,7 +690,8 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
     }
     critical_section.function_address = function->base_address;
     critical_section.function = function->name;
-    analyze_rseq_critical_section(*function, critical_section, analysis);
+    analyze_rseq_critical_section(
+      elf.get(), *function, critical_section, analysis);
   }
   return analysis;
 }
@@ -449,7 +711,8 @@ analyze_rseq_critical_section(const elf_function& function,
     .abort_address = abort_address,
   };
   auto analysis = rseq_analysis{};
-  analyze_rseq_critical_section(function, critical_section, analysis);
+  analyze_rseq_critical_section(
+    /*elf=*/nullptr, function, critical_section, analysis);
   return analysis;
 }
 
@@ -646,6 +909,9 @@ operator<<(std::ostream& stream, const rseq_problem::stack_pointer_modified& x)
   stream << "stack pointer modified at " << std::hex << std::showbase
          << x.modifying_instruction_address << ": "
          << x.modifying_instruction_string;
+  if (!x.modifying_instruction_called_function.empty()) {
+    stream << " // " << x.modifying_instruction_called_function;
+  }
   cxxtrace::detail::reset_ostream_formatting(stream);
   return stream;
 }

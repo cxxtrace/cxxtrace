@@ -484,6 +484,108 @@ TEST(test_rseq_analyzer_x86, modifying_rsp_in_critical_section_is_disallowed)
   }
 }
 
+TEST(test_rseq_analyzer_x86,
+     calling_local_function_in_critical_section_is_disallowed)
+{
+  auto assembly_code = R"(
+      .section .data_cxxtrace_rseq, "a", @progbits
+        .long 0
+        .long 0
+        .quad _start
+        .quad _post_commit - _start
+        .quad _abort
+
+      .text
+      .globl _my_function
+      .type _my_function, @function
+      _my_function:
+
+      _start:
+        nop
+      _bad_instruction:
+        callq _other_function
+      _post_commit:
+        ret
+
+    )"s + abort_signature_x86 +
+                       R"(
+      _abort:
+        ret
+
+      .size _my_function, . - _my_function
+
+      .type _other_function, @function
+      _other_function:
+        ret
+      .size _other_function, . - _other_function
+    )";
+  auto elf_so = assemble_into_elf_shared_object(
+    machine_architecture::x86, assembly_code.c_str(), {});
+
+  auto analysis = cxxtrace_check_rseq::analyze_rseq_critical_sections_in_file(
+    elf_so.elf_path());
+  EXPECT_THAT(analysis.all_problems(),
+              ElementsAre(VariantWith<rseq_problem::stack_pointer_modified>(
+                AllOf(FIELD_EQ(rseq_problem::stack_pointer_modified,
+                               modifying_instruction_address,
+                               elf_so.symbol("_bad_instruction")),
+                      FIELD_EQ(rseq_problem::stack_pointer_modified,
+                               modifying_instruction_called_function,
+                               "_other_function")))));
+}
+
+TEST(test_rseq_analyzer_x86,
+     calling_external_function_in_critical_section_is_disallowed)
+{
+  auto assembly_code = R"(
+      .section .data_cxxtrace_rseq, "a", @progbits
+        .long 0
+        .long 0
+        .quad _start
+        .quad _post_commit - _start
+        .quad _abort
+
+      .text
+
+        // Create a dummy PLT entry to prevent a naive implementation from
+        // passing this test.
+        callq _undefined_function_1@PLT
+
+      .globl _my_function
+      .type _my_function, @function
+      _my_function:
+
+      _start:
+        nop
+      _bad_instruction:
+        callq _undefined_function_2@PLT
+      _post_commit:
+        ret
+
+    )"s + abort_signature_x86 +
+                       R"(
+      _abort:
+        ret
+
+        callq _undefined_function_3@PLT
+
+      .size _my_function, . - _my_function
+    )";
+  auto elf_so = assemble_into_elf_shared_object(
+    machine_architecture::x86, assembly_code.c_str(), {});
+
+  auto analysis = cxxtrace_check_rseq::analyze_rseq_critical_sections_in_file(
+    elf_so.elf_path());
+  EXPECT_THAT(analysis.all_problems(),
+              ElementsAre(VariantWith<rseq_problem::stack_pointer_modified>(
+                AllOf(FIELD_EQ(rseq_problem::stack_pointer_modified,
+                               modifying_instruction_address,
+                               elf_so.symbol("_bad_instruction")),
+                      FIELD_EQ(rseq_problem::stack_pointer_modified,
+                               modifying_instruction_called_function,
+                               "_undefined_function_2@PLT")))));
+}
+
 TEST(test_rseq_analyzer_x86, interrupt_in_critical_section_is_disallowed)
 {
   for (const auto* instruction : { "syscall", "int3", "int $5" }) {
@@ -1195,18 +1297,39 @@ TEST(test_check_rseq_formatting, no_rseq_descriptors_problem)
 
 TEST(test_check_rseq_formatting, stack_pointer_modified_problem)
 {
-  auto string = std::ostringstream{};
-  auto critical_section = stub_critical_section();
-  critical_section.function = "stack_smasher";
-  string << rseq_problem::stack_pointer_modified{
-    {
-      .critical_section = critical_section,
-    },
-    .modifying_instruction_address = 0x00007ffffffffea8,
-    .modifying_instruction_string = "retq",
-  };
-  EXPECT_EQ(string.str(), "stack pointer modified at 0x7ffffffffea8: retq");
-  assert_stream_has_default_formatting(string);
+  {
+    auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "stack_smasher";
+    string << rseq_problem::stack_pointer_modified{
+      {
+        .critical_section = critical_section,
+      },
+      .modifying_instruction_address = 0x00007ffffffffea8,
+      .modifying_instruction_string = "retq",
+      .modifying_instruction_called_function = "",
+    };
+    EXPECT_EQ(string.str(), "stack pointer modified at 0x7ffffffffea8: retq");
+    assert_stream_has_default_formatting(string);
+  }
+
+  {
+    auto string = std::ostringstream{};
+    auto critical_section = stub_critical_section();
+    critical_section.function = "sinking_ship";
+    string << rseq_problem::stack_pointer_modified{
+      {
+        .critical_section = critical_section,
+      },
+      .modifying_instruction_address = 0x0000000800001003,
+      .modifying_instruction_string = "callq 0x123456",
+      .modifying_instruction_called_function = "_abort",
+    };
+    EXPECT_EQ(
+      string.str(),
+      "stack pointer modified at 0x800001003: callq 0x123456 // _abort");
+    assert_stream_has_default_formatting(string);
+  }
 }
 
 TEST(test_check_rseq, empty_critical_section_has_zero_bytes)

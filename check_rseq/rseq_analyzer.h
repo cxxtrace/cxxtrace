@@ -230,6 +230,7 @@ struct rseq_problem
   public:
     machine_address modifying_instruction_address;
     std::string modifying_instruction_string;
+    std::string modifying_instruction_called_function;
 
     auto modifying_instruction_function() const -> std::string
     {

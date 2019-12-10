@@ -85,9 +85,13 @@ public:
   explicit capstone_instructions(::cs_insn* instructions,
                                  std::size_t instruction_count) noexcept;
 
+  auto empty() const noexcept -> bool;
   auto size() const noexcept -> std::size_t;
+
   auto begin() const noexcept -> const ::cs_insn*;
   auto end() const noexcept -> const ::cs_insn*;
+
+  auto front() const noexcept -> const ::cs_insn&;
 
 private:
   std::unique_ptr<::cs_insn, cs_free_deleter> instructions_;

@@ -3,6 +3,7 @@
 
 #include "machine_code.h"
 #include <cstddef>
+#include <cstdint>
 #include <cxxtrace/string.h>
 #include <iterator>
 #include <libelf/gelf.h>
@@ -146,6 +147,9 @@ section_by_index(::Elf*, std::size_t index) -> ::Elf_Scn*;
 auto
 section_data(::Elf_Scn*) -> std::vector<std::byte>;
 
+auto
+section_contains_address(const ::GElf_Shdr&, machine_address) -> bool;
+
 template<class Func>
 auto
 enumerate_symbols(::Elf_Scn*,
@@ -154,6 +158,26 @@ enumerate_symbols(::Elf_Scn*,
 template<class Func>
 auto
 enumerate_symbols(::Elf*, Func&& callback) -> void;
+
+template<class Func>
+auto
+enumerate_rela_entries(::Elf*, Func&& callback) -> void;
+
+template<class Func>
+auto
+enumerate_rela_section_entries(::Elf*, ::Elf_Scn*, Func&& callback) -> void;
+
+struct elf_section_entry
+{
+  ::Elf_Data* chunk;
+  std::uint64_t index_in_chunk;
+};
+
+auto
+get_section_entry(::Elf_Scn*,
+                  ::Elf_Type expected_type,
+                  std::uint64_t entry_index)
+  -> std::optional<elf_section_entry>;
 }
 
 #include "libelf_support_impl.h" // IWYU pragma: export

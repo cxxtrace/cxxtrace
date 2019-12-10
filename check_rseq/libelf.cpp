@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <cxxtrace/string.h>
 #include <elf.h>
 #include <exception>
@@ -349,5 +350,35 @@ section_data(::Elf_Scn* section) -> std::vector<std::byte>
     }
   }
   return data;
+}
+
+auto
+section_contains_address(const ::GElf_Shdr& section_header,
+                         machine_address address) -> bool
+{
+  return section_header.sh_addr <= address &&
+         address < section_header.sh_addr + section_header.sh_size;
+}
+
+auto
+get_section_entry(::Elf_Scn* section,
+                  ::Elf_Type expected_type,
+                  std::uint64_t entry_index) -> std::optional<elf_section_entry>
+{
+  for (auto* chunk : elf_chunk_range{ section }) {
+    if (chunk->d_type != expected_type) {
+      throw std::runtime_error{
+        "Expected section to contain entries of a different type"
+      };
+    }
+    auto entry_size = section_header(section).sh_entsize;
+    auto chunk_entries_begin = chunk->d_off / entry_size;
+    auto chunk_entry_count = chunk->d_size / entry_size;
+    auto chunk_entries_end = chunk_entries_begin + chunk_entry_count;
+    if (chunk_entries_begin <= entry_index && entry_index < chunk_entries_end) {
+      return elf_section_entry{ chunk, entry_index - chunk_entries_begin };
+    }
+  }
+  return std::nullopt;
 }
 }
