@@ -5,12 +5,15 @@
 #include <cstddef>
 #include <cxxtrace/string.h>
 #include <elf.h>
+#include <iterator>
 #include <libelf/gelf.h>
 #include <libelf/libelf.h>
 #include <optional>
 #include <vector>
 
 namespace cxxtrace_check_rseq {
+class elf_chunk_iterator;
+
 auto
 initialize_libelf() -> void;
 
@@ -40,6 +43,46 @@ public:
 
 private:
   ::Elf* elf_;
+};
+
+class elf_chunk_range
+{
+public:
+  explicit elf_chunk_range(::Elf_Scn*) noexcept;
+
+  auto begin() const noexcept -> elf_chunk_iterator;
+  auto end() const noexcept -> elf_chunk_iterator;
+
+private:
+  ::Elf_Scn* section_{ nullptr };
+};
+
+class elf_chunk_iterator
+{
+public:
+  using difference_type = std::ptrdiff_t;
+  using iterator_category = std::input_iterator_tag;
+  using pointer = ::Elf_Data**;
+  using reference = ::Elf_Data*;
+  using value_type = ::Elf_Data*;
+
+  /*implicit*/ elf_chunk_iterator() noexcept;
+  explicit elf_chunk_iterator(::Elf_Scn*, ::Elf_Data*);
+
+  auto operator*() const noexcept -> ::Elf_Data*;
+  auto operator-> () const noexcept -> ::Elf_Data*;
+
+  auto operator==(const elf_chunk_iterator& other) const noexcept -> bool;
+  auto operator!=(const elf_chunk_iterator& other) const noexcept -> bool;
+
+  auto operator++() -> elf_chunk_iterator&;
+  auto operator++(int) -> elf_chunk_iterator;
+
+private:
+  auto is_end_iterator() const noexcept -> bool;
+
+  ::Elf_Scn* section_{ nullptr };
+  ::Elf_Data* chunk_{ nullptr };
 };
 
 auto

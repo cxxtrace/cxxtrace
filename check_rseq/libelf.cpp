@@ -4,10 +4,12 @@
 #include <cassert>
 #include <cstddef>
 #include <elf.h>
+#include <exception>
 #include <libelf.h>
 #include <libelf/gelf.h>
 #include <optional>
 #include <stdexcept>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -92,6 +94,84 @@ elf_handle::valid() const noexcept -> bool
   return this->elf_;
 }
 
+elf_chunk_range::elf_chunk_range(::Elf_Scn* section) noexcept
+  : section_{ section }
+{}
+
+auto
+elf_chunk_range::begin() const noexcept -> elf_chunk_iterator
+{
+  auto* chunk = ::elf_getdata(this->section_, nullptr);
+  return elf_chunk_iterator{ this->section_, chunk };
+}
+
+auto
+elf_chunk_range::end() const noexcept -> elf_chunk_iterator
+{
+  return elf_chunk_iterator{};
+}
+
+elf_chunk_iterator::elf_chunk_iterator() noexcept = default;
+
+elf_chunk_iterator::elf_chunk_iterator(::Elf_Scn* section, ::Elf_Data* chunk)
+  : section_{ section }
+  , chunk_{ chunk }
+{}
+
+auto elf_chunk_iterator::operator*() const noexcept -> ::Elf_Data*
+{
+  assert(this->chunk_);
+  return this->chunk_;
+}
+
+auto elf_chunk_iterator::operator-> () const noexcept -> ::Elf_Data*
+{
+  assert(false && "Unimplemented");
+  std::terminate();
+}
+
+auto
+elf_chunk_iterator::operator==(const elf_chunk_iterator& other) const noexcept
+  -> bool
+{
+  if (this->is_end_iterator()) {
+    return other.is_end_iterator();
+  }
+  if (other.is_end_iterator()) {
+    return this->is_end_iterator();
+  }
+  return std::tie(this->section_, this->chunk_) ==
+         std::tie(other.section_, other.chunk_);
+}
+
+auto
+elf_chunk_iterator::operator!=(const elf_chunk_iterator& other) const noexcept
+  -> bool
+{
+  return !(*this == other);
+}
+
+auto
+elf_chunk_iterator::operator++() -> elf_chunk_iterator&
+{
+  assert(!this->is_end_iterator());
+  this->chunk_ = ::elf_getdata(this->section_, this->chunk_);
+  return *this;
+}
+
+auto
+elf_chunk_iterator::operator++(int) -> elf_chunk_iterator
+{
+  assert(false && "Unimplemented");
+  std::terminate();
+}
+
+auto
+elf_chunk_iterator::is_end_iterator() const noexcept -> bool
+{
+  return !this->section_ || !this->chunk_;
+}
+
 auto
 elf_architecture(::Elf* elf) -> std::optional<machine_architecture>
 {
@@ -156,8 +236,7 @@ section_data(::Elf_Scn* section) -> std::vector<std::byte>
   if (header.sh_size == 0) {
     return data;
   }
-  auto* chunk = ::elf_getdata(section, nullptr);
-  while (chunk) {
+  for (auto* chunk : elf_chunk_range{ section }) {
     if (chunk->d_type != ELF_T_BYTE) {
       throw std::runtime_error{ "Expected section to contain bytes" };
     }
@@ -175,7 +254,6 @@ section_data(::Elf_Scn* section) -> std::vector<std::byte>
       assert(header.sh_type == SHT_NOBITS);
       std::fill_n(data.begin() + chunk->d_off, chunk->d_size, std::byte{ 0 });
     }
-    chunk = ::elf_getdata(section, chunk);
   }
   return data;
 }

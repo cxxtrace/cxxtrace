@@ -71,8 +71,7 @@ enumerate_symbols(::Elf_Scn* section,
                   Func&& callback) -> void
 {
   assert(section_header.sh_type == SHT_SYMTAB);
-  auto* chunk = ::elf_getdata(section, nullptr);
-  while (chunk) {
+  for (auto* chunk : elf_chunk_range{ section }) {
     if (chunk->d_type != ELF_T_SYM) {
       throw std::runtime_error{ "Expected section to contain symbols" };
     }
@@ -85,7 +84,6 @@ enumerate_symbols(::Elf_Scn* section,
       }
       callback(symbol);
     }
-    chunk = ::elf_getdata(section, chunk);
   }
 }
 
