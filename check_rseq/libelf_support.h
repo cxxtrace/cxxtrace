@@ -4,7 +4,6 @@
 #include "machine_code.h"
 #include <cstddef>
 #include <cxxtrace/string.h>
-#include <elf.h>
 #include <iterator>
 #include <libelf/gelf.h>
 #include <libelf/libelf.h>
@@ -13,6 +12,7 @@
 
 namespace cxxtrace_check_rseq {
 class elf_chunk_iterator;
+class elf_section_iterator;
 
 auto
 initialize_libelf() -> void;
@@ -85,6 +85,46 @@ private:
   ::Elf_Data* chunk_{ nullptr };
 };
 
+class elf_section_range
+{
+public:
+  explicit elf_section_range(::Elf*) noexcept;
+
+  auto begin() const noexcept -> elf_section_iterator;
+  auto end() const noexcept -> elf_section_iterator;
+
+private:
+  ::Elf* elf_{ nullptr };
+};
+
+class elf_section_iterator
+{
+public:
+  using difference_type = std::ptrdiff_t;
+  using iterator_category = std::input_iterator_tag;
+  using pointer = ::Elf_Scn**;
+  using reference = ::Elf_Scn*;
+  using value_type = ::Elf_Scn*;
+
+  /*implicit*/ elf_section_iterator() noexcept;
+  explicit elf_section_iterator(::Elf*, ::Elf_Scn*);
+
+  auto operator*() const noexcept -> ::Elf_Scn*;
+  auto operator-> () const noexcept -> ::Elf_Scn*;
+
+  auto operator==(const elf_section_iterator& other) const noexcept -> bool;
+  auto operator!=(const elf_section_iterator& other) const noexcept -> bool;
+
+  auto operator++() -> elf_section_iterator&;
+  auto operator++(int) -> elf_section_iterator;
+
+private:
+  auto is_end_iterator() const noexcept -> bool;
+
+  ::Elf* elf_{ nullptr };
+  ::Elf_Scn* section_{ nullptr };
+};
+
 auto
 elf_architecture(::Elf*) -> std::optional<machine_architecture>;
 
@@ -95,6 +135,9 @@ auto
 section_header(::Elf_Scn*) -> ::GElf_Shdr;
 
 auto
+section_name(::Elf*, ::Elf_Scn*) -> cxxtrace::czstring;
+
+auto
 section_headers_string_table_section_index(::Elf*) -> std::size_t;
 
 auto
@@ -102,21 +145,6 @@ section_by_index(::Elf*, std::size_t index) -> ::Elf_Scn*;
 
 auto
 section_data(::Elf_Scn*) -> std::vector<std::byte>;
-
-template<class Func>
-auto
-enumerate_sections(::Elf*, Func&& callback) -> void;
-
-template<class Func>
-auto
-enumerate_sections_with_name(::Elf*,
-                             cxxtrace::czstring section_name,
-                             Func&& callback) -> void;
-
-template<class Func>
-auto
-enumerate_sections_with_type(::Elf*, ::Elf64_Word section_type, Func&& callback)
-  -> void;
 
 template<class Func>
 auto

@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstddef>
+#include <cstring>
 #include <cxxtrace/detail/file_descriptor.h>
 #include <cxxtrace/detail/iostream.h>
 #include <cxxtrace/string.h>
@@ -478,8 +479,9 @@ parse_rseq_descriptors(::Elf* elf) -> std::vector<parsed_rseq_descriptor>
   };
 
   auto descriptors = std::vector<parsed_rseq_descriptor>{};
-  enumerate_sections_with_name(
-    elf, rseq_descriptor_section_name, [&](::Elf_Scn* section) -> void {
+  for (auto* section : elf_section_range{ elf }) {
+    if (std::strcmp(section_name(elf, section), rseq_descriptor_section_name) ==
+        0) {
       auto section_begin_address = section_header(section).sh_addr;
       auto bytes = section_data(section);
       auto parser = binary_parser{ bytes.data(), bytes.size() };
@@ -488,7 +490,8 @@ parse_rseq_descriptors(::Elf* elf) -> std::vector<parsed_rseq_descriptor>
         descriptors.emplace_back(
           parse_descriptor(parser, section_begin_address + offset));
       }
-    });
+    }
+  }
   return descriptors;
 }
 

@@ -8,62 +8,12 @@
 #endif
 
 #include <cassert>
-#include <cstring>
-#include <cxxtrace/string.h>
 #include <elf.h>
 #include <gelf.h>
 #include <libelf.h>
 #include <stdexcept>
 
 namespace cxxtrace_check_rseq {
-template<class Func>
-auto
-enumerate_sections(::Elf* elf, Func&& callback) -> void
-{
-  auto* section = ::elf_nextscn(elf, nullptr);
-  while (section) {
-    callback(section);
-    section = ::elf_nextscn(elf, section);
-  }
-}
-
-template<class Func>
-auto
-enumerate_sections_with_name(::Elf* elf,
-                             cxxtrace::czstring section_name,
-                             Func&& callback) -> void
-{
-  auto string_table_section_index =
-    section_headers_string_table_section_index(elf);
-  enumerate_sections(elf, [&](::Elf_Scn* section) -> void {
-    auto header = section_header(section);
-    auto* current_section_name =
-      ::elf_strptr(elf, string_table_section_index, header.sh_name);
-    if (!current_section_name) {
-      throw_libelf_error();
-    }
-    if (std::strcmp(current_section_name, section_name) == 0) {
-      callback(section);
-    }
-  });
-}
-
-template<class Func>
-auto
-enumerate_sections_with_type(::Elf* elf,
-                             ::Elf64_Word section_type,
-                             Func&& callback) -> void
-{
-  auto* section = ::elf_nextscn(elf, nullptr);
-  while (section) {
-    auto header = section_header(section);
-    if (header.sh_type == section_type) {
-      callback(section, header);
-    }
-    section = ::elf_nextscn(elf, section);
-  }
-}
-
 template<class Func>
 auto
 enumerate_symbols(::Elf_Scn* section,
@@ -91,15 +41,14 @@ template<class Func>
 auto
 enumerate_symbols(::Elf* elf, Func&& callback) -> void
 {
-  enumerate_sections_with_type(
-    elf,
-    SHT_SYMTAB,
-    [&](::Elf_Scn* section, const ::GElf_Shdr& section_header) -> void {
-      enumerate_symbols(
-        section, section_header, [&](const ::GElf_Sym& symbol) -> void {
-          callback(section_header, symbol);
-        });
-    });
+  for (auto* section : elf_section_range{ elf }) {
+    auto header = section_header(section);
+    if (header.sh_type == SHT_SYMTAB) {
+      enumerate_symbols(section, header, [&](const ::GElf_Sym& symbol) -> void {
+        callback(header, symbol);
+      });
+    }
+  }
 }
 }
 

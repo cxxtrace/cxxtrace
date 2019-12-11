@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cxxtrace/string.h>
 #include <elf.h>
 #include <exception>
 #include <libelf.h>
@@ -172,6 +173,84 @@ elf_chunk_iterator::is_end_iterator() const noexcept -> bool
   return !this->section_ || !this->chunk_;
 }
 
+elf_section_range::elf_section_range(::Elf* elf) noexcept
+  : elf_{ elf }
+{}
+
+auto
+elf_section_range::begin() const noexcept -> elf_section_iterator
+{
+  auto* section = ::elf_nextscn(this->elf_, nullptr);
+  return elf_section_iterator{ this->elf_, section };
+}
+
+auto
+elf_section_range::end() const noexcept -> elf_section_iterator
+{
+  return elf_section_iterator{};
+}
+
+elf_section_iterator::elf_section_iterator() noexcept = default;
+
+elf_section_iterator::elf_section_iterator(::Elf* elf, ::Elf_Scn* section)
+  : elf_{ elf }
+  , section_{ section }
+{}
+
+auto elf_section_iterator::operator*() const noexcept -> ::Elf_Scn*
+{
+  assert(this->section_);
+  return this->section_;
+}
+
+auto elf_section_iterator::operator-> () const noexcept -> ::Elf_Scn*
+{
+  assert(false && "Unimplemented");
+  std::terminate();
+}
+
+auto
+elf_section_iterator::operator==(const elf_section_iterator& other) const
+  noexcept -> bool
+{
+  if (this->is_end_iterator()) {
+    return other.is_end_iterator();
+  }
+  if (other.is_end_iterator()) {
+    return this->is_end_iterator();
+  }
+  return std::tie(this->elf_, this->section_) ==
+         std::tie(other.elf_, other.section_);
+}
+
+auto
+elf_section_iterator::operator!=(const elf_section_iterator& other) const
+  noexcept -> bool
+{
+  return !(*this == other);
+}
+
+auto
+elf_section_iterator::operator++() -> elf_section_iterator&
+{
+  assert(!this->is_end_iterator());
+  this->section_ = ::elf_nextscn(this->elf_, this->section_);
+  return *this;
+}
+
+auto
+elf_section_iterator::operator++(int) -> elf_section_iterator
+{
+  assert(false && "Unimplemented");
+  std::terminate();
+}
+
+auto
+elf_section_iterator::is_end_iterator() const noexcept -> bool
+{
+  return !this->elf_ || !this->section_;
+}
+
 auto
 elf_architecture(::Elf* elf) -> std::optional<machine_architecture>
 {
@@ -206,6 +285,20 @@ section_header(::Elf_Scn* section) -> ::GElf_Shdr
   }
   assert(header == &header_storage);
   return *header;
+}
+
+auto
+section_name(::Elf* elf, ::Elf_Scn* section) -> cxxtrace::czstring
+{
+  auto string_table_section_index =
+    section_headers_string_table_section_index(elf);
+  auto header = section_header(section);
+  auto* section_name =
+    ::elf_strptr(elf, string_table_section_index, header.sh_name);
+  if (!section_name) {
+    throw_libelf_error();
+  }
+  return section_name;
 }
 
 auto
