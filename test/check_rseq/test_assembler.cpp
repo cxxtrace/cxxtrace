@@ -94,14 +94,12 @@ TEST(test_assemble_x86, jump_to_label)
                 0xfc));
 }
 
-TEST(test_assemble_x86, assembling_undefined_label_throws)
+TEST(test_assemble_x86, assembling_undefined_external_label_succeeds)
 {
-  EXPECT_THROW(
-    {
-      assemble_function("test_function", machine_architecture::x86, R"(
-          jmp symbol_does_not_exist
+  EXPECT_NO_THROW({
+    assemble_function("test_function", machine_architecture::x86, R"(
+          jmp symbol_does_not_exist@PLT
         )");
-    },
-    assemble_exception);
+  });
 }
 }

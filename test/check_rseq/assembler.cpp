@@ -139,7 +139,6 @@ assemble_into_elf_shared_object(
   auto command = std::vector{
     "cc",
     "-shared",
-    "-Wl,--no-undefined",
     "-o",
     elf_file.path.c_str(),
     "-x",
