@@ -697,7 +697,8 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
 }
 
 auto
-analyze_rseq_critical_section(const elf_function& function,
+analyze_rseq_critical_section(::Elf* elf,
+                              const elf_function& function,
                               machine_address start_address,
                               machine_address post_commit_address,
                               machine_address abort_address) -> rseq_analysis
@@ -711,8 +712,7 @@ analyze_rseq_critical_section(const elf_function& function,
     .abort_address = abort_address,
   };
   auto analysis = rseq_analysis{};
-  analyze_rseq_critical_section(
-    /*elf=*/nullptr, function, critical_section, analysis);
+  analyze_rseq_critical_section(elf, function, critical_section, analysis);
   return analysis;
 }
 

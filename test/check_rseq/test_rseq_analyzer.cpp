@@ -79,6 +79,7 @@ analyze_rseq_critical_section(const temporary_elf_file& elf,
 {
   auto function = function_from_symbol(elf.elf(), function_name);
   return analyze_rseq_critical_section(
+    elf.elf(),
     function,
     /*start_address=*/elf.symbol(start_symbol),
     /*post_commit_address=*/elf.symbol(post_commit_symbol),
@@ -284,7 +285,8 @@ TEST(test_rseq_analyzer_x86, empty_function_is_disallowed)
     .base_address = 0x1000,
     .architecture = machine_architecture::x86,
   };
-  auto analysis = analyze_rseq_critical_section(function,
+  auto analysis = analyze_rseq_critical_section(/*elf=*/nullptr,
+                                                function,
                                                 /*start_address=*/0x1000,
                                                 /*post_commit_address=*/0x1000,
                                                 /*abort_address=*/0x1000);
@@ -339,7 +341,8 @@ TEST(test_rseq_analyzer_x86, label_outside_function_is_disallowed)
   auto post_commit_address = cxxtrace_check_rseq::machine_address{ 0x2001 };
   auto abort_address = cxxtrace_check_rseq::machine_address{ 0x2002 };
   auto analysis =
-    analyze_rseq_critical_section(function,
+    analyze_rseq_critical_section(/*elf=*/nullptr,
+                                  function,
                                   /*start_address=*/start_address,
                                   /*post_commit_address=*/post_commit_address,
                                   /*abort_address=*/abort_address);
@@ -1032,6 +1035,7 @@ TEST(test_rseq_analyzer_x86, out_of_bounds_abort_signature_is_disallowed)
       machine_architecture::x86, code, "test_function");
     auto abort_address = elf.symbol("abort_signature") + 4;
     auto analysis = analyze_rseq_critical_section(
+      elf.elf(),
       function_from_symbol(elf.elf(), "test_function"),
       elf.symbol("start"),
       elf.symbol("post_commit"),
@@ -1106,6 +1110,7 @@ TEST(test_rseq_analyzer_x86,
       machine_architecture::x86, code, "test_function");
     auto abort_address = elf.symbol("abort_signature") + 4;
     auto analysis = analyze_rseq_critical_section(
+      elf.elf(),
       function_from_symbol(elf.elf(), "test_function"),
       elf.symbol("start"),
       elf.symbol("post_commit"),

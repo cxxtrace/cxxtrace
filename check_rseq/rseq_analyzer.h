@@ -23,7 +23,8 @@ analyze_rseq_critical_sections_in_file(cxxtrace::czstring file_path)
   -> rseq_analysis;
 
 auto
-analyze_rseq_critical_section(const elf_function&,
+analyze_rseq_critical_section(::Elf*,
+                              const elf_function&,
                               machine_address start_address,
                               machine_address post_commit_address,
                               machine_address abort_address) -> rseq_analysis;
