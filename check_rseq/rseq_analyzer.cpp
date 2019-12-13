@@ -36,6 +36,10 @@ namespace cxxtrace_check_rseq {
 namespace {
 constexpr auto rseq_descriptor_section_name = ".data_cxxtrace_rseq";
 
+constexpr const char* terminating_functions[] = {
+  "__assert_fail@PLT",
+};
+
 template<class Problem>
 constexpr auto
 is_problem_with_critical_section() -> bool
@@ -184,32 +188,36 @@ public:
     };
 
     if (this->instruction_within_critical_section(instruction)) {
-      auto written_registers =
-        registers_written_by_instruction(this->capstone.get(), instruction);
-      // TODO(strager): What about esp and sp?
-      auto modifies_stack_pointer =
-        written_registers.contains(::X86_REG_RSP) || in_group(::X86_GRP_IRET);
-      if (modifies_stack_pointer) {
-        analysis.add_problem(rseq_problem::stack_pointer_modified{
-          {
-            .critical_section = this->critical_section,
-          },
-          .modifying_instruction_address = instruction.address,
-          .modifying_instruction_string = instruction_string(instruction),
-          .modifying_instruction_called_function =
-            this->called_function_name(instruction).value_or(""),
-        });
-      }
+      if (this->is_terminating_instruction(instruction)) {
+        // Report no diagnostics.
+      } else {
+        auto written_registers =
+          registers_written_by_instruction(this->capstone.get(), instruction);
+        // TODO(strager): What about esp and sp?
+        auto modifies_stack_pointer =
+          written_registers.contains(::X86_REG_RSP) || in_group(::X86_GRP_IRET);
+        if (modifies_stack_pointer) {
+          analysis.add_problem(rseq_problem::stack_pointer_modified{
+            {
+              .critical_section = this->critical_section,
+            },
+            .modifying_instruction_address = instruction.address,
+            .modifying_instruction_string = instruction_string(instruction),
+            .modifying_instruction_called_function =
+              this->called_function_name(instruction).value_or(""),
+          });
+        }
 
-      auto interrupts = in_group(::CS_GRP_INT);
-      if (interrupts) {
-        analysis.add_problem(rseq_problem::interrupt{
-          {
-            .critical_section = this->critical_section,
-          },
-          .interrupt_instruction_address = instruction.address,
-          .interrupt_instruction_string = instruction_string(instruction),
-        });
+        auto interrupts = in_group(::CS_GRP_INT);
+        if (interrupts) {
+          analysis.add_problem(rseq_problem::interrupt{
+            {
+              .critical_section = this->critical_section,
+            },
+            .interrupt_instruction_address = instruction.address,
+            .interrupt_instruction_string = instruction_string(instruction),
+          });
+        }
       }
     } else {
       auto jumps = in_group(::X86_GRP_JUMP) || in_group(::X86_GRP_CALL);
@@ -318,6 +326,25 @@ public:
         .label_kind = rseq_problem::label_outside_function::kind::abort,
       });
     }
+  }
+
+  auto is_terminating_instruction(const ::cs_insn& instruction) const -> bool
+  {
+    if (!instruction_in_group(instruction, ::X86_GRP_CALL)) {
+      return false;
+    }
+    auto called_function =
+      this->direct_target_of_control_flow_instruction(instruction);
+    if (!called_function.has_value()) {
+      return false;
+    }
+    auto called_function_name = this->name_of_function(*called_function);
+    if (!called_function_name.has_value()) {
+      return false;
+    }
+    return std::find(std::begin(terminating_functions),
+                     std::end(terminating_functions),
+                     *called_function_name) != std::end(terminating_functions);
   }
 
   auto called_function_name(const ::cs_insn& instruction) const

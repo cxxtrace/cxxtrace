@@ -589,6 +589,30 @@ TEST(test_rseq_analyzer_x86,
                                "_undefined_function_2@PLT")))));
 }
 
+TEST(test_rseq_analyzer_x86, calling_terminating_function_is_allowed)
+{
+  for (auto function_name : { "__assert_fail@PLT" }) {
+    auto code = R"(
+      start:
+        callq )"s +
+                function_name + R"(
+      post_commit:
+        ret
+    )"s + abort_signature_x86 +
+                R"(
+      abort:
+        ret
+    )"s;
+    SCOPED_TRACE("code: " + code);
+    auto elf = assemble_function_into_elf_shared_object(
+      machine_architecture::x86, code, "terminating_function");
+
+    auto analysis = analyze_rseq_critical_section(
+      elf, "terminating_function", "start", "post_commit", "abort");
+    EXPECT_THAT(analysis.all_problems(), IsEmpty());
+  }
+}
+
 TEST(test_rseq_analyzer_x86, interrupt_in_critical_section_is_disallowed)
 {
   for (const auto* instruction : { "syscall", "int3", "int $5" }) {
